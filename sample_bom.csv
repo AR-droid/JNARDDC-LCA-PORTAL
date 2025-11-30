@@ -1,0 +1,9 @@
+name,type,quantity,unit,recycled_content,transport_distance
+Copper Wire,copper,50,kg,30,500
+Aluminum Sheet,aluminium,100,kg,60,300
+Steel Frame,steel,200,kg,80,400
+Lithium Battery Cells,lithium,25,kg,0,1000
+Nickel Plating,nickel,15,kg,20,250
+Cobalt Cathode,cobalt,10,kg,0,800
+Recycled Aluminum Housing,aluminium,75,kg,100,100
+Stainless Steel Bolts,steel,5,kg,40,200

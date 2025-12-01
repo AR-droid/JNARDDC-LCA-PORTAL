@@ -208,6 +208,7 @@ export default function ProjectDetailPage() {
               <p className="text-xs text-blue-600 font-medium">Total GWP</p>
               <p className="text-xl font-semibold text-blue-900">{totalGWP.toFixed(2)}</p>
               <p className="text-2xs text-blue-500">kg CO₂-eq</p>
+              <p className="text-2xs text-blue-400 italic mt-1">IPCC AR6, Ecoinvent 3.9</p>
             </div>
             <div className="bg-green-50 p-3 rounded-md">
               <p className="text-xs text-green-600 font-medium">Materials</p>

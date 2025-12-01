@@ -74,12 +74,14 @@ export default function DashboardPage() {
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold mb-2 text-gray-700">Total Carbon Footprint</h3>
             <p className="text-4xl font-bold text-green-600">{analytics?.summary?.total_gwp?.toFixed(1) || stats.avgGwp.toFixed(1)}</p>
-            <p className="text-sm text-gray-500 mt-2">kg CO₂-eq across all projects</p>
+            <p className="text-sm text-gray-500 mt-1">kg CO₂-eq across all projects</p>
+            <p className="text-2xs text-gray-400 italic mt-1">Source: IPCC AR6, Ecoinvent 3.9</p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold mb-2 text-gray-700">Avg Circularity (MCI)</h3>
             <p className="text-4xl font-bold text-purple-600">{((analytics?.summary?.avg_mci || 0) * 100).toFixed(0)}%</p>
-            <p className="text-sm text-gray-500 mt-2">Material Circularity Index</p>
+            <p className="text-sm text-gray-500 mt-1">Material Circularity Index</p>
+            <p className="text-2xs text-gray-400 italic mt-1">Ellen MacArthur Foundation</p>
           </div>
         </div>
 

@@ -110,6 +110,7 @@ export default function AnalyticsPage() {
             <p className="text-xs text-gray-500">Total GWP</p>
             <p className="text-lg font-semibold text-green-600">{summary.total_gwp.toFixed(1)}</p>
             <p className="text-2xs text-gray-400">kg CO₂-eq</p>
+            <p className="text-2xs text-gray-300 italic">IPCC AR6</p>
           </div>
           <div className="bg-white rounded-md shadow-sm p-3">
             <p className="text-xs text-gray-500">Total Mass</p>

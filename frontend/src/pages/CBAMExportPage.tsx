@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getCBAMReport, downloadCBAMCSV, CBAMReport, projectsApi } from '../api/projects'
+import { getCBAMReport, downloadCBAMCSV, downloadCBAMExcel, CBAMReport, projectsApi } from '../api/projects'
+import { DownloadIcon } from '../components/Icons'
 
 export default function CBAMExportPage() {
   const { id } = useParams<{ id: string }>()
@@ -47,6 +48,20 @@ export default function CBAMExportPage() {
     } catch (err) {
       console.error('Error downloading CSV:', err)
       alert('Failed to download CSV')
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+  const handleDownloadExcel = async () => {
+    if (!id) return
+    
+    try {
+      setIsDownloading(true)
+      await downloadCBAMExcel(id)
+    } catch (err) {
+      console.error('Error downloading Excel:', err)
+      alert('Failed to download Excel report')
     } finally {
       setIsDownloading(false)
     }
@@ -113,17 +128,24 @@ export default function CBAMExportPage() {
             </div>
             <div className="flex gap-3">
               <button
+                onClick={handleDownloadExcel}
+                disabled={isDownloading}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2 font-medium"
+              >
+                <DownloadIcon size={16} /> Excel Report
+              </button>
+              <button
                 onClick={handleDownloadCSV}
                 disabled={isDownloading}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 flex items-center gap-2"
               >
-                📥 Download CSV
+                📥 CSV
               </button>
               <button
                 onClick={handleDownloadJSON}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 flex items-center gap-2"
               >
-                📄 Download JSON
+                📄 JSON
               </button>
             </div>
           </div>

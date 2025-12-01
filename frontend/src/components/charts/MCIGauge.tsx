@@ -46,13 +46,13 @@ export default function MCIGauge({ score, size = 'md', showLabel = true, label =
   return (
     <div className="flex flex-col items-center">
       {showLabel && (
-        <span className={`${labelSize} font-medium text-gray-600 mb-1`}>{label}</span>
+        <span className={`${labelSize} font-medium text-gray-600 mb-2`}>{label}</span>
       )}
-      <div className="relative" style={{ width, height: height + 16 }}>
-        <svg width={width} height={height} className="transform -rotate-90">
-          {/* Background arc */}
+      <div className="relative" style={{ width, height }}>
+        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+          {/* Background arc - semicircle from left to right */}
           <path
-            d={`M ${strokeWidth / 2} ${height} A ${radius} ${radius} 0 0 1 ${width - strokeWidth / 2} ${height}`}
+            d={`M ${strokeWidth / 2} ${height - strokeWidth / 2} A ${radius} ${radius} 0 0 1 ${width - strokeWidth / 2} ${height - strokeWidth / 2}`}
             fill="none"
             stroke="#e5e7eb"
             strokeWidth={strokeWidth}
@@ -60,7 +60,7 @@ export default function MCIGauge({ score, size = 'md', showLabel = true, label =
           />
           {/* Progress arc */}
           <path
-            d={`M ${strokeWidth / 2} ${height} A ${radius} ${radius} 0 0 1 ${width - strokeWidth / 2} ${height}`}
+            d={`M ${strokeWidth / 2} ${height - strokeWidth / 2} A ${radius} ${radius} 0 0 1 ${width - strokeWidth / 2} ${height - strokeWidth / 2}`}
             fill="none"
             stroke={color}
             strokeWidth={strokeWidth}
@@ -70,27 +70,33 @@ export default function MCIGauge({ score, size = 'md', showLabel = true, label =
             className="transition-all duration-1000 ease-out"
           />
         </svg>
-        {/* Center text */}
+        {/* Center text - positioned in the middle of the arc */}
         <div 
-          className="absolute inset-0 flex flex-col items-center justify-end pb-1"
+          className="absolute flex flex-col items-center justify-center"
+          style={{ 
+            left: '50%', 
+            bottom: strokeWidth / 2,
+            transform: 'translateX(-50%)'
+          }}
         >
           <span 
-            className="font-semibold" 
+            className="font-bold leading-none" 
             style={{ fontSize, color }}
           >
             {(normalizedScore * 100).toFixed(0)}%
           </span>
-          <span className="text-2xs text-gray-500">
+          <span className="text-2xs text-gray-500 mt-0.5">
             {getRating(normalizedScore)}
           </span>
         </div>
       </div>
       {/* Scale markers */}
-      <div className="flex justify-between w-full text-2xs text-gray-400" style={{ maxWidth: width }}>
+      <div className="flex justify-between w-full text-2xs text-gray-400 mt-1" style={{ maxWidth: width }}>
         <span>0</span>
         <span>0.5</span>
         <span>1.0</span>
       </div>
+      <p className="text-2xs text-gray-400 text-center mt-1 italic">Ellen MacArthur Foundation</p>
     </div>
   )
 }

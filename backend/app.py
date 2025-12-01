@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from datetime import datetime, timedelta
 import jwt
@@ -6,7 +6,13 @@ import sqlite3
 import hashlib
 import uuid
 import os
+import io
 from dotenv import load_dotenv
+
+# Excel generation
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+from openpyxl.utils import get_column_letter
 
 # Load environment variables
 load_dotenv()
@@ -2483,7 +2489,8 @@ def export_cbam_report(project_id):
         
         # Build CBAM report
         report_date = datetime.now().isoformat()
-        reporting_period = datetime.now().strftime("%Y-Q%q").replace("%q", str((datetime.now().month - 1) // 3 + 1))
+        quarter = (datetime.now().month - 1) // 3 + 1
+        reporting_period = f"{datetime.now().year}-Q{quarter}"
         
         # Categorize materials by CBAM category
         cbam_goods = []
@@ -2633,6 +2640,330 @@ def export_cbam_csv(project_id):
         
     except Exception as e:
         print(f"CBAM CSV Export Error: {e}")
+        return jsonify({"detail": str(e)}), 500
+
+
+@app.route('/api/v1/projects/<project_id>/cbam-export/excel', methods=['GET', 'OPTIONS'])
+def export_cbam_excel(project_id):
+    """Export CBAM report as professional Excel letterhead document"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Get project
+        c.execute("SELECT * FROM projects WHERE id = ?", (project_id,))
+        project = c.fetchone()
+        if not project:
+            conn.close()
+            return jsonify({"detail": "Project not found"}), 404
+        
+        # Get user info
+        c.execute("SELECT full_name, organization_name, email FROM users WHERE id = ?", (project[7],))
+        user = c.fetchone()
+        
+        # Get materials
+        c.execute("""SELECT material_name, material_type, quantity, gwp, recycled_content, transport_distance
+                    FROM project_materials WHERE project_id = ?""", (project_id,))
+        materials = c.fetchall()
+        conn.close()
+        
+        if not materials:
+            return jsonify({"detail": "No materials to export"}), 400
+        
+        # Create workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "CBAM Report"
+        
+        # Define styles
+        header_font = Font(name='Arial', size=18, bold=True, color='1F4E79')
+        subheader_font = Font(name='Arial', size=12, bold=True, color='2E75B6')
+        title_font = Font(name='Arial', size=14, bold=True, color='FFFFFF')
+        normal_font = Font(name='Arial', size=10)
+        bold_font = Font(name='Arial', size=10, bold=True)
+        small_font = Font(name='Arial', size=9, color='666666')
+        
+        header_fill = PatternFill(start_color='1F4E79', end_color='1F4E79', fill_type='solid')
+        alt_row_fill = PatternFill(start_color='F2F2F2', end_color='F2F2F2', fill_type='solid')
+        light_blue_fill = PatternFill(start_color='DEEAF6', end_color='DEEAF6', fill_type='solid')
+        
+        thin_border = Border(
+            left=Side(style='thin', color='CCCCCC'),
+            right=Side(style='thin', color='CCCCCC'),
+            top=Side(style='thin', color='CCCCCC'),
+            bottom=Side(style='thin', color='CCCCCC')
+        )
+        
+        # Set column widths
+        ws.column_dimensions['A'].width = 5
+        ws.column_dimensions['B'].width = 25
+        ws.column_dimensions['C'].width = 20
+        ws.column_dimensions['D'].width = 15
+        ws.column_dimensions['E'].width = 15
+        ws.column_dimensions['F'].width = 18
+        ws.column_dimensions['G'].width = 15
+        ws.column_dimensions['H'].width = 12
+        
+        row = 1
+        
+        # ===== LETTERHEAD =====
+        ws.merge_cells('B1:G1')
+        ws['B1'] = 'JNARRDC LCA PORTAL'
+        ws['B1'].font = header_font
+        ws['B1'].alignment = Alignment(horizontal='center', vertical='center')
+        ws.row_dimensions[1].height = 30
+        
+        row = 2
+        ws.merge_cells('B2:G2')
+        ws['B2'] = 'Jawaharlal Nehru Aluminium Research Development and Design Centre'
+        ws['B2'].font = Font(name='Arial', size=10, italic=True, color='666666')
+        ws['B2'].alignment = Alignment(horizontal='center')
+        
+        row = 3
+        ws.merge_cells('B3:G3')
+        ws['B3'] = '━' * 60
+        ws['B3'].font = Font(color='1F4E79')
+        ws['B3'].alignment = Alignment(horizontal='center')
+        
+        # ===== REPORT TITLE =====
+        row = 5
+        ws.merge_cells('B5:G5')
+        ws['B5'] = 'CBAM QUARTERLY DECLARATION REPORT'
+        ws['B5'].font = Font(name='Arial', size=14, bold=True, color='1F4E79')
+        ws['B5'].alignment = Alignment(horizontal='center')
+        
+        row = 6
+        ws.merge_cells('B6:G6')
+        ws['B6'] = 'Carbon Border Adjustment Mechanism - EU Regulation 2023/956'
+        ws['B6'].font = small_font
+        ws['B6'].alignment = Alignment(horizontal='center')
+        
+        # ===== REPORT METADATA =====
+        row = 8
+        quarter = (datetime.now().month - 1) // 3 + 1
+        report_id = f"CBAM-{project_id[:8].upper()}-{datetime.now().strftime('%Y%m%d')}"
+        
+        ws['B8'] = 'Report ID:'
+        ws['B8'].font = bold_font
+        ws['C8'] = report_id
+        ws['C8'].font = normal_font
+        
+        ws['E8'] = 'Report Date:'
+        ws['E8'].font = bold_font
+        ws['F8'] = datetime.now().strftime('%d %B %Y')
+        ws['F8'].font = normal_font
+        
+        row = 9
+        ws['B9'] = 'Reporting Period:'
+        ws['B9'].font = bold_font
+        ws['C9'] = f"{datetime.now().year}-Q{quarter}"
+        ws['C9'].font = normal_font
+        
+        ws['E9'] = 'Status:'
+        ws['E9'].font = bold_font
+        ws['F9'] = 'Draft - Pending Verification'
+        ws['F9'].font = Font(name='Arial', size=10, color='FF6600')
+        
+        # ===== DECLARANT INFORMATION =====
+        row = 11
+        ws.merge_cells('B11:G11')
+        ws['B11'] = 'DECLARANT INFORMATION'
+        ws['B11'].font = subheader_font
+        ws['B11'].fill = light_blue_fill
+        ws.row_dimensions[11].height = 22
+        
+        row = 12
+        ws['B12'] = 'Organization:'
+        ws['B12'].font = bold_font
+        ws['C12'] = user[1] if user else 'Not specified'
+        ws['C12'].font = normal_font
+        
+        ws['E12'] = 'Contact Person:'
+        ws['E12'].font = bold_font
+        ws['F12'] = user[0] if user else 'Not specified'
+        ws['F12'].font = normal_font
+        
+        row = 13
+        ws['B13'] = 'Email:'
+        ws['B13'].font = bold_font
+        ws['C13'] = user[2] if user else 'Not specified'
+        ws['C13'].font = normal_font
+        
+        ws['E13'] = 'Country of Origin:'
+        ws['E13'].font = bold_font
+        ws['F13'] = 'India (IN)'
+        ws['F13'].font = normal_font
+        
+        # ===== PROJECT INFORMATION =====
+        row = 15
+        ws.merge_cells('B15:G15')
+        ws['B15'] = 'PROJECT INFORMATION'
+        ws['B15'].font = subheader_font
+        ws['B15'].fill = light_blue_fill
+        ws.row_dimensions[15].height = 22
+        
+        row = 16
+        ws['B16'] = 'Project Name:'
+        ws['B16'].font = bold_font
+        ws['C16'] = project[1]
+        ws['C16'].font = normal_font
+        
+        ws['E16'] = 'Product Category:'
+        ws['E16'].font = bold_font
+        ws['F16'] = project[4] or 'Not specified'
+        ws['F16'].font = normal_font
+        
+        row = 17
+        ws['B17'] = 'Description:'
+        ws['B17'].font = bold_font
+        ws.merge_cells('C17:G17')
+        ws['C17'] = project[2] or 'Not specified'
+        ws['C17'].font = normal_font
+        
+        # ===== GOODS DECLARATION TABLE =====
+        row = 19
+        ws.merge_cells('B19:G19')
+        ws['B19'] = 'GOODS DECLARATION'
+        ws['B19'].font = subheader_font
+        ws['B19'].fill = light_blue_fill
+        ws.row_dimensions[19].height = 22
+        
+        # Table headers
+        row = 21
+        headers = ['#', 'Product Description', 'CN Code', 'CBAM Category', 'Qty (tonnes)', 'Emissions (tCO₂)', 'Recycled %']
+        for col, header in enumerate(headers, start=2):
+            cell = ws.cell(row=row, column=col, value=header)
+            cell.font = title_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = thin_border
+        ws.row_dimensions[21].height = 25
+        
+        # Table data
+        row = 22
+        total_quantity = 0
+        total_emissions = 0
+        
+        for idx, m in enumerate(materials, 1):
+            material_name, material_type, quantity, gwp, recycled_content, transport_distance = m
+            cbam_cat = get_cbam_category(material_type)
+            
+            if cbam_cat:
+                cat_info = CBAM_CATEGORIES[cbam_cat]
+                quantity_t = quantity / 1000
+                embedded = (gwp or 0) / 1000
+                total_quantity += quantity_t
+                total_emissions += embedded
+                
+                row_data = [
+                    idx,
+                    material_name,
+                    cat_info['default_cn'],
+                    cat_info['name'],
+                    round(quantity_t, 4),
+                    round(embedded, 4),
+                    f"{recycled_content or 0}%"
+                ]
+                
+                for col, value in enumerate(row_data, start=2):
+                    cell = ws.cell(row=row, column=col, value=value)
+                    cell.font = normal_font
+                    cell.border = thin_border
+                    cell.alignment = Alignment(horizontal='center' if col > 2 else 'left', vertical='center')
+                    if idx % 2 == 0:
+                        cell.fill = alt_row_fill
+                
+                row += 1
+        
+        # Total row
+        ws.cell(row=row, column=2, value='TOTAL').font = bold_font
+        ws.cell(row=row, column=2).border = thin_border
+        ws.cell(row=row, column=3).border = thin_border
+        ws.cell(row=row, column=4).border = thin_border
+        ws.cell(row=row, column=5, value=round(total_quantity, 4)).font = bold_font
+        ws.cell(row=row, column=5).border = thin_border
+        ws.cell(row=row, column=5).alignment = Alignment(horizontal='center')
+        ws.cell(row=row, column=6, value=round(total_emissions, 4)).font = bold_font
+        ws.cell(row=row, column=6).border = thin_border
+        ws.cell(row=row, column=6).alignment = Alignment(horizontal='center')
+        ws.cell(row=row, column=7).border = thin_border
+        ws.cell(row=row, column=8).border = thin_border
+        
+        # ===== SUMMARY =====
+        row += 2
+        ws.merge_cells(f'B{row}:G{row}')
+        ws[f'B{row}'] = 'EMISSIONS SUMMARY & CBAM LIABILITY'
+        ws[f'B{row}'].font = subheader_font
+        ws[f'B{row}'].fill = light_blue_fill
+        ws.row_dimensions[row].height = 22
+        
+        row += 1
+        estimated_price = 90
+        estimated_liability = total_emissions * estimated_price
+        
+        ws[f'B{row}'] = 'Total Embedded Emissions:'
+        ws[f'B{row}'].font = bold_font
+        ws[f'D{row}'] = f'{round(total_emissions, 4)} tCO₂'
+        ws[f'D{row}'].font = normal_font
+        
+        row += 1
+        ws[f'B{row}'] = 'EU ETS Reference Price:'
+        ws[f'B{row}'].font = bold_font
+        ws[f'D{row}'] = f'€{estimated_price}/tCO₂'
+        ws[f'D{row}'].font = normal_font
+        
+        row += 1
+        ws[f'B{row}'] = 'Estimated CBAM Liability:'
+        ws[f'B{row}'].font = bold_font
+        ws[f'D{row}'] = f'€{round(estimated_liability, 2)}'
+        ws[f'D{row}'].font = Font(name='Arial', size=12, bold=True, color='C00000')
+        
+        row += 1
+        ws[f'B{row}'] = 'Carbon Price Deduction (India):'
+        ws[f'B{row}'].font = bold_font
+        ws[f'D{row}'] = '€0.00 (No applicable carbon price)'
+        ws[f'D{row}'].font = small_font
+        
+        # ===== FOOTER =====
+        row += 3
+        ws.merge_cells(f'B{row}:G{row}')
+        ws[f'B{row}'] = '━' * 60
+        ws[f'B{row}'].font = Font(color='CCCCCC')
+        ws[f'B{row}'].alignment = Alignment(horizontal='center')
+        
+        row += 1
+        ws.merge_cells(f'B{row}:G{row}')
+        ws[f'B{row}'] = 'This report is generated for CBAM compliance purposes. Verification by accredited body required.'
+        ws[f'B{row}'].font = small_font
+        ws[f'B{row}'].alignment = Alignment(horizontal='center')
+        
+        row += 1
+        ws.merge_cells(f'B{row}:G{row}')
+        ws[f'B{row}'] = f'Generated by JNARRDC LCA Portal v1.0 | Data Sources: IPCC AR6, Ecoinvent 3.9 | {datetime.now().strftime("%d/%m/%Y %H:%M")}'
+        ws[f'B{row}'].font = Font(name='Arial', size=8, italic=True, color='999999')
+        ws[f'B{row}'].alignment = Alignment(horizontal='center')
+        
+        # Save to BytesIO
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        filename = f"CBAM_Report_{project[1].replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        print(f"CBAM Excel Export Error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"detail": str(e)}), 500
 
 

@@ -3,12 +3,12 @@ import { ArrowRight, Leaf, Target, Award } from 'lucide-react'
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen">
       {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b bg-white/90 backdrop-blur-sm sticky top-0 z-20">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Leaf className="w-8 h-8 text-blue-600" />
+          <div className="flex items-center space-x-3">
+            <img src="/images/logo.png" alt="JNARRDC" className="w-10 h-10 object-contain" />
             <h1 className="text-2xl font-bold text-gray-900">JNARRDC LCA Portal</h1>
           </div>
           <div className="flex items-center space-x-4">
@@ -23,29 +23,53 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20 text-center">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-5xl font-bold text-gray-900 mb-6">
-            AI-Powered LCA for the Indian Metal Sector
-          </h2>
-          <p className="text-xl text-gray-600 mb-8">
-            Measure, model, and minimize the environmental footprint of metals. 
-            From MSMEs to large enterprises, democratizing Life Cycle Assessment through Natural Language Processing.
-          </p>
-          <div className="flex justify-center space-x-4">
-            <Link 
-              to="/register" 
-              className="bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition flex items-center"
-            >
-              Start Free Assessment <ArrowRight className="ml-2 w-5 h-5" />
-            </Link>
-            <a 
-              href="#demo" 
-              className="border-2 border-blue-600 text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-50 transition"
-            >
-              Watch Demo
-            </a>
+      {/* Hero Section with Video Background */}
+      <section className="relative h-[85vh] flex items-center justify-center overflow-hidden">
+        {/* Video Background */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover z-0"
+        >
+          <source src="/videos/mining.mp4" type="video/mp4" />
+        </video>
+        
+        {/* Dark Overlay */}
+        <div className="absolute inset-0 bg-black/50 z-10"></div>
+        
+        {/* Content */}
+        <div className="relative z-20 container mx-auto px-4 text-center">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-5xl md:text-6xl font-bold text-white mb-6 drop-shadow-lg">
+              AI-Powered LCA for the Indian Metal Sector
+            </h2>
+            <p className="text-xl md:text-2xl text-gray-200 mb-8 drop-shadow">
+              Measure, model, and minimize the environmental footprint of metals. 
+              From MSMEs to large enterprises, democratizing Life Cycle Assessment through Natural Language Processing.
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Link 
+                to="/register" 
+                className="bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center shadow-lg"
+              >
+                Start Free Assessment <ArrowRight className="ml-2 w-5 h-5" />
+              </Link>
+              <a 
+                href="#features" 
+                className="bg-white/20 backdrop-blur-sm border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white/30 transition"
+              >
+                Learn More
+              </a>
+            </div>
+          </div>
+        </div>
+        
+        {/* Scroll Indicator */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 animate-bounce">
+          <div className="w-8 h-12 border-2 border-white/50 rounded-full flex items-start justify-center p-2">
+            <div className="w-1.5 h-3 bg-white/70 rounded-full animate-pulse"></div>
           </div>
         </div>
       </section>
@@ -122,13 +146,25 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Partners / Initiative Section */}
+      <section className="bg-gray-100 py-12">
+        <div className="container mx-auto px-4">
+          <p className="text-center text-gray-500 text-sm uppercase tracking-wider mb-6">A Government of India Initiative</p>
+          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
+            <img src="/images/logo.png" alt="JNARRDC" className="h-16 md:h-20 object-contain grayscale hover:grayscale-0 transition" />
+            <img src="/images/make-in-india.png" alt="Make in India" className="h-16 md:h-20 object-contain grayscale hover:grayscale-0 transition" />
+          </div>
+          <p className="text-center text-gray-400 text-xs mt-6">Supporting India's vision for sustainable manufacturing and circular economy</p>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-300 py-12">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <Leaf className="w-6 h-6 text-blue-400" />
+              <div className="flex items-center space-x-3 mb-4">
+                <img src="/images/logo.png" alt="JNARRDC" className="w-8 h-8 object-contain" />
                 <span className="text-xl font-bold text-white">JNARRDC LCA Portal</span>
               </div>
               <p className="text-sm">National Circularity Platform for JNARRDC</p>

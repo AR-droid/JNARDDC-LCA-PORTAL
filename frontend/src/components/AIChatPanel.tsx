@@ -75,8 +75,8 @@ export default function AIChatPanel({ projectId, initialContext, isOpen, onClose
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-600 to-purple-600 rounded-t-xl">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-            🤖
+          <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center overflow-hidden">
+            <img src="/images/chatbot.png" alt="AI" className="w-9 h-9 object-contain" />
           </div>
           <div>
             <h3 className="font-semibold text-white">JNARRDC AI Assistant</h3>

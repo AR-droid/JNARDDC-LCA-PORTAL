@@ -99,9 +99,9 @@ export default function DashboardPage() {
                     <span className="text-white/60"> / </span>
                     <span>{user?.project_limit || 3} projects</span>
                   </div>
-                  <div className="w-32 bg-white/20 rounded-full h-2">
+                  <div className="w-20 bg-white/20 rounded-full h-1.5">
                     <div 
-                      className={`h-2 rounded-full transition-all ${
+                      className={`h-1.5 rounded-full transition-all ${
                         (user?.project_count || 0) >= (user?.project_limit || 3) ? 'bg-red-300' :
                         (user?.project_count || 0) >= (user?.project_limit || 3) - 1 ? 'bg-yellow-300' :
                         'bg-white'
@@ -282,10 +282,10 @@ export default function DashboardPage() {
         {/* AI Chat Button */}
         <button
           onClick={() => setShowChat(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-lg flex items-center justify-center text-white hover:scale-105 transition-transform z-40"
+          className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-lg flex items-center justify-center text-white hover:scale-105 transition-transform z-40"
           title="Chat with AI Assistant"
         >
-          <span className="text-2xl">🤖</span>
+          <img src="/images/chatbot.png" alt="AI Assistant" className="w-12 h-12 object-contain" />
         </button>
 
         {/* AI Chat Panel */}

@@ -7,7 +7,7 @@ import AIChatPanel from '../components/AIChatPanel';
 import { PlusIcon } from '../components/Icons';
 
 export default function DashboardPage() {
-  const { user } = useAuthStore();
+  const { user, checkAuth } = useAuthStore();
   const [projects, setProjects] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
   const [stats, setStats] = useState({
@@ -19,6 +19,8 @@ export default function DashboardPage() {
   const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
+    // Refresh user data to get latest project_count
+    checkAuth();
     loadDashboardData();
   }, []);
 

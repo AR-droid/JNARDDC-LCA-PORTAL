@@ -218,6 +218,167 @@ def get_me():
         print(f"Error: {e}")
         return jsonify({"detail": "Invalid token"}), 401
 
+@app.route('/api/v1/auth/profile', methods=['PUT', 'OPTIONS'])
+def update_profile():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        
+        data = request.json
+        full_name = data.get('full_name', '').strip()
+        organization_name = data.get('organization_name', '').strip()
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        c.execute("""UPDATE users SET full_name = ?, organization_name = ? WHERE id = ?""",
+                  (full_name or None, organization_name or None, payload['user_id']))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Profile updated successfully"}), 200
+    except jwt.ExpiredSignatureError:
+        return jsonify({"detail": "Token expired"}), 401
+    except Exception as e:
+        print(f"Error updating profile: {e}")
+        return jsonify({"detail": "Failed to update profile"}), 500
+
+@app.route('/api/v1/auth/change-password', methods=['PUT', 'OPTIONS'])
+def change_password():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        
+        data = request.json
+        current_password = data.get('current_password', '')
+        new_password = data.get('new_password', '')
+        
+        if not current_password or not new_password:
+            return jsonify({"detail": "Both current and new password are required"}), 400
+        
+        if len(new_password) < 6:
+            return jsonify({"detail": "New password must be at least 6 characters"}), 400
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        c.execute("SELECT password FROM users WHERE id = ?", (payload['user_id'],))
+        user = c.fetchone()
+        
+        if not user:
+            conn.close()
+            return jsonify({"detail": "User not found"}), 404
+        
+        if not bcrypt.checkpw(current_password.encode('utf-8'), user[0].encode('utf-8')):
+            conn.close()
+            return jsonify({"detail": "Current password is incorrect"}), 400
+        
+        new_hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        c.execute("UPDATE users SET password = ? WHERE id = ?", (new_hashed, payload['user_id']))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Password changed successfully"}), 200
+    except jwt.ExpiredSignatureError:
+        return jsonify({"detail": "Token expired"}), 401
+    except Exception as e:
+        print(f"Error changing password: {e}")
+        return jsonify({"detail": "Failed to change password"}), 500
+
+@app.route('/api/v1/auth/stats', methods=['GET', 'OPTIONS'])
+def get_account_stats():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Get project count
+        c.execute("SELECT COUNT(*) FROM projects WHERE user_id = ?", (payload['user_id'],))
+        project_count = c.fetchone()[0]
+        
+        # Get total GWP across all projects
+        c.execute("SELECT COALESCE(SUM(gwp_total), 0) FROM projects WHERE user_id = ?", (payload['user_id'],))
+        total_gwp = c.fetchone()[0] or 0
+        
+        # Get analyses run (projects with status 'calculated' or 'verified')
+        c.execute("SELECT COUNT(*) FROM projects WHERE user_id = ? AND status IN ('calculated', 'verified')", (payload['user_id'],))
+        analyses_run = c.fetchone()[0]
+        
+        # Get reports generated (we can track this based on projects that have been exported)
+        # For now, use calculated projects as a proxy
+        reports_generated = analyses_run
+        
+        conn.close()
+        
+        return jsonify({
+            "project_count": project_count,
+            "total_gwp": round(total_gwp, 2),
+            "analyses_run": analyses_run,
+            "reports_generated": reports_generated
+        }), 200
+    except jwt.ExpiredSignatureError:
+        return jsonify({"detail": "Token expired"}), 401
+    except Exception as e:
+        print(f"Error getting account stats: {e}")
+        return jsonify({"detail": "Failed to get account stats"}), 500
+
+@app.route('/api/v1/auth/account', methods=['DELETE', 'OPTIONS'])
+def delete_account():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Delete all user's materials first (due to foreign key)
+        c.execute("""DELETE FROM materials WHERE project_id IN 
+                     (SELECT id FROM projects WHERE user_id = ?)""", (payload['user_id'],))
+        
+        # Delete all user's projects
+        c.execute("DELETE FROM projects WHERE user_id = ?", (payload['user_id'],))
+        
+        # Delete the user
+        c.execute("DELETE FROM users WHERE id = ?", (payload['user_id'],))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Account deleted successfully"}), 200
+    except jwt.ExpiredSignatureError:
+        return jsonify({"detail": "Token expired"}), 401
+    except Exception as e:
+        print(f"Error deleting account: {e}")
+        return jsonify({"detail": "Failed to delete account"}), 500
+
 @app.route('/api/v1/projects', methods=['GET', 'OPTIONS'])
 def list_projects():
     if request.method == 'OPTIONS':

@@ -13,6 +13,8 @@ import RecommendationsPage from './pages/RecommendationsPage'
 import ProjectAnalyticsPage from './pages/ProjectAnalyticsPage'
 import CBAMExportPage from './pages/CBAMExportPage'
 import PricingPage from './pages/PricingPage'
+import ProfilePage from './pages/ProfilePage'
+import SettingsPage from './pages/SettingsPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 
@@ -101,6 +103,22 @@ function App() {
           element={
             <ProtectedRoute>
               <ComparisonPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <SettingsPage />
             </ProtectedRoute>
           }
         />

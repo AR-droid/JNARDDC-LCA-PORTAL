@@ -1310,13 +1310,68 @@ NLP_MATERIAL_PATTERNS = {
         'national_baseline_recycled': 45,
         'gwp_factor': 9800.0,
         'scarcity_score': 86
+    },
+    # Refractory and Ceramic Materials
+    'magnesia': {
+        'keywords': ['magnesia', 'magnesium oxide', 'mgo', 'magnesia-chrome', 'mag-chrome'],
+        'forms': ['brick', 'refractory', 'lining', 'block', 'castable'],
+        'default_type': 'magnesia_refractory',
+        'recycled_type': 'magnesia_refractory',
+        'national_baseline_recycled': 10,
+        'gwp_factor': 1.8,
+        'scarcity_score': 25
+    },
+    'zirconia': {
+        'keywords': ['zirconia', 'zirconium oxide', 'zro2', 'yttria-stabilized zirconia', 'ysz'],
+        'forms': ['coating', 'layer', 'ceramic', 'brick', 'powder', 'thermal barrier'],
+        'default_type': 'zirconia_ceramic',
+        'recycled_type': 'zirconia_ceramic',
+        'national_baseline_recycled': 5,
+        'gwp_factor': 8.5,
+        'scarcity_score': 55
+    },
+    'chrome': {
+        'keywords': ['chrome', 'chromium', 'chromite', 'chrome-magnesia', 'ferrochrome'],
+        'forms': ['refractory', 'brick', 'ore', 'plating', 'alloy'],
+        'default_type': 'chrome_refractory',
+        'recycled_type': 'chrome_refractory',
+        'national_baseline_recycled': 20,
+        'gwp_factor': 5.2,
+        'scarcity_score': 50
+    },
+    'refractory': {
+        'keywords': ['refractory', 'firebite', 'high alumina', 'silica brick', 'fire brick'],
+        'forms': ['brick', 'lining', 'castable', 'mortar', 'cement'],
+        'default_type': 'refractory_generic',
+        'recycled_type': 'refractory_generic',
+        'national_baseline_recycled': 15,
+        'gwp_factor': 1.5,
+        'scarcity_score': 20
+    },
+    'silicon_carbide': {
+        'keywords': ['silicon carbide', 'sic', 'carborundum'],
+        'forms': ['brick', 'crucible', 'abrasive', 'heating element'],
+        'default_type': 'silicon_carbide',
+        'recycled_type': 'silicon_carbide',
+        'national_baseline_recycled': 10,
+        'gwp_factor': 12.0,
+        'scarcity_score': 40
+    },
+    'alumina': {
+        'keywords': ['alumina', 'aluminum oxide', 'al2o3', 'corundum'],
+        'forms': ['ceramic', 'brick', 'powder', 'coating', 'abrasive'],
+        'default_type': 'alumina_ceramic',
+        'recycled_type': 'alumina_ceramic',
+        'national_baseline_recycled': 10,
+        'gwp_factor': 3.2,
+        'scarcity_score': 30
     }
 }
 
 # Product category detection
 PRODUCT_CATEGORIES = {
     'mining': ['mining', 'drill', 'drilling', 'excavation', 'extraction', 'ore', 'quarry', 'underground'],
-    'metallurgy': ['metallurgy', 'smelting', 'foundry', 'casting', 'forging', 'metal processing'],
+    'metallurgy': ['metallurgy', 'smelting', 'foundry', 'casting', 'forging', 'metal processing', 'furnace', 'crucible', 'ladle', 'converter'],
     'ev_battery': ['battery', 'cell', 'ev', 'electric vehicle', 'lithium-ion', 'bms', 'cathode', 'anode'],
     'power_transmission': ['transformer', 'cable', 'wire', 'conductor', 'transmission', 'power line'],
     'construction': ['building', 'structure', 'beam', 'rebar', 'construction', 'roof'],
@@ -1326,7 +1381,8 @@ PRODUCT_CATEGORIES = {
     'appliances': ['appliance', 'refrigerator', 'ac', 'washing', 'machine'],
     'renewable_energy': ['solar', 'wind', 'turbine', 'panel', 'inverter', 'generator'],
     'magnets': ['magnet', 'permanent magnet', 'ndfeb', 'motor magnet'],
-    'industrial_tools': ['tool', 'drill bit', 'cutting', 'milling', 'lathe', 'cnc']
+    'industrial_tools': ['tool', 'drill bit', 'cutting', 'milling', 'lathe', 'cnc'],
+    'refractory': ['refractory', 'kiln', 'incinerator', 'boiler', 'heat exchanger']
 }
 
 
@@ -1357,27 +1413,34 @@ def parse_nlp_input(description):
     
     # === TOKENIZATION ===
     
-    # Extract quantity patterns (e.g., "10kg", "5 kg", "100 grams")
-    quantity_patterns = [
-        r'(\d+(?:\.\d+)?)\s*(?:kg|kilogram|kilograms)',
-        r'(\d+(?:\.\d+)?)\s*(?:g|gram|grams)',
-        r'(\d+(?:\.\d+)?)\s*(?:t|ton|tons|tonne|tonnes)',
-        r'(\d+(?:\.\d+)?)\s*(?:lb|pound|pounds)',
+    # Extract quantity patterns with units (e.g., "10kg", "5 kg", "100 grams", "800kg")
+    # Store as tuples of (value, unit) to convert properly
+    quantity_with_unit_patterns = [
+        (r'(\d+(?:\.\d+)?)\s*(?:kg|kilogram|kilograms)\b', 'kg'),
+        (r'(\d+(?:\.\d+)?)\s*(?:g|gram|grams)\b', 'g'),
+        (r'(\d+(?:\.\d+)?)\s*(?:t|ton|tons|tonne|tonnes)\b', 't'),
+        (r'(\d+(?:\.\d+)?)\s*(?:lb|pound|pounds)\b', 'lb'),
+        (r'(\d+(?:\.\d+)?)\s*(?:mm|millimeter|millimeters)\b', 'mm'),  # For thickness
     ]
     
     quantities = []
-    for pattern in quantity_patterns:
+    thickness_values = []
+    
+    for pattern, unit in quantity_with_unit_patterns:
         matches = re.findall(pattern, description_lower)
         for match in matches:
-            # Convert to kg
             value = float(match)
-            if 'gram' in pattern or r'\bg\b' in pattern:
-                value = value / 1000
-            elif 'ton' in pattern:
-                value = value * 1000
-            elif 'pound' in pattern:
-                value = value * 0.453592
-            quantities.append(value)
+            # Convert to kg (keep kg as-is, don't divide by 1000!)
+            if unit == 'kg':
+                quantities.append(value)  # Already in kg
+            elif unit == 'g':
+                quantities.append(value / 1000)  # grams to kg
+            elif unit == 't':
+                quantities.append(value * 1000)  # tons to kg
+            elif unit == 'lb':
+                quantities.append(value * 0.453592)  # pounds to kg
+            elif unit == 'mm':
+                thickness_values.append(value)  # Store thickness separately
     
     # If no quantity found, default to 1kg
     if not quantities:
@@ -1389,6 +1452,8 @@ def parse_nlp_input(description):
         })
     
     result['tokens'].append({'type': 'quantity', 'values': quantities})
+    if thickness_values:
+        result['tokens'].append({'type': 'thickness', 'values': thickness_values})
     
     # Extract lifespan (e.g., "10 years", "5y", "15 year")
     lifespan_patterns = [
@@ -1445,7 +1510,34 @@ def parse_nlp_input(description):
             # Use word boundary matching to avoid false positives
             # e.g., 'co' should not match 'coated', 'coating', etc.
             pattern = r'\b' + re.escape(keyword) + r'\b'
-            if re.search(pattern, description_lower):
+            match_obj = re.search(pattern, description_lower)
+            if match_obj:
+                # === CONTEXT-AWARE FILTERING ===
+                # Check if the material appears in a context that indicates it's NOT a component
+                # e.g., "copper smelting" means the furnace processes copper, not made OF copper
+                
+                match_pos = match_obj.start()
+                context_window = description_lower[max(0, match_pos-30):min(len(description_lower), match_pos+len(keyword)+30)]
+                
+                # Skip if material appears in process context (not as a component)
+                process_indicators = [
+                    f'{keyword} smelting', f'{keyword} processing', f'{keyword} refining',
+                    f'{keyword} production', f'{keyword} extraction', f'{keyword} mining',
+                    f'{keyword} plants', f'{keyword} plant', f'{keyword} industry',
+                    f'smelting {keyword}', f'processing {keyword}', f'refining {keyword}',
+                    f'produces {keyword}', f'manufacture {keyword}', f'making {keyword}'
+                ]
+                
+                is_process_context = False
+                for indicator in process_indicators:
+                    if indicator in description_lower:
+                        is_process_context = True
+                        break
+                
+                if is_process_context:
+                    # Skip this material - it's what the equipment processes, not made of
+                    continue
+                
                 # Check for forms
                 detected_form = None
                 for form in material_data['forms']:
@@ -1563,7 +1655,7 @@ def parse_nlp_input(description):
     PRODUCT_NAME_TEMPLATES = {
         'ev_battery': ['Battery Pack', 'EV Battery Module', 'Lithium-Ion Battery Pack', 'Battery Cell Assembly'],
         'mining': ['Mining Equipment', 'Drill Bit Assembly', 'Mining Tool', 'Extraction Equipment'],
-        'metallurgy': ['Metal Processing Unit', 'Foundry Component', 'Metallurgical Equipment'],
+        'metallurgy': ['Industrial Furnace', 'Smelting Furnace', 'Foundry Equipment', 'Metal Processing Unit'],
         'power_transmission': ['Power Cable', 'Transformer Unit', 'Transmission Line', 'Electrical Conductor'],
         'construction': ['Construction Component', 'Structural Element', 'Building Material', 'Rebar Assembly'],
         'automotive': ['Automotive Part', 'Vehicle Component', 'Engine Part', 'Automotive Assembly'],
@@ -1572,7 +1664,8 @@ def parse_nlp_input(description):
         'appliances': ['Home Appliance', 'Appliance Component', 'Household Equipment'],
         'renewable_energy': ['Solar Panel', 'Wind Turbine Component', 'Renewable Energy System', 'Generator Unit'],
         'magnets': ['Permanent Magnet', 'Magnet Assembly', 'Motor Magnet'],
-        'industrial_tools': ['Industrial Tool', 'Cutting Tool', 'Manufacturing Equipment']
+        'industrial_tools': ['Industrial Tool', 'Cutting Tool', 'Manufacturing Equipment'],
+        'refractory': ['Refractory Lining', 'Furnace Lining', 'Kiln Component', 'Heat-Resistant Equipment']
     }
     
     # Try to extract a specific product name from the description
@@ -1591,6 +1684,10 @@ def parse_nlp_input(description):
         (r'\b(smartphone|phone|mobile)\b', 'Smartphone'),
         (r'\b(laptop|computer)\b', 'Laptop'),
         (r'\b(generator)\b', 'Generator'),
+        (r'\b(furnace|smelting furnace|blast furnace|arc furnace)\b', 'Industrial Furnace'),
+        (r'\b(kiln|rotary kiln)\b', 'Industrial Kiln'),
+        (r'\b(boiler)\b', 'Industrial Boiler'),
+        (r'\b(heat exchanger)\b', 'Heat Exchanger'),
     ]
     
     suggested_name = None

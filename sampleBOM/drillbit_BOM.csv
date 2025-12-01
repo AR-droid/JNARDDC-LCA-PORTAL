@@ -1,0 +1,6 @@
+name,type,quantity,unit,recycled_content,transport_distance,supplier,notes
+Tungsten Carbide Alloy,tungsten,150,kg,30,500,Sandvik Mining,Primary cutting material - WC-Co composite
+Steel Shank,steel_primary,25,kg,40,200,Tata Steel,AISI 4140 alloy steel for tool holder
+Titanium Nitride Coating,titanium,0.5,kg,0,800,Oerlikon Balzers,PVD coating for wear resistance
+Copper Brazing Alloy,copper_primary,2,kg,35,300,Hindustan Copper,Cu-Ag brazing filler for carbide-steel joint
+Cobalt Binder,cobalt,8,kg,15,1200,Freeport Cobalt,Binder phase in WC-Co matrix

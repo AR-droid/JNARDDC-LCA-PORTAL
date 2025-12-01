@@ -7,6 +7,7 @@ export default function ComparisonPage() {
   const [selectedProjects, setSelectedProjects] = useState<string[]>([])
   const [comparisonData, setComparisonData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isComparing, setIsComparing] = useState(false)
 
   useEffect(() => {
     loadProjects()
@@ -15,6 +16,8 @@ export default function ComparisonPage() {
   useEffect(() => {
     if (selectedProjects.length > 0) {
       loadComparisonData()
+    } else {
+      setComparisonData([])
     }
   }, [selectedProjects])
 
@@ -31,24 +34,29 @@ export default function ComparisonPage() {
   }
 
   const loadComparisonData = async () => {
+    setIsComparing(true)
     try {
       const data = await Promise.all(
         selectedProjects.map(async (id) => {
           const project = projects.find((p) => p.id === id)
+          if (!project) return null
           const materials = await materialsApi.list(id)
           return {
             project,
             materials,
-            totalGwp: materials.reduce((sum, m) => sum + m.gwp, 0),
+            totalGwp: materials.reduce((sum, m) => sum + (m.gwp || 0), 0),
             avgRecycledContent: materials.length > 0 
-              ? materials.reduce((sum, m) => sum + m.recycled_content, 0) / materials.length 
+              ? materials.reduce((sum, m) => sum + (m.recycled_content || 0), 0) / materials.length 
               : 0,
           }
         })
       )
-      setComparisonData(data)
+      // Filter out null entries (projects that weren't found)
+      setComparisonData(data.filter(d => d !== null))
     } catch (error) {
       console.error('Error loading comparison data:', error)
+    } finally {
+      setIsComparing(false)
     }
   }
 
@@ -111,6 +119,17 @@ export default function ComparisonPage() {
               <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-xl font-bold mb-6">Comparison Results</h2>
                 
+                {isComparing ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Loading comparison data...</p>
+                  </div>
+                ) : comparisonData.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>No data available for selected projects</p>
+                  </div>
+                ) : (
+                  <>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                   <div>
                     <h3 className="font-semibold text-gray-700 mb-3">Total GWP Comparison</h3>
@@ -191,22 +210,28 @@ export default function ComparisonPage() {
 
                 <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <h4 className="font-semibold text-blue-900 mb-2">💡 Insights</h4>
-                  <ul className="text-sm text-blue-800 space-y-1">
-                    <li>
-                      • Best Performer: {comparisonData.reduce((min, item) => 
-                        item.totalGwp < min.totalGwp ? item : min
-                      ).project.name} (lowest carbon footprint)
-                    </li>
-                    <li>
-                      • Most Circular: {comparisonData.reduce((max, item) => 
-                        item.avgRecycledContent > max.avgRecycledContent ? item : max
-                      ).project.name} (highest recycled content)
-                    </li>
-                    <li>
-                      • Average GWP: {(comparisonData.reduce((sum, item) => sum + item.totalGwp, 0) / comparisonData.length).toFixed(2)} kg CO₂-eq
-                    </li>
-                  </ul>
+                  {comparisonData.length > 0 ? (
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>
+                        • Best Performer: {comparisonData.reduce((min, item) => 
+                          item.totalGwp < min.totalGwp ? item : min
+                        ).project.name} (lowest carbon footprint)
+                      </li>
+                      <li>
+                        • Most Circular: {comparisonData.reduce((max, item) => 
+                          item.avgRecycledContent > max.avgRecycledContent ? item : max
+                        ).project.name} (highest recycled content)
+                      </li>
+                      <li>
+                        • Average GWP: {(comparisonData.reduce((sum, item) => sum + item.totalGwp, 0) / comparisonData.length).toFixed(2)} kg CO₂-eq
+                      </li>
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-blue-800">Select projects to see insights</p>
+                  )}
                 </div>
+                  </>
+                )}
               </div>
             )}
           </>

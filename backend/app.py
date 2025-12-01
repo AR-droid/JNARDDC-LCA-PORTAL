@@ -421,6 +421,189 @@ def delete_project(project_id):
         print(f"Error: {e}")
         return jsonify({"detail": str(e)}), 500
 
+
+# =====================================================
+# JNARRDC VERIFICATION WORKFLOW
+# =====================================================
+
+# In-memory storage for verification requests (would be database in production)
+VERIFICATION_REQUESTS = {}
+
+@app.route('/api/v1/projects/<project_id>/verification', methods=['GET', 'OPTIONS'])
+def get_verification_status(project_id):
+    """Get verification status for a project"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        verification = VERIFICATION_REQUESTS.get(project_id, {
+            'status': 'not_submitted',
+            'submitted_at': None,
+            'verified_at': None,
+            'verifier_notes': None,
+            'certificate_id': None
+        })
+        
+        return jsonify(verification), 200
+    except Exception as e:
+        return jsonify({"detail": str(e)}), 500
+
+
+@app.route('/api/v1/projects/<project_id>/verification/submit', methods=['POST', 'OPTIONS'])
+def submit_for_verification(project_id):
+    """Submit project for JNARRDC verification"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        user_id = payload['user_id']
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Get project
+        c.execute("SELECT * FROM projects WHERE id = ? AND user_id = ?", (project_id, user_id))
+        project = c.fetchone()
+        if not project:
+            conn.close()
+            return jsonify({"detail": "Project not found"}), 404
+        
+        # Get materials
+        c.execute("SELECT COUNT(*) FROM project_materials WHERE project_id = ?", (project_id,))
+        material_count = c.fetchone()[0]
+        
+        # Get user info
+        c.execute("SELECT full_name, organization_name, email FROM users WHERE id = ?", (user_id,))
+        user = c.fetchone()
+        conn.close()
+        
+        # Check if project has materials
+        if material_count == 0:
+            return jsonify({"detail": "Cannot submit empty project for verification. Add materials first."}), 400
+        
+        # Check if already submitted
+        if project_id in VERIFICATION_REQUESTS and VERIFICATION_REQUESTS[project_id]['status'] != 'rejected':
+            return jsonify({"detail": "Project already submitted for verification"}), 400
+        
+        # Create verification request
+        request_id = f"VER-{project_id[:8].upper()}-{datetime.now().strftime('%Y%m%d%H%M')}"
+        
+        VERIFICATION_REQUESTS[project_id] = {
+            'request_id': request_id,
+            'project_id': project_id,
+            'project_name': project[1],
+            'user_id': user_id,
+            'user_name': user[0] if user else 'Unknown',
+            'organization': user[1] if user else 'Unknown',
+            'status': 'pending',  # pending, under_review, verified, rejected
+            'submitted_at': datetime.now().isoformat(),
+            'material_count': material_count,
+            'gwp_total': project[8] if len(project) > 8 else 0,
+            'mci_score': project[10] if len(project) > 10 else 0,
+            'verified_at': None,
+            'verifier_name': None,
+            'verifier_notes': None,
+            'certificate_id': None,
+            'flags': []
+        }
+        
+        # Add AI-generated flags (simulated)
+        flags = []
+        if project[8] and project[8] > 1000:  # High GWP
+            flags.append({'type': 'warning', 'message': 'High GWP value - manual review recommended'})
+        if material_count > 20:
+            flags.append({'type': 'info', 'message': 'Large BOM - detailed verification may take longer'})
+        
+        VERIFICATION_REQUESTS[project_id]['flags'] = flags
+        
+        return jsonify({
+            "message": "Project submitted for JNARRDC verification",
+            "request_id": request_id,
+            "status": "pending",
+            "estimated_review_time": "3-5 business days"
+        }), 200
+        
+    except Exception as e:
+        print(f"Verification Submit Error: {e}")
+        return jsonify({"detail": str(e)}), 500
+
+
+@app.route('/api/v1/projects/<project_id>/verification/certificate', methods=['GET', 'OPTIONS'])
+def get_verification_certificate(project_id):
+    """Get verification certificate if project is verified"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        verification = VERIFICATION_REQUESTS.get(project_id)
+        
+        if not verification or verification['status'] != 'verified':
+            return jsonify({"detail": "Project not verified. Certificate not available."}), 404
+        
+        # Generate certificate data
+        certificate = {
+            'certificate_id': verification['certificate_id'],
+            'project_name': verification['project_name'],
+            'organization': verification['organization'],
+            'verified_at': verification['verified_at'],
+            'verifier_name': verification['verifier_name'],
+            'gwp_total': verification['gwp_total'],
+            'mci_score': verification['mci_score'],
+            'validity': '1 year from verification date',
+            'issuer': 'JNARRDC - Ministry of Mines, Government of India',
+            'qr_code_data': f"https://jnarrdc.gov.in/verify/{verification['certificate_id']}"
+        }
+        
+        return jsonify(certificate), 200
+        
+    except Exception as e:
+        return jsonify({"detail": str(e)}), 500
+
+
+# Admin endpoint to simulate verification (for demo purposes)
+@app.route('/api/v1/admin/verify-project/<project_id>', methods=['POST', 'OPTIONS'])
+def admin_verify_project(project_id):
+    """Admin endpoint to verify a project (demo only)"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        data = request.get_json() or {}
+        action = data.get('action', 'verify')  # verify or reject
+        notes = data.get('notes', '')
+        
+        if project_id not in VERIFICATION_REQUESTS:
+            return jsonify({"detail": "No verification request found"}), 404
+        
+        if action == 'verify':
+            cert_id = f"JNARRDC-{datetime.now().year}-{uuid.uuid4().hex[:8].upper()}"
+            VERIFICATION_REQUESTS[project_id].update({
+                'status': 'verified',
+                'verified_at': datetime.now().isoformat(),
+                'verifier_name': 'JNARRDC Verification Team',
+                'verifier_notes': notes or 'LCA data verified and approved.',
+                'certificate_id': cert_id
+            })
+            return jsonify({"message": "Project verified", "certificate_id": cert_id}), 200
+        else:
+            VERIFICATION_REQUESTS[project_id].update({
+                'status': 'rejected',
+                'verified_at': datetime.now().isoformat(),
+                'verifier_name': 'JNARRDC Verification Team',
+                'verifier_notes': notes or 'Verification rejected. Please review and resubmit.'
+            })
+            return jsonify({"message": "Project verification rejected"}), 200
+            
+    except Exception as e:
+        return jsonify({"detail": str(e)}), 500
+
+
 @app.route('/api/v1/projects/<project_id>/materials', methods=['GET', 'OPTIONS'])
 def list_materials(project_id):
     if request.method == 'OPTIONS':
@@ -691,17 +874,43 @@ def delete_material(project_id, material_id):
 def calculate_gwp(material_type, quantity, recycled_content, transport_distance):
     """Calculate GWP based on material type and parameters"""
     
-    # Emission factors (kg CO2-eq per kg material)
+    # Emission factors (kg CO2-eq per kg material) - includes critical minerals
     emission_factors = {
-        'aluminium_primary': 12.5,      # Primary aluminium smelting
-        'aluminium_secondary': 0.6,      # Recycled aluminium
-        'copper_primary': 3.5,           # Primary copper extraction
-        'copper_secondary': 0.5,         # Recycled copper
-        'steel_primary': 2.1,            # Virgin steel
-        'steel_secondary': 0.4,          # Recycled steel
-        'lithium': 15.0,                 # Lithium carbonate
-        'cobalt': 10.0,                  # Cobalt sulfate
-        'nickel': 8.5,                   # Primary nickel
+        # Base Metals
+        'aluminium_primary': 12.5,
+        'aluminium_secondary': 0.6,
+        'copper_primary': 3.5,
+        'copper_secondary': 0.5,
+        'steel_primary': 2.1,
+        'steel_secondary': 0.4,
+        # Battery Minerals
+        'lithium': 15.0,
+        'lithium_carbonate': 15.0,
+        'lithium_hydroxide': 18.0,
+        'cobalt': 10.0,
+        'cobalt_sulfate': 10.0,
+        'nickel': 8.5,
+        'nickel_class1': 12.5,
+        'nickel_ferronickel': 8.5,
+        'manganese': 2.8,
+        'graphite': 4.2,
+        # Rare Earths
+        'neodymium': 35.0,
+        'dysprosium': 45.0,
+        'praseodymium': 32.0,
+        'terbium': 50.0,
+        'rare_earth_mixed': 38.0,
+        # Other Critical Minerals
+        'tungsten': 22.0,
+        'vanadium': 28.0,
+        'titanium': 8.1,
+        'tantalum': 48.0,
+        'indium': 142.0,
+        'gallium': 185.0,
+        'germanium': 165.0,
+        # Precious Metals
+        'platinum': 12500.0,
+        'palladium': 9800.0,
     }
     
     # Get base emission factor
@@ -726,28 +935,93 @@ def calculate_gwp(material_type, quantity, recycled_content, transport_distance)
     return round(total_gwp, 2)
 
 
+def get_scarcity_score(material_type):
+    """Get Abiotic Depletion Potential (scarcity) score for critical minerals"""
+    scarcity_scores = {
+        # Battery Minerals
+        'lithium': 85, 'lithium_carbonate': 85, 'lithium_hydroxide': 85,
+        'cobalt': 92, 'cobalt_sulfate': 92,
+        'nickel': 65, 'nickel_class1': 65, 'nickel_ferronickel': 55,
+        'manganese': 40,
+        'graphite': 70,
+        # Rare Earths
+        'neodymium': 95,
+        'dysprosium': 98,
+        'praseodymium': 90,
+        'terbium': 96,
+        'rare_earth_mixed': 93,
+        # Other Critical
+        'tungsten': 78,
+        'vanadium': 72,
+        'titanium': 45,
+        'tantalum': 88,
+        'indium': 82,
+        'gallium': 80,
+        'germanium': 84,
+        # Precious Metals
+        'platinum': 88,
+        'palladium': 86,
+        # Base metals (lower scarcity)
+        'aluminium_primary': 20, 'aluminium_secondary': 20,
+        'copper_primary': 35, 'copper_secondary': 35,
+        'steel_primary': 15, 'steel_secondary': 15,
+    }
+    return scarcity_scores.get(material_type, 0)
+
+
 # Industry benchmark lifespans (in years)
 INDUSTRY_BENCHMARKS = {
     'batteries': {'avg_lifespan': 8, 'avg_mci': 0.35, 'name': 'Battery Pack'},
+    'ev_battery': {'avg_lifespan': 10, 'avg_mci': 0.32, 'name': 'EV Battery Pack'},
     'electronics': {'avg_lifespan': 5, 'avg_mci': 0.28, 'name': 'Electronics'},
     'automotive': {'avg_lifespan': 15, 'avg_mci': 0.45, 'name': 'Automotive Component'},
     'industrial': {'avg_lifespan': 20, 'avg_mci': 0.40, 'name': 'Industrial Equipment'},
     'construction': {'avg_lifespan': 50, 'avg_mci': 0.52, 'name': 'Construction Material'},
     'packaging': {'avg_lifespan': 1, 'avg_mci': 0.65, 'name': 'Packaging'},
+    'renewable_energy': {'avg_lifespan': 25, 'avg_mci': 0.48, 'name': 'Renewable Energy'},
+    'magnets': {'avg_lifespan': 20, 'avg_mci': 0.25, 'name': 'Permanent Magnets'},
     'other': {'avg_lifespan': 10, 'avg_mci': 0.35, 'name': 'General Product'}
 }
 
 # Emission factors for virgin and recycled materials (kg CO2-eq per kg)
 EMISSION_FACTORS = {
+    # Base Metals
     'aluminium_primary': {'virgin': 12.5, 'recycled': 0.6},
     'aluminium_secondary': {'virgin': 0.6, 'recycled': 0.6},
     'copper_primary': {'virgin': 3.5, 'recycled': 0.5},
     'copper_secondary': {'virgin': 0.5, 'recycled': 0.5},
     'steel_primary': {'virgin': 2.1, 'recycled': 0.4},
     'steel_secondary': {'virgin': 0.4, 'recycled': 0.4},
-    'lithium': {'virgin': 15.0, 'recycled': 1.5},
-    'cobalt': {'virgin': 10.0, 'recycled': 1.0},
-    'nickel': {'virgin': 8.5, 'recycled': 0.85},
+    
+    # Critical Minerals - Battery Metals
+    'lithium_carbonate': {'virgin': 15.0, 'recycled': 1.5, 'scarcity_score': 85},
+    'lithium_hydroxide': {'virgin': 18.0, 'recycled': 1.8, 'scarcity_score': 85},
+    'lithium': {'virgin': 15.0, 'recycled': 1.5, 'scarcity_score': 85},
+    'cobalt_sulfate': {'virgin': 10.0, 'recycled': 1.0, 'scarcity_score': 92},
+    'cobalt': {'virgin': 10.0, 'recycled': 1.0, 'scarcity_score': 92},
+    'nickel_class1': {'virgin': 12.5, 'recycled': 1.25, 'scarcity_score': 65},
+    'nickel_ferronickel': {'virgin': 8.5, 'recycled': 0.85, 'scarcity_score': 55},
+    'nickel': {'virgin': 8.5, 'recycled': 0.85, 'scarcity_score': 65},
+    'manganese': {'virgin': 2.8, 'recycled': 0.3, 'scarcity_score': 40},
+    'graphite': {'virgin': 4.2, 'recycled': 0.5, 'scarcity_score': 70},
+    
+    # Rare Earths
+    'neodymium': {'virgin': 35.0, 'recycled': 5.0, 'scarcity_score': 95},
+    'dysprosium': {'virgin': 45.0, 'recycled': 6.0, 'scarcity_score': 98},
+    'praseodymium': {'virgin': 32.0, 'recycled': 4.5, 'scarcity_score': 90},
+    'terbium': {'virgin': 50.0, 'recycled': 7.0, 'scarcity_score': 96},
+    'rare_earth_mixed': {'virgin': 38.0, 'recycled': 5.5, 'scarcity_score': 93},
+    
+    # Other Critical Minerals
+    'tungsten': {'virgin': 22.0, 'recycled': 3.0, 'scarcity_score': 78},
+    'vanadium': {'virgin': 28.0, 'recycled': 4.0, 'scarcity_score': 72},
+    'titanium': {'virgin': 8.1, 'recycled': 1.2, 'scarcity_score': 45},
+    'platinum': {'virgin': 12500, 'recycled': 800, 'scarcity_score': 88},
+    'palladium': {'virgin': 9800, 'recycled': 650, 'scarcity_score': 86},
+    'indium': {'virgin': 142, 'recycled': 15, 'scarcity_score': 82},
+    'gallium': {'virgin': 185, 'recycled': 20, 'scarcity_score': 80},
+    'germanium': {'virgin': 165, 'recycled': 18, 'scarcity_score': 84},
+    'tantalum': {'virgin': 48.0, 'recycled': 6.5, 'scarcity_score': 88},
 }
 
 
@@ -853,15 +1127,15 @@ def calculate_circular_design_score(mci_score, target_lifespan, industry_avg_lif
 # Material patterns for NLP matching
 NLP_MATERIAL_PATTERNS = {
     'aluminium': {
-        'keywords': ['aluminium', 'aluminum', 'al', 'alu'],
-        'forms': ['sheet', 'wire', 'rod', 'bar', 'plate', 'tube', 'foil', 'ingot', 'casting'],
+        'keywords': ['aluminium', 'aluminum'],
+        'forms': ['sheet', 'wire', 'rod', 'bar', 'plate', 'tube', 'foil', 'ingot', 'casting', 'alloy'],
         'default_type': 'aluminium_primary',
         'recycled_type': 'aluminium_secondary',
         'national_baseline_recycled': 25,  # India avg recycled content %
         'gwp_factor': 12.5
     },
     'copper': {
-        'keywords': ['copper', 'cu', 'etp', 'brass'],
+        'keywords': ['copper', 'brass', 'bronze'],
         'forms': ['wire', 'cable', 'sheet', 'rod', 'tube', 'pipe', 'coil'],
         'default_type': 'copper_primary',
         'recycled_type': 'copper_secondary',
@@ -869,15 +1143,23 @@ NLP_MATERIAL_PATTERNS = {
         'gwp_factor': 3.5
     },
     'steel': {
-        'keywords': ['steel', 'iron', 'fe', 'stainless'],
-        'forms': ['sheet', 'rod', 'bar', 'beam', 'wire', 'plate', 'tube', 'coil'],
+        'keywords': ['steel', 'stainless steel', 'carbon steel', 'mild steel'],
+        'forms': ['sheet', 'rod', 'bar', 'beam', 'wire', 'plate', 'tube', 'coil', 'shank'],
         'default_type': 'steel_primary',
         'recycled_type': 'steel_secondary',
         'national_baseline_recycled': 40,  # India avg recycled content %
         'gwp_factor': 2.1
     },
+    'iron': {
+        'keywords': ['iron', 'cast iron', 'pig iron', 'wrought iron'],
+        'forms': ['casting', 'ingot', 'bar', 'plate'],
+        'default_type': 'steel_primary',
+        'recycled_type': 'steel_secondary',
+        'national_baseline_recycled': 40,
+        'gwp_factor': 1.9
+    },
     'lithium': {
-        'keywords': ['lithium', 'li', 'lithium-ion', 'lion', 'lifepo4'],
+        'keywords': ['lithium', 'lithium-ion', 'li-ion', 'lifepo4', 'lithium carbonate', 'lithium hydroxide'],
         'forms': ['carbonate', 'hydroxide', 'oxide', 'battery', 'cell'],
         'default_type': 'lithium',
         'recycled_type': 'lithium',
@@ -885,32 +1167,166 @@ NLP_MATERIAL_PATTERNS = {
         'gwp_factor': 15.0
     },
     'cobalt': {
-        'keywords': ['cobalt', 'co'],
-        'forms': ['sulfate', 'oxide', 'powder'],
+        'keywords': ['cobalt', 'cobalt sulfate', 'cobalt oxide'],
+        'forms': ['sulfate', 'oxide', 'powder', 'metal'],
         'default_type': 'cobalt',
         'recycled_type': 'cobalt',
         'national_baseline_recycled': 10,
         'gwp_factor': 10.0
     },
     'nickel': {
-        'keywords': ['nickel', 'ni'],
+        'keywords': ['nickel', 'nickel sulfate', 'ferronickel'],
         'forms': ['class1', 'ferronickel', 'sulfate', 'plating'],
         'default_type': 'nickel',
         'recycled_type': 'nickel',
         'national_baseline_recycled': 15,
         'gwp_factor': 8.5
+    },
+    # Critical Minerals - Expanded
+    'manganese': {
+        'keywords': ['manganese', 'mn'],
+        'forms': ['dioxide', 'oxide', 'sulfate', 'electrolytic'],
+        'default_type': 'manganese',
+        'recycled_type': 'manganese',
+        'national_baseline_recycled': 20,
+        'gwp_factor': 2.8,
+        'scarcity_score': 40
+    },
+    'graphite': {
+        'keywords': ['graphite', 'carbon', 'anode'],
+        'forms': ['natural', 'synthetic', 'spherical', 'flake'],
+        'default_type': 'graphite',
+        'recycled_type': 'graphite',
+        'national_baseline_recycled': 5,
+        'gwp_factor': 4.2,
+        'scarcity_score': 70
+    },
+    # Rare Earths
+    'neodymium': {
+        'keywords': ['neodymium', 'nd', 'ndfeb', 'neo'],
+        'forms': ['magnet', 'oxide', 'metal', 'alloy'],
+        'default_type': 'neodymium',
+        'recycled_type': 'neodymium',
+        'national_baseline_recycled': 2,
+        'gwp_factor': 35.0,
+        'scarcity_score': 95
+    },
+    'dysprosium': {
+        'keywords': ['dysprosium', 'dy'],
+        'forms': ['oxide', 'metal', 'magnet'],
+        'default_type': 'dysprosium',
+        'recycled_type': 'dysprosium',
+        'national_baseline_recycled': 1,
+        'gwp_factor': 45.0,
+        'scarcity_score': 98
+    },
+    'praseodymium': {
+        'keywords': ['praseodymium', 'pr'],
+        'forms': ['oxide', 'metal'],
+        'default_type': 'praseodymium',
+        'recycled_type': 'praseodymium',
+        'national_baseline_recycled': 1,
+        'gwp_factor': 32.0,
+        'scarcity_score': 90
+    },
+    'rare_earth': {
+        'keywords': ['rare earth', 'ree', 'rare-earth', 'lanthanide'],
+        'forms': ['oxide', 'metal', 'mixed', 'concentrate'],
+        'default_type': 'rare_earth_mixed',
+        'recycled_type': 'rare_earth_mixed',
+        'national_baseline_recycled': 2,
+        'gwp_factor': 38.0,
+        'scarcity_score': 93
+    },
+    # Other Critical Minerals
+    'tungsten': {
+        'keywords': ['tungsten', 'tungsten carbide', 'wolfram', 'carbide alloy'],
+        'forms': ['carbide', 'powder', 'wire', 'electrode', 'alloy', 'bit', 'tool'],
+        'default_type': 'tungsten',
+        'recycled_type': 'tungsten',
+        'national_baseline_recycled': 30,
+        'gwp_factor': 22.0,
+        'scarcity_score': 78
+    },
+    'vanadium': {
+        'keywords': ['vanadium', 'vanadium oxide', 'vanadium pentoxide'],
+        'forms': ['oxide', 'pentoxide', 'alloy', 'redox'],
+        'default_type': 'vanadium',
+        'recycled_type': 'vanadium',
+        'national_baseline_recycled': 15,
+        'gwp_factor': 28.0,
+        'scarcity_score': 72
+    },
+    'titanium': {
+        'keywords': ['titanium', 'titanium nitride', 'titanium dioxide', 'titanium oxide'],
+        'forms': ['sponge', 'ingot', 'sheet', 'powder', 'dioxide', 'nitride', 'coating', 'oxide'],
+        'default_type': 'titanium',
+        'recycled_type': 'titanium',
+        'national_baseline_recycled': 25,
+        'gwp_factor': 8.1,
+        'scarcity_score': 45
+    },
+    'tantalum': {
+        'keywords': ['tantalum'],
+        'forms': ['powder', 'capacitor', 'wire'],
+        'default_type': 'tantalum',
+        'recycled_type': 'tantalum',
+        'national_baseline_recycled': 20,
+        'gwp_factor': 48.0,
+        'scarcity_score': 88
+    },
+    'indium': {
+        'keywords': ['indium', 'indium tin oxide', 'ito'],
+        'forms': ['oxide', 'tin oxide', 'metal'],
+        'default_type': 'indium',
+        'recycled_type': 'indium',
+        'national_baseline_recycled': 35,
+        'gwp_factor': 142.0,
+        'scarcity_score': 82
+    },
+    'gallium': {
+        'keywords': ['gallium', 'gallium arsenide', 'gaas', 'gallium nitride'],
+        'forms': ['arsenide', 'nitride', 'metal'],
+        'default_type': 'gallium',
+        'recycled_type': 'gallium',
+        'national_baseline_recycled': 25,
+        'gwp_factor': 185.0,
+        'scarcity_score': 80
+    },
+    'platinum': {
+        'keywords': ['platinum', 'pt', 'pgm'],
+        'forms': ['catalyst', 'wire', 'sheet', 'powder'],
+        'default_type': 'platinum',
+        'recycled_type': 'platinum',
+        'national_baseline_recycled': 40,
+        'gwp_factor': 12500.0,
+        'scarcity_score': 88
+    },
+    'palladium': {
+        'keywords': ['palladium', 'pd'],
+        'forms': ['catalyst', 'alloy', 'powder'],
+        'default_type': 'palladium',
+        'recycled_type': 'palladium',
+        'national_baseline_recycled': 45,
+        'gwp_factor': 9800.0,
+        'scarcity_score': 86
     }
 }
 
 # Product category detection
 PRODUCT_CATEGORIES = {
-    'ev_battery': ['battery', 'cell', 'ev', 'electric vehicle', 'lithium-ion', 'bms'],
+    'mining': ['mining', 'drill', 'drilling', 'excavation', 'extraction', 'ore', 'quarry', 'underground'],
+    'metallurgy': ['metallurgy', 'smelting', 'foundry', 'casting', 'forging', 'metal processing'],
+    'ev_battery': ['battery', 'cell', 'ev', 'electric vehicle', 'lithium-ion', 'bms', 'cathode', 'anode'],
     'power_transmission': ['transformer', 'cable', 'wire', 'conductor', 'transmission', 'power line'],
     'construction': ['building', 'structure', 'beam', 'rebar', 'construction', 'roof'],
-    'automotive': ['car', 'vehicle', 'motor', 'engine', 'chassis', 'body'],
-    'electronics': ['pcb', 'circuit', 'electronic', 'component', 'chip'],
+    'automotive': ['car', 'vehicle', 'automobile', 'automotive'],
+    'electronics': ['pcb', 'circuit', 'electronic', 'component', 'chip', 'semiconductor'],
     'packaging': ['can', 'container', 'foil', 'packaging', 'wrap'],
-    'appliances': ['appliance', 'refrigerator', 'ac', 'washing', 'machine']
+    'appliances': ['appliance', 'refrigerator', 'ac', 'washing', 'machine'],
+    'renewable_energy': ['solar', 'wind', 'turbine', 'panel', 'inverter', 'generator'],
+    'magnets': ['magnet', 'permanent magnet', 'ndfeb', 'motor magnet'],
+    'industrial_tools': ['tool', 'drill bit', 'cutting', 'milling', 'lathe', 'cnc']
 }
 
 
@@ -1012,18 +1428,34 @@ def parse_nlp_input(description):
     # === MATERIAL MAPPING ===
     
     detected_materials = []
-    for material_key, material_data in NLP_MATERIAL_PATTERNS.items():
-        for keyword in material_data['keywords']:
-            if keyword in description_lower:
+    detected_material_keys = set()  # Track already detected materials to avoid duplicates
+    
+    # Sort materials by keyword length (longest first) to match specific terms first
+    sorted_materials = sorted(
+        NLP_MATERIAL_PATTERNS.items(),
+        key=lambda x: max(len(k) for k in x[1]['keywords']),
+        reverse=True
+    )
+    
+    for material_key, material_data in sorted_materials:
+        if material_key in detected_material_keys:
+            continue
+            
+        for keyword in sorted(material_data['keywords'], key=len, reverse=True):
+            # Use word boundary matching to avoid false positives
+            # e.g., 'co' should not match 'coated', 'coating', etc.
+            pattern = r'\b' + re.escape(keyword) + r'\b'
+            if re.search(pattern, description_lower):
                 # Check for forms
                 detected_form = None
                 for form in material_data['forms']:
-                    if form in description_lower:
+                    form_pattern = r'\b' + re.escape(form) + r'\b'
+                    if re.search(form_pattern, description_lower):
                         detected_form = form
                         break
                 
                 # Determine if recycled
-                is_recycled = 'recycled' in description_lower or 'secondary' in description_lower or 'scrap' in description_lower
+                is_recycled = bool(re.search(r'\b(recycled|secondary|scrap)\b', description_lower))
                 material_type = material_data['recycled_type'] if is_recycled else material_data['default_type']
                 
                 # Use detected recycled content or national baseline
@@ -1049,8 +1481,11 @@ def parse_nlp_input(description):
                     'type': 'material',
                     'material': material_key,
                     'form': detected_form,
-                    'is_recycled': is_recycled
+                    'is_recycled': is_recycled,
+                    'matched_keyword': keyword
                 })
+                
+                detected_material_keys.add(material_key)
                 break
     
     # If no materials detected, try to infer from context
@@ -1076,11 +1511,14 @@ def parse_nlp_input(description):
     
     # === PRODUCT CATEGORY DETECTION ===
     
-    for category, keywords in PRODUCT_CATEGORIES.items():
-        for keyword in keywords:
-            if keyword in description_lower:
+    # Sort categories by keyword length (longest first) for better matching
+    for category, keywords in sorted(PRODUCT_CATEGORIES.items(), key=lambda x: max(len(k) for k in x[1]), reverse=True):
+        for keyword in sorted(keywords, key=len, reverse=True):
+            # Use word boundary matching
+            pattern = r'\b' + re.escape(keyword) + r'\b'
+            if re.search(pattern, description_lower):
                 result['project']['product_category'] = category
-                result['tokens'].append({'type': 'category', 'value': category})
+                result['tokens'].append({'type': 'category', 'value': category, 'matched_keyword': keyword})
                 break
         if result['project']['product_category']:
             break
@@ -1105,10 +1543,76 @@ def parse_nlp_input(description):
             break
     
     # Detect coatings/finishes
-    coating_keywords = ['pvc', 'coated', 'anodized', 'galvanized', 'painted', 'plated', 'chrome']
+    coating_keywords = ['pvc', 'coated', 'anodized', 'galvanized', 'painted', 'plated', 'chrome', 
+                       'titanium nitride', 'tin coating', 'nickel plating', 'zinc coating', 
+                       'powder coated', 'epoxy', 'enamel']
+    detected_coatings = []
     for keyword in coating_keywords:
-        if keyword in description_lower:
+        pattern = r'\b' + re.escape(keyword) + r'\b'
+        if re.search(pattern, description_lower):
+            detected_coatings.append(keyword)
             result['tokens'].append({'type': 'coating', 'value': keyword})
+    
+    # Add coating info to result
+    if detected_coatings:
+        result['coatings'] = detected_coatings
+    
+    # === GENERATE SUGGESTED PROJECT NAME ===
+    
+    # Product name templates based on category and detected keywords
+    PRODUCT_NAME_TEMPLATES = {
+        'ev_battery': ['Battery Pack', 'EV Battery Module', 'Lithium-Ion Battery Pack', 'Battery Cell Assembly'],
+        'mining': ['Mining Equipment', 'Drill Bit Assembly', 'Mining Tool', 'Extraction Equipment'],
+        'metallurgy': ['Metal Processing Unit', 'Foundry Component', 'Metallurgical Equipment'],
+        'power_transmission': ['Power Cable', 'Transformer Unit', 'Transmission Line', 'Electrical Conductor'],
+        'construction': ['Construction Component', 'Structural Element', 'Building Material', 'Rebar Assembly'],
+        'automotive': ['Automotive Part', 'Vehicle Component', 'Engine Part', 'Automotive Assembly'],
+        'electronics': ['Electronic Component', 'Circuit Board', 'Semiconductor Device', 'Electronic Module'],
+        'packaging': ['Packaging Material', 'Container', 'Packaging Solution'],
+        'appliances': ['Home Appliance', 'Appliance Component', 'Household Equipment'],
+        'renewable_energy': ['Solar Panel', 'Wind Turbine Component', 'Renewable Energy System', 'Generator Unit'],
+        'magnets': ['Permanent Magnet', 'Magnet Assembly', 'Motor Magnet'],
+        'industrial_tools': ['Industrial Tool', 'Cutting Tool', 'Manufacturing Equipment']
+    }
+    
+    # Try to extract a specific product name from the description
+    product_keywords = [
+        (r'\b(battery pack|battery module|battery cell)\b', 'Battery Pack'),
+        (r'\b(drill bit|drilling tool)\b', 'Drill Bit'),
+        (r'\b(solar panel|pv panel|photovoltaic)\b', 'Solar Panel'),
+        (r'\b(wind turbine|turbine generator)\b', 'Wind Turbine'),
+        (r'\b(transformer)\b', 'Transformer'),
+        (r'\b(motor|electric motor)\b', 'Electric Motor'),
+        (r'\b(cable|wire|conductor)\b', 'Cable Assembly'),
+        (r'\b(circuit board|pcb)\b', 'Circuit Board'),
+        (r'\b(catalytic converter)\b', 'Catalytic Converter'),
+        (r'\b(frame|mounting)\b', 'Frame Assembly'),
+        (r'\b(rebar|reinforcement)\b', 'Rebar'),
+        (r'\b(smartphone|phone|mobile)\b', 'Smartphone'),
+        (r'\b(laptop|computer)\b', 'Laptop'),
+        (r'\b(generator)\b', 'Generator'),
+    ]
+    
+    suggested_name = None
+    for pattern, name in product_keywords:
+        if re.search(pattern, description_lower):
+            suggested_name = name
+            break
+    
+    # Fallback to category-based name
+    if not suggested_name:
+        category = result['project']['product_category']
+        if category and category in PRODUCT_NAME_TEMPLATES:
+            suggested_name = PRODUCT_NAME_TEMPLATES[category][0]
+        else:
+            # Generate from primary material
+            if detected_materials:
+                primary_material = detected_materials[0]['material_key'].title()
+                suggested_name = f"{primary_material} Product"
+            else:
+                suggested_name = "LCA Project"
+    
+    result['suggested_name'] = suggested_name
     
     return result
 
@@ -1287,27 +1791,62 @@ def combined_material_library():
         payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
         user_id = payload['user_id']
         
-        # System materials (default library)
+        # System materials (default library) - Base Metals
         system_materials = [
-            {"id": "al_primary", "name": "Primary Aluminium", "type": "aluminium_primary", "unit": "kg", "gwp_factor": 12.5, "source": "system", "region": "Global"},
-            {"id": "al_secondary", "name": "Secondary Aluminium (Recycled)", "type": "aluminium_secondary", "unit": "kg", "gwp_factor": 0.6, "source": "system", "region": "Global"},
-            {"id": "cu_primary", "name": "Primary Copper", "type": "copper_primary", "unit": "kg", "gwp_factor": 3.5, "source": "system", "region": "Global"},
-            {"id": "cu_secondary", "name": "Secondary Copper (Recycled)", "type": "copper_secondary", "unit": "kg", "gwp_factor": 0.5, "source": "system", "region": "Global"},
-            {"id": "steel_primary", "name": "Virgin Steel", "type": "steel_primary", "unit": "kg", "gwp_factor": 2.1, "source": "system", "region": "Global"},
-            {"id": "steel_secondary", "name": "Recycled Steel", "type": "steel_secondary", "unit": "kg", "gwp_factor": 0.4, "source": "system", "region": "Global"},
-            {"id": "lithium", "name": "Lithium Carbonate", "type": "lithium", "unit": "kg", "gwp_factor": 15.0, "source": "system", "region": "Global"},
-            {"id": "cobalt", "name": "Cobalt Sulfate", "type": "cobalt", "unit": "kg", "gwp_factor": 10.0, "source": "system", "region": "Global"},
-            {"id": "nickel", "name": "Primary Nickel", "type": "nickel", "unit": "kg", "gwp_factor": 8.5, "source": "system", "region": "Global"},
+            {"id": "al_primary", "name": "Primary Aluminium", "type": "aluminium_primary", "unit": "kg", "gwp_factor": 12.5, "source": "system", "region": "Global", "category": "base_metal"},
+            {"id": "al_secondary", "name": "Secondary Aluminium (Recycled)", "type": "aluminium_secondary", "unit": "kg", "gwp_factor": 0.6, "source": "system", "region": "Global", "category": "base_metal"},
+            {"id": "cu_primary", "name": "Primary Copper", "type": "copper_primary", "unit": "kg", "gwp_factor": 3.5, "source": "system", "region": "Global", "category": "base_metal"},
+            {"id": "cu_secondary", "name": "Secondary Copper (Recycled)", "type": "copper_secondary", "unit": "kg", "gwp_factor": 0.5, "source": "system", "region": "Global", "category": "base_metal"},
+            {"id": "steel_primary", "name": "Virgin Steel", "type": "steel_primary", "unit": "kg", "gwp_factor": 2.1, "source": "system", "region": "Global", "category": "base_metal"},
+            {"id": "steel_secondary", "name": "Recycled Steel", "type": "steel_secondary", "unit": "kg", "gwp_factor": 0.4, "source": "system", "region": "Global", "category": "base_metal"},
+        ]
+        
+        # Critical Minerals - Battery Metals
+        battery_minerals = [
+            {"id": "li_carbonate", "name": "Lithium Carbonate", "type": "lithium_carbonate", "unit": "kg", "gwp_factor": 15.0, "source": "ecoinvent", "region": "Global", "category": "critical_mineral", "scarcity_score": 85},
+            {"id": "li_hydroxide", "name": "Lithium Hydroxide", "type": "lithium_hydroxide", "unit": "kg", "gwp_factor": 18.0, "source": "ecoinvent", "region": "Global", "category": "critical_mineral", "scarcity_score": 85},
+            {"id": "cobalt_sulfate", "name": "Cobalt Sulfate", "type": "cobalt_sulfate", "unit": "kg", "gwp_factor": 10.0, "source": "ecoinvent", "region": "Global", "category": "critical_mineral", "scarcity_score": 92},
+            {"id": "nickel_class1", "name": "Nickel Class 1", "type": "nickel_class1", "unit": "kg", "gwp_factor": 12.5, "source": "ecoinvent", "region": "Global", "category": "critical_mineral", "scarcity_score": 65},
+            {"id": "nickel_ferro", "name": "Ferronickel", "type": "nickel_ferronickel", "unit": "kg", "gwp_factor": 8.5, "source": "ecoinvent", "region": "Global", "category": "critical_mineral", "scarcity_score": 55},
+            {"id": "manganese", "name": "Manganese Dioxide", "type": "manganese", "unit": "kg", "gwp_factor": 2.8, "source": "ecoinvent", "region": "Global", "category": "critical_mineral", "scarcity_score": 40},
+            {"id": "graphite_nat", "name": "Natural Graphite", "type": "graphite", "unit": "kg", "gwp_factor": 4.2, "source": "ecoinvent", "region": "Global", "category": "critical_mineral", "scarcity_score": 70},
+            {"id": "graphite_syn", "name": "Synthetic Graphite", "type": "graphite", "unit": "kg", "gwp_factor": 6.5, "source": "ecoinvent", "region": "Global", "category": "critical_mineral", "scarcity_score": 70},
+        ]
+        
+        # Critical Minerals - Rare Earths
+        rare_earth_minerals = [
+            {"id": "neodymium", "name": "Neodymium (NdFeB Magnets)", "type": "neodymium", "unit": "kg", "gwp_factor": 35.0, "source": "ecoinvent", "region": "Global", "category": "rare_earth", "scarcity_score": 95},
+            {"id": "dysprosium", "name": "Dysprosium", "type": "dysprosium", "unit": "kg", "gwp_factor": 45.0, "source": "ecoinvent", "region": "Global", "category": "rare_earth", "scarcity_score": 98},
+            {"id": "praseodymium", "name": "Praseodymium", "type": "praseodymium", "unit": "kg", "gwp_factor": 32.0, "source": "ecoinvent", "region": "Global", "category": "rare_earth", "scarcity_score": 90},
+            {"id": "terbium", "name": "Terbium", "type": "terbium", "unit": "kg", "gwp_factor": 50.0, "source": "ecoinvent", "region": "Global", "category": "rare_earth", "scarcity_score": 96},
+            {"id": "ree_mixed", "name": "Rare Earth Mixed Oxide", "type": "rare_earth_mixed", "unit": "kg", "gwp_factor": 38.0, "source": "ecoinvent", "region": "Global", "category": "rare_earth", "scarcity_score": 93},
+        ]
+        
+        # Critical Minerals - Other Strategic
+        other_critical = [
+            {"id": "tungsten", "name": "Tungsten Carbide", "type": "tungsten", "unit": "kg", "gwp_factor": 22.0, "source": "ecoinvent", "region": "Global", "category": "critical_mineral", "scarcity_score": 78},
+            {"id": "vanadium", "name": "Vanadium Pentoxide", "type": "vanadium", "unit": "kg", "gwp_factor": 28.0, "source": "ecoinvent", "region": "Global", "category": "critical_mineral", "scarcity_score": 72},
+            {"id": "titanium", "name": "Titanium Sponge", "type": "titanium", "unit": "kg", "gwp_factor": 8.1, "source": "ecoinvent", "region": "Global", "category": "critical_mineral", "scarcity_score": 45},
+            {"id": "tantalum", "name": "Tantalum Powder", "type": "tantalum", "unit": "kg", "gwp_factor": 48.0, "source": "ecoinvent", "region": "Global", "category": "critical_mineral", "scarcity_score": 88},
+            {"id": "indium", "name": "Indium (ITO)", "type": "indium", "unit": "kg", "gwp_factor": 142.0, "source": "ecoinvent", "region": "Global", "category": "critical_mineral", "scarcity_score": 82},
+            {"id": "gallium", "name": "Gallium Arsenide", "type": "gallium", "unit": "kg", "gwp_factor": 185.0, "source": "ecoinvent", "region": "Global", "category": "critical_mineral", "scarcity_score": 80},
+            {"id": "germanium", "name": "Germanium", "type": "germanium", "unit": "kg", "gwp_factor": 165.0, "source": "ecoinvent", "region": "Global", "category": "critical_mineral", "scarcity_score": 84},
+        ]
+        
+        # Precious Metals (PGMs)
+        precious_metals = [
+            {"id": "platinum", "name": "Platinum", "type": "platinum", "unit": "kg", "gwp_factor": 12500.0, "source": "ecoinvent", "region": "Global", "category": "precious_metal", "scarcity_score": 88},
+            {"id": "palladium", "name": "Palladium", "type": "palladium", "unit": "kg", "gwp_factor": 9800.0, "source": "ecoinvent", "region": "Global", "category": "precious_metal", "scarcity_score": 86},
         ]
         
         # India-specific materials (JNARRDC baseline)
         india_materials = [
-            {"id": "al_india_primary", "name": "Primary Aluminium (India)", "type": "aluminium_primary", "unit": "kg", "gwp_factor": 16.5, "source": "jnarrdc", "region": "India"},
-            {"id": "al_india_secondary", "name": "Secondary Aluminium (India)", "type": "aluminium_secondary", "unit": "kg", "gwp_factor": 0.8, "source": "jnarrdc", "region": "India"},
-            {"id": "cu_india_primary", "name": "Primary Copper (India)", "type": "copper_primary", "unit": "kg", "gwp_factor": 4.2, "source": "jnarrdc", "region": "India"},
-            {"id": "cu_india_secondary", "name": "Secondary Copper (India)", "type": "copper_secondary", "unit": "kg", "gwp_factor": 0.6, "source": "jnarrdc", "region": "India"},
-            {"id": "steel_india_primary", "name": "Virgin Steel (India)", "type": "steel_primary", "unit": "kg", "gwp_factor": 2.8, "source": "jnarrdc", "region": "India"},
-            {"id": "steel_india_secondary", "name": "Recycled Steel (India)", "type": "steel_secondary", "unit": "kg", "gwp_factor": 0.5, "source": "jnarrdc", "region": "India"},
+            {"id": "al_india_primary", "name": "Primary Aluminium (India)", "type": "aluminium_primary", "unit": "kg", "gwp_factor": 16.5, "source": "jnarrdc", "region": "India", "category": "base_metal"},
+            {"id": "al_india_secondary", "name": "Secondary Aluminium (India)", "type": "aluminium_secondary", "unit": "kg", "gwp_factor": 0.8, "source": "jnarrdc", "region": "India", "category": "base_metal"},
+            {"id": "cu_india_primary", "name": "Primary Copper (India)", "type": "copper_primary", "unit": "kg", "gwp_factor": 4.2, "source": "jnarrdc", "region": "India", "category": "base_metal"},
+            {"id": "cu_india_secondary", "name": "Secondary Copper (India)", "type": "copper_secondary", "unit": "kg", "gwp_factor": 0.6, "source": "jnarrdc", "region": "India", "category": "base_metal"},
+            {"id": "steel_india_primary", "name": "Virgin Steel (India)", "type": "steel_primary", "unit": "kg", "gwp_factor": 2.8, "source": "jnarrdc", "region": "India", "category": "base_metal"},
+            {"id": "steel_india_secondary", "name": "Recycled Steel (India)", "type": "steel_secondary", "unit": "kg", "gwp_factor": 0.5, "source": "jnarrdc", "region": "India", "category": "base_metal"},
         ]
         
         # User custom materials
@@ -1323,11 +1862,19 @@ def combined_material_library():
                     'dataset_name': dataset.get('name', 'Custom')
                 })
         
+        # Combine all materials
+        all_materials = (system_materials + battery_minerals + rare_earth_minerals + 
+                         other_critical + precious_metals + india_materials + custom_materials)
+        
         return jsonify({
             "system": system_materials,
+            "battery_minerals": battery_minerals,
+            "rare_earth": rare_earth_minerals,
+            "critical_minerals": other_critical,
+            "precious_metals": precious_metals,
             "india": india_materials,
             "custom": custom_materials,
-            "all": system_materials + india_materials + custom_materials
+            "all": all_materials
         }), 200
         
     except Exception as e:
@@ -1341,15 +1888,29 @@ def material_library():
         return '', 200
     
     materials = [
-        {"id": "al_primary", "name": "Primary Aluminium", "type": "aluminium_primary", "unit": "kg", "gwp_factor": 12.5},
-        {"id": "al_secondary", "name": "Secondary Aluminium (Recycled)", "type": "aluminium_secondary", "unit": "kg", "gwp_factor": 0.6},
-        {"id": "cu_primary", "name": "Primary Copper", "type": "copper_primary", "unit": "kg", "gwp_factor": 3.5},
-        {"id": "cu_secondary", "name": "Secondary Copper (Recycled)", "type": "copper_secondary", "unit": "kg", "gwp_factor": 0.5},
-        {"id": "steel_primary", "name": "Virgin Steel", "type": "steel_primary", "unit": "kg", "gwp_factor": 2.1},
-        {"id": "steel_secondary", "name": "Recycled Steel", "type": "steel_secondary", "unit": "kg", "gwp_factor": 0.4},
-        {"id": "lithium", "name": "Lithium Carbonate", "type": "lithium", "unit": "kg", "gwp_factor": 15.0},
-        {"id": "cobalt", "name": "Cobalt Sulfate", "type": "cobalt", "unit": "kg", "gwp_factor": 10.0},
-        {"id": "nickel", "name": "Primary Nickel", "type": "nickel", "unit": "kg", "gwp_factor": 8.5},
+        # Base Metals
+        {"id": "al_primary", "name": "Primary Aluminium", "type": "aluminium_primary", "unit": "kg", "gwp_factor": 12.5, "category": "base_metal"},
+        {"id": "al_secondary", "name": "Secondary Aluminium (Recycled)", "type": "aluminium_secondary", "unit": "kg", "gwp_factor": 0.6, "category": "base_metal"},
+        {"id": "cu_primary", "name": "Primary Copper", "type": "copper_primary", "unit": "kg", "gwp_factor": 3.5, "category": "base_metal"},
+        {"id": "cu_secondary", "name": "Secondary Copper (Recycled)", "type": "copper_secondary", "unit": "kg", "gwp_factor": 0.5, "category": "base_metal"},
+        {"id": "steel_primary", "name": "Virgin Steel", "type": "steel_primary", "unit": "kg", "gwp_factor": 2.1, "category": "base_metal"},
+        {"id": "steel_secondary", "name": "Recycled Steel", "type": "steel_secondary", "unit": "kg", "gwp_factor": 0.4, "category": "base_metal"},
+        # Battery Minerals
+        {"id": "li_carbonate", "name": "Lithium Carbonate", "type": "lithium_carbonate", "unit": "kg", "gwp_factor": 15.0, "category": "critical_mineral", "scarcity_score": 85},
+        {"id": "li_hydroxide", "name": "Lithium Hydroxide", "type": "lithium_hydroxide", "unit": "kg", "gwp_factor": 18.0, "category": "critical_mineral", "scarcity_score": 85},
+        {"id": "cobalt_sulfate", "name": "Cobalt Sulfate", "type": "cobalt_sulfate", "unit": "kg", "gwp_factor": 10.0, "category": "critical_mineral", "scarcity_score": 92},
+        {"id": "nickel_class1", "name": "Nickel Class 1", "type": "nickel_class1", "unit": "kg", "gwp_factor": 12.5, "category": "critical_mineral", "scarcity_score": 65},
+        {"id": "manganese", "name": "Manganese Dioxide", "type": "manganese", "unit": "kg", "gwp_factor": 2.8, "category": "critical_mineral", "scarcity_score": 40},
+        {"id": "graphite", "name": "Natural Graphite", "type": "graphite", "unit": "kg", "gwp_factor": 4.2, "category": "critical_mineral", "scarcity_score": 70},
+        # Rare Earths
+        {"id": "neodymium", "name": "Neodymium", "type": "neodymium", "unit": "kg", "gwp_factor": 35.0, "category": "rare_earth", "scarcity_score": 95},
+        {"id": "dysprosium", "name": "Dysprosium", "type": "dysprosium", "unit": "kg", "gwp_factor": 45.0, "category": "rare_earth", "scarcity_score": 98},
+        {"id": "praseodymium", "name": "Praseodymium", "type": "praseodymium", "unit": "kg", "gwp_factor": 32.0, "category": "rare_earth", "scarcity_score": 90},
+        # Other Critical
+        {"id": "tungsten", "name": "Tungsten", "type": "tungsten", "unit": "kg", "gwp_factor": 22.0, "category": "critical_mineral", "scarcity_score": 78},
+        {"id": "vanadium", "name": "Vanadium", "type": "vanadium", "unit": "kg", "gwp_factor": 28.0, "category": "critical_mineral", "scarcity_score": 72},
+        {"id": "titanium", "name": "Titanium", "type": "titanium", "unit": "kg", "gwp_factor": 8.1, "category": "critical_mineral", "scarcity_score": 45},
+        {"id": "tantalum", "name": "Tantalum", "type": "tantalum", "unit": "kg", "gwp_factor": 48.0, "category": "critical_mineral", "scarcity_score": 88},
     ]
     
     return jsonify(materials), 200
@@ -2076,6 +2637,28 @@ def get_project_analytics(project_id):
         lifespan_bonus = min((project[5] or 0) / 2, 10)  # target_lifespan bonus
         circular_score = min(100, round(mci_score * 70 + disassembly_bonus + lifespan_bonus, 1))
         
+        # Calculate scarcity metrics for critical minerals
+        scarcity_analysis = []
+        total_scarcity_weight = 0
+        weighted_scarcity = 0
+        for m in materials:
+            mat_type = m[2] or 'unknown'
+            scarcity = get_scarcity_score(mat_type)
+            quantity = m[3] or 0
+            if scarcity > 0:
+                scarcity_analysis.append({
+                    'name': m[1],
+                    'type': mat_type,
+                    'scarcity_score': scarcity,
+                    'quantity': quantity,
+                    'risk_level': 'Critical' if scarcity >= 85 else ('High' if scarcity >= 70 else ('Medium' if scarcity >= 50 else 'Low'))
+                })
+                weighted_scarcity += scarcity * quantity
+                total_scarcity_weight += quantity
+        
+        avg_scarcity = round(weighted_scarcity / total_scarcity_weight, 1) if total_scarcity_weight > 0 else 0
+        critical_mineral_count = len([s for s in scarcity_analysis if s['scarcity_score'] >= 70])
+        
         return jsonify({
             'summary': {
                 'total_gwp': round(total_gwp, 2),
@@ -2083,14 +2666,17 @@ def get_project_analytics(project_id):
                 'material_count': len(materials),
                 'avg_recycled_content': round(avg_recycled, 1),
                 'mci_score': mci_score,
-                'circular_design_score': circular_score
+                'circular_design_score': circular_score,
+                'avg_scarcity_score': avg_scarcity,
+                'critical_mineral_count': critical_mineral_count
             },
             'gwp_by_material': gwp_by_material,
             'gwp_by_type': type_breakdown,
             'recycled_analysis': recycled_analysis,
             'mci_breakdown': mci_breakdown,
             'lifecycle_stages': lifecycle_stages,
-            'process_flow': process_flow
+            'process_flow': process_flow,
+            'scarcity_analysis': scarcity_analysis
         }), 200
         
     except Exception as e:
@@ -2962,6 +3548,397 @@ def export_cbam_excel(project_id):
         
     except Exception as e:
         print(f"CBAM Excel Export Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"detail": str(e)}), 500
+
+
+# =====================================================
+# BRSR EXPORT - SEBI Business Responsibility Report
+# =====================================================
+
+@app.route('/api/v1/projects/<project_id>/brsr-export', methods=['GET', 'OPTIONS'])
+def brsr_export(project_id):
+    """Generate BRSR (SEBI) Principle 6 Environmental Report"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Get project
+        c.execute("SELECT * FROM projects WHERE id = ?", (project_id,))
+        project = c.fetchone()
+        if not project:
+            conn.close()
+            return jsonify({"detail": "Project not found"}), 404
+        
+        # Get materials
+        c.execute("""SELECT material_name, material_type, quantity, gwp, 
+                     recycled_content, transport_distance 
+                     FROM project_materials WHERE project_id = ?""", (project_id,))
+        materials = c.fetchall()
+        
+        # Get user info
+        c.execute("SELECT full_name, organization_name, email FROM users WHERE id = ?", (project[3],))
+        user = c.fetchone()
+        conn.close()
+        
+        # Calculate metrics
+        total_mass = sum(m[2] or 0 for m in materials)
+        total_gwp = sum(m[3] or 0 for m in materials)
+        avg_recycled = sum(m[4] or 0 for m in materials) / len(materials) if materials else 0
+        
+        # Calculate virgin and recycled inputs
+        recycled_input = sum((m[2] or 0) * (m[4] or 0) / 100 for m in materials)
+        virgin_input = total_mass - recycled_input
+        
+        # BRSR Principle 6 Format
+        report = {
+            'report_metadata': {
+                'report_id': f"BRSR-{project_id[:8].upper()}-{datetime.now().strftime('%Y%m%d')}",
+                'report_type': 'BRSR Principle 6 - Environment',
+                'regulation_reference': 'SEBI Circular SEBI/HO/CFD/CMD-2/P/CIR/2021/562',
+                'financial_year': f"FY {datetime.now().year}-{(datetime.now().year + 1) % 100:02d}",
+                'generation_date': datetime.now().isoformat(),
+                'software': 'JNARRDC LCA Portal v1.0'
+            },
+            'entity_details': {
+                'name_of_listed_entity': user[1] if user else 'Not specified',
+                'cin': 'To be provided',
+                'year_of_incorporation': 'To be provided',
+                'registered_office_address': 'To be provided',
+                'reporting_boundary': 'Standalone'
+            },
+            'principle_6_essential_indicators': {
+                'section_a_energy_consumption': {
+                    'disclosure': 'Details of total energy consumption and energy intensity',
+                    'total_energy_consumption_gj': round(total_gwp * 0.0036, 2),  # Estimate
+                    'energy_intensity_per_unit': round((total_gwp * 0.0036) / total_mass, 4) if total_mass > 0 else 0,
+                    'renewable_energy_percent': 0,  # To be provided
+                    'note': 'Energy values estimated from GWP calculations'
+                },
+                'section_b_water': {
+                    'disclosure': 'Water withdrawal and consumption',
+                    'total_water_withdrawal_kl': 'To be provided',
+                    'water_intensity': 'To be provided',
+                    'note': 'Water data not available from LCA module'
+                },
+                'section_c_emissions': {
+                    'disclosure': 'Details of air emissions and GHG emissions',
+                    'scope_1_emissions_mtco2e': 0,  # Direct emissions - not calculated in this LCA
+                    'scope_2_emissions_mtco2e': round(total_gwp / 1000, 4),  # Indirect from materials
+                    'scope_3_emissions_mtco2e': round(total_gwp / 1000 * 0.1, 4),  # Estimate for transport
+                    'total_ghg_emissions_mtco2e': round(total_gwp / 1000, 4),
+                    'ghg_intensity_per_rupee_turnover': 'To be calculated',
+                    'methodology': 'IPCC AR6 emission factors via JNARRDC LCA Portal',
+                    'breakdown_by_material': [
+                        {
+                            'material': m[0],
+                            'gwp_kgco2eq': round(m[3] or 0, 2),
+                            'percentage': round((m[3] or 0) / total_gwp * 100, 1) if total_gwp > 0 else 0
+                        } for m in materials
+                    ]
+                },
+                'section_d_waste': {
+                    'disclosure': 'Details of waste generated and recycled',
+                    'total_waste_generated_mt': round(total_mass * 0.05 / 1000, 4),  # Estimate 5% waste
+                    'waste_recycled_mt': round(total_mass * 0.05 * (avg_recycled / 100) / 1000, 4),
+                    'waste_to_landfill_mt': round(total_mass * 0.05 * (1 - avg_recycled / 100) / 1000, 4),
+                    'waste_intensity': round(total_mass * 0.05 / total_mass, 4) if total_mass > 0 else 0,
+                    'note': 'Waste estimated at 5% of material input'
+                },
+                'section_e_circularity': {
+                    'disclosure': 'Details related to circularity',
+                    'total_raw_material_consumed_mt': round(total_mass / 1000, 4),
+                    'recycled_input_material_mt': round(recycled_input / 1000, 4),
+                    'virgin_input_material_mt': round(virgin_input / 1000, 4),
+                    'recycled_content_percentage': round(avg_recycled, 1),
+                    'products_reclaimed_at_eol_percent': round(avg_recycled * 0.8, 1),  # Estimate
+                    'mci_score': project[10] if len(project) > 10 else 0,
+                    'circular_design_score': project[11] if len(project) > 11 else 0,
+                    'designed_for_disassembly': bool(project[6]) if len(project) > 6 else False
+                }
+            },
+            'principle_6_leadership_indicators': {
+                'water_discharge_quality': 'Not applicable to LCA scope',
+                'biodiversity_impact': 'Not assessed',
+                'emission_management': {
+                    'nox_sox_control': 'To be provided',
+                    'pm_control': 'To be provided'
+                },
+                'environmental_compliance': {
+                    'show_cause_notices': 0,
+                    'penalties_paid': 0
+                }
+            },
+            'material_breakdown': [
+                {
+                    'material_name': m[0],
+                    'material_type': m[1],
+                    'quantity_kg': m[2] or 0,
+                    'recycled_content_percent': m[4] or 0,
+                    'gwp_kgco2eq': round(m[3] or 0, 2),
+                    'virgin_fraction_kg': round((m[2] or 0) * (100 - (m[4] or 0)) / 100, 2),
+                    'recycled_fraction_kg': round((m[2] or 0) * (m[4] or 0) / 100, 2)
+                } for m in materials
+            ],
+            'summary_metrics': {
+                'total_materials_kg': round(total_mass, 2),
+                'total_gwp_kgco2eq': round(total_gwp, 2),
+                'average_recycled_content': round(avg_recycled, 1),
+                'circular_readiness': 'High' if avg_recycled >= 50 else ('Medium' if avg_recycled >= 25 else 'Low')
+            },
+            'compliance_notes': [
+                'This report follows SEBI BRSR format for Principle 6 (Environment)',
+                'GWP calculations use IPCC AR6 and Ecoinvent 3.9 emission factors',
+                'MCI calculated using Ellen MacArthur Foundation methodology',
+                'Some indicators require additional data from facility operations',
+                'Report generated for disclosure purposes - verify with auditor'
+            ]
+        }
+        
+        return jsonify(report), 200
+        
+    except Exception as e:
+        print(f"BRSR Export Error: {e}")
+        return jsonify({"detail": str(e)}), 500
+
+
+@app.route('/api/v1/projects/<project_id>/brsr-export/excel', methods=['GET', 'OPTIONS'])
+def brsr_export_excel(project_id):
+    """Generate BRSR Excel Report with SEBI Format"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        c.execute("SELECT * FROM projects WHERE id = ?", (project_id,))
+        project = c.fetchone()
+        if not project:
+            conn.close()
+            return jsonify({"detail": "Project not found"}), 404
+        
+        c.execute("""SELECT material_name, material_type, quantity, gwp, 
+                     recycled_content, transport_distance 
+                     FROM project_materials WHERE project_id = ?""", (project_id,))
+        materials = c.fetchall()
+        
+        c.execute("SELECT full_name, organization_name, email FROM users WHERE id = ?", (project[3],))
+        user = c.fetchone()
+        conn.close()
+        
+        # Calculate metrics
+        total_mass = sum(m[2] or 0 for m in materials)
+        total_gwp = sum(m[3] or 0 for m in materials)
+        avg_recycled = sum(m[4] or 0 for m in materials) / len(materials) if materials else 0
+        recycled_input = sum((m[2] or 0) * (m[4] or 0) / 100 for m in materials)
+        virgin_input = total_mass - recycled_input
+        
+        # Create Excel workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "BRSR Principle 6"
+        
+        # Styles
+        header_font = Font(name='Arial', size=16, bold=True, color='1F4E79')
+        subheader_font = Font(name='Arial', size=12, bold=True, color='FFFFFF')
+        bold_font = Font(name='Arial', size=10, bold=True)
+        normal_font = Font(name='Arial', size=10)
+        small_font = Font(name='Arial', size=9, italic=True, color='666666')
+        green_fill = PatternFill(start_color='2E7D32', end_color='2E7D32', fill_type='solid')
+        light_green_fill = PatternFill(start_color='E8F5E9', end_color='E8F5E9', fill_type='solid')
+        
+        # Column widths
+        ws.column_dimensions['A'].width = 5
+        ws.column_dimensions['B'].width = 40
+        ws.column_dimensions['C'].width = 25
+        ws.column_dimensions['D'].width = 20
+        ws.column_dimensions['E'].width = 20
+        
+        row = 1
+        
+        # Header
+        ws.merge_cells('B1:E1')
+        ws['B1'] = 'BUSINESS RESPONSIBILITY AND SUSTAINABILITY REPORT'
+        ws['B1'].font = header_font
+        ws['B1'].alignment = Alignment(horizontal='center')
+        ws.row_dimensions[1].height = 30
+        
+        row = 2
+        ws.merge_cells('B2:E2')
+        ws['B2'] = 'PRINCIPLE 6: ENVIRONMENT - JNARRDC LCA Portal'
+        ws['B2'].font = Font(name='Arial', size=12, italic=True, color='666666')
+        ws['B2'].alignment = Alignment(horizontal='center')
+        
+        row = 4
+        ws.merge_cells('B4:E4')
+        ws['B4'] = 'SECTION A: ENERGY CONSUMPTION'
+        ws['B4'].font = subheader_font
+        ws['B4'].fill = green_fill
+        ws.row_dimensions[4].height = 22
+        
+        row = 5
+        ws['B5'] = 'Parameter'
+        ws['C5'] = 'Unit'
+        ws['D5'] = 'Current FY'
+        ws['E5'] = 'Previous FY'
+        for cell in ['B5', 'C5', 'D5', 'E5']:
+            ws[cell].font = bold_font
+            ws[cell].fill = light_green_fill
+        
+        row = 6
+        ws['B6'] = 'Total energy consumption'
+        ws['C6'] = 'GJ'
+        ws['D6'] = round(total_gwp * 0.0036, 2)
+        ws['E6'] = '-'
+        
+        row = 7
+        ws['B7'] = 'Energy intensity per unit output'
+        ws['C7'] = 'GJ/MT'
+        ws['D7'] = round((total_gwp * 0.0036) / (total_mass/1000), 4) if total_mass > 0 else 0
+        ws['E7'] = '-'
+        
+        # Section C: Emissions
+        row = 9
+        ws.merge_cells('B9:E9')
+        ws['B9'] = 'SECTION C: GHG EMISSIONS'
+        ws['B9'].font = subheader_font
+        ws['B9'].fill = green_fill
+        ws.row_dimensions[9].height = 22
+        
+        row = 10
+        ws['B10'] = 'Parameter'
+        ws['C10'] = 'Unit'
+        ws['D10'] = 'Current FY'
+        ws['E10'] = 'Previous FY'
+        for cell in ['B10', 'C10', 'D10', 'E10']:
+            ws[cell].font = bold_font
+            ws[cell].fill = light_green_fill
+        
+        row = 11
+        ws['B11'] = 'Scope 1 (Direct emissions)'
+        ws['C11'] = 'MTCO2e'
+        ws['D11'] = 0
+        ws['E11'] = '-'
+        
+        row = 12
+        ws['B12'] = 'Scope 2 (Indirect - Materials)'
+        ws['C12'] = 'MTCO2e'
+        ws['D12'] = round(total_gwp / 1000, 4)
+        ws['E12'] = '-'
+        
+        row = 13
+        ws['B13'] = 'Scope 3 (Transport)'
+        ws['C13'] = 'MTCO2e'
+        ws['D13'] = round(total_gwp / 1000 * 0.1, 4)
+        ws['E13'] = '-'
+        
+        row = 14
+        ws['B14'] = 'Total GHG Emissions'
+        ws['C14'] = 'MTCO2e'
+        ws['D14'] = round(total_gwp / 1000, 4)
+        ws['D14'].font = bold_font
+        ws['E14'] = '-'
+        
+        # Section E: Circularity
+        row = 16
+        ws.merge_cells('B16:E16')
+        ws['B16'] = 'SECTION E: CIRCULARITY'
+        ws['B16'].font = subheader_font
+        ws['B16'].fill = green_fill
+        ws.row_dimensions[16].height = 22
+        
+        row = 17
+        ws['B17'] = 'Parameter'
+        ws['C17'] = 'Unit'
+        ws['D17'] = 'Current FY'
+        ws['E17'] = 'Previous FY'
+        for cell in ['B17', 'C17', 'D17', 'E17']:
+            ws[cell].font = bold_font
+            ws[cell].fill = light_green_fill
+        
+        row = 18
+        ws['B18'] = 'Total raw material consumed'
+        ws['C18'] = 'MT'
+        ws['D18'] = round(total_mass / 1000, 4)
+        ws['E18'] = '-'
+        
+        row = 19
+        ws['B19'] = 'Recycled input material'
+        ws['C19'] = 'MT'
+        ws['D19'] = round(recycled_input / 1000, 4)
+        ws['E19'] = '-'
+        
+        row = 20
+        ws['B20'] = 'Virgin input material'
+        ws['C20'] = 'MT'
+        ws['D20'] = round(virgin_input / 1000, 4)
+        ws['E20'] = '-'
+        
+        row = 21
+        ws['B21'] = 'Recycled content percentage'
+        ws['C21'] = '%'
+        ws['D21'] = round(avg_recycled, 1)
+        ws['E21'] = '-'
+        
+        row = 22
+        ws['B22'] = 'Material Circularity Index (MCI)'
+        ws['C22'] = 'Score (0-1)'
+        ws['D22'] = project[10] if len(project) > 10 else 0
+        ws['E22'] = '-'
+        
+        # Material breakdown
+        row = 24
+        ws.merge_cells('B24:E24')
+        ws['B24'] = 'MATERIAL BREAKDOWN'
+        ws['B24'].font = subheader_font
+        ws['B24'].fill = green_fill
+        ws.row_dimensions[24].height = 22
+        
+        row = 25
+        ws['B25'] = 'Material'
+        ws['C25'] = 'Quantity (kg)'
+        ws['D25'] = 'Recycled %'
+        ws['E25'] = 'GWP (kgCO2eq)'
+        for cell in ['B25', 'C25', 'D25', 'E25']:
+            ws[cell].font = bold_font
+            ws[cell].fill = light_green_fill
+        
+        row = 26
+        for m in materials:
+            ws[f'B{row}'] = m[0]
+            ws[f'C{row}'] = m[2] or 0
+            ws[f'D{row}'] = f"{m[4] or 0}%"
+            ws[f'E{row}'] = round(m[3] or 0, 2)
+            row += 1
+        
+        # Footer
+        row += 2
+        ws.merge_cells(f'B{row}:E{row}')
+        ws[f'B{row}'] = f'Report generated by JNARRDC LCA Portal | {datetime.now().strftime("%d/%m/%Y")} | SEBI BRSR Format'
+        ws[f'B{row}'].font = small_font
+        ws[f'B{row}'].alignment = Alignment(horizontal='center')
+        
+        # Save
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        filename = f"BRSR_Report_{project[1].replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        print(f"BRSR Excel Export Error: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({"detail": str(e)}), 500

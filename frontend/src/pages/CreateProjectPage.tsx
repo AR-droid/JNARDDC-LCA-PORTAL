@@ -56,10 +56,14 @@ export default function CreateProjectPage() {
       const result = await parseNLPDescription(nlpInput);
       setNlpResult(result);
       
-      // Auto-generate project name from parsed materials
-      if (result.parsed.materials.length > 0) {
-        const matNames = result.parsed.materials.map(m => m.material_name).join(' + ');
-        setProjectName(`LCA - ${matNames}`);
+      // Use suggested project name from NLP parser
+      if (result.parsed.suggested_name) {
+        setProjectName(result.parsed.suggested_name);
+      } else if (result.parsed.materials.length > 0) {
+        // Fallback to category + primary material
+        const category = result.parsed.project?.product_category?.replace('_', ' ')?.replace(/\b\w/g, c => c.toUpperCase()) || '';
+        const primaryMaterial = result.parsed.materials[0]?.material_name || '';
+        setProjectName(category ? `${category} - ${primaryMaterial}` : primaryMaterial);
       }
       
       setActiveMode('nlp');

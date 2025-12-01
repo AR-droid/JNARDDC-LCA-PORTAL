@@ -7,6 +7,13 @@ import ProjectEditModal from '../components/ProjectEditModal'
 import BOMUploadModal from '../components/BOMUploadModal'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon, EUFlagIcon, UploadIcon, PlusIcon, PackageIcon } from '../components/Icons'
 
+interface VerificationStatus {
+  verification_status: 'not_submitted' | 'pending' | 'approved' | 'rejected'
+  verification_submitted_at?: string
+  verification_reviewed_at?: string
+  verification_notes?: string
+}
+
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -20,9 +27,12 @@ export default function ProjectDetailPage() {
   const [showBOMUpload, setShowBOMUpload] = useState(false)
   const [sortField, setSortField] = useState<'material_name' | 'material_type' | 'quantity' | 'gwp' | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null)
+  const [isSubmittingVerification, setIsSubmittingVerification] = useState(false)
 
   useEffect(() => {
     loadData()
+    loadVerificationStatus()
   }, [id])
 
   const loadData = async () => {
@@ -40,6 +50,34 @@ export default function ProjectDetailPage() {
       console.error('Error loading project:', error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const loadVerificationStatus = async () => {
+    if (!id) return
+    
+    try {
+      const status = await projectsApi.checkVerificationStatus(id)
+      setVerificationStatus(status)
+    } catch (error) {
+      console.error('Error loading verification status:', error)
+      // Default to not submitted if error
+      setVerificationStatus({ verification_status: 'not_submitted' })
+    }
+  }
+
+  const handleSubmitVerification = async () => {
+    if (!id) return
+    
+    try {
+      setIsSubmittingVerification(true)
+      await projectsApi.submitForVerification(id)
+      await loadVerificationStatus()
+    } catch (error) {
+      console.error('Error submitting for verification:', error)
+      alert('Failed to submit for verification. Please ensure you have at least one material added.')
+    } finally {
+      setIsSubmittingVerification(false)
     }
   }
 
@@ -254,6 +292,173 @@ export default function ProjectDetailPage() {
             >
               <EUFlagIcon size={14} /> CBAM Export
             </button>
+          </div>
+        </div>
+
+        {/* JNARRDC Verification Section */}
+        <div className="bg-white rounded-lg shadow p-5 mb-5">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                🏛️ JNARRDC Verification
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Get your LCA assessment verified by JNARRDC (Joint National Action for Rare Earths & Defense Compliance)
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {verificationStatus?.verification_status === 'not_submitted' && (
+                <button
+                  onClick={handleSubmitVerification}
+                  disabled={isSubmittingVerification || materials.length === 0}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                >
+                  {isSubmittingVerification ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <span>✓</span> Request Verification
+                    </>
+                  )}
+                </button>
+              )}
+              {verificationStatus?.verification_status === 'pending' && (
+                <span className="px-3 py-1.5 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium flex items-center gap-1">
+                  <span className="animate-pulse">⏳</span> Pending Review
+                </span>
+              )}
+              {verificationStatus?.verification_status === 'approved' && (
+                <span className="px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-sm font-medium flex items-center gap-1">
+                  ✅ Verified
+                </span>
+              )}
+              {verificationStatus?.verification_status === 'rejected' && (
+                <span className="px-3 py-1.5 bg-red-100 text-red-800 rounded-full text-sm font-medium flex items-center gap-1">
+                  ❌ Rejected
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4">
+            {verificationStatus?.verification_status === 'not_submitted' && (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-700">
+                  <strong>Why get verified?</strong> JNARRDC verification certifies that your LCA assessment meets Indian regulatory standards and is compliant with:
+                </p>
+                <ul className="text-sm text-gray-600 list-disc list-inside space-y-1 ml-2">
+                  <li>Critical Minerals Mission Guidelines</li>
+                  <li>SEBI BRSR ESG Disclosure Requirements</li>
+                  <li>National E-Waste Management Standards</li>
+                  <li>Extended Producer Responsibility (EPR) Rules</li>
+                </ul>
+                {materials.length === 0 && (
+                  <p className="text-sm text-amber-600 font-medium mt-3">
+                    ⚠️ Add at least one material to submit for verification.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {verificationStatus?.verification_status === 'pending' && (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-700">
+                  Your LCA assessment has been submitted for JNARRDC verification. Our team will review your submission and provide feedback.
+                </p>
+                <div className="flex items-center gap-6 text-sm">
+                  <div>
+                    <span className="text-gray-500">Submitted:</span>{' '}
+                    <span className="font-medium">
+                      {verificationStatus.verification_submitted_at 
+                        ? new Date(verificationStatus.verification_submitted_at).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                        : 'Just now'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Expected Review:</span>{' '}
+                    <span className="font-medium">3-5 business days</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {verificationStatus?.verification_status === 'approved' && (
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="text-3xl">🏆</div>
+                  <div>
+                    <p className="text-sm font-semibold text-green-800">JNARRDC Verified Assessment</p>
+                    <p className="text-sm text-gray-700 mt-1">
+                      This LCA assessment has been verified by JNARRDC and meets all Indian regulatory compliance standards.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-6 text-sm mt-2">
+                  <div>
+                    <span className="text-gray-500">Verified on:</span>{' '}
+                    <span className="font-medium">
+                      {verificationStatus.verification_reviewed_at 
+                        ? new Date(verificationStatus.verification_reviewed_at).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                          })
+                        : 'Recently'}
+                    </span>
+                  </div>
+                </div>
+                {verificationStatus.verification_notes && (
+                  <div className="mt-3 p-3 bg-green-50 rounded border border-green-200">
+                    <p className="text-xs font-medium text-green-700 mb-1">Reviewer Notes:</p>
+                    <p className="text-sm text-green-800">{verificationStatus.verification_notes}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {verificationStatus?.verification_status === 'rejected' && (
+              <div className="space-y-3">
+                <p className="text-sm text-red-700">
+                  Your verification request was not approved. Please review the feedback below and make necessary corrections.
+                </p>
+                <div className="flex items-center gap-6 text-sm">
+                  <div>
+                    <span className="text-gray-500">Reviewed on:</span>{' '}
+                    <span className="font-medium">
+                      {verificationStatus.verification_reviewed_at 
+                        ? new Date(verificationStatus.verification_reviewed_at).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                          })
+                        : 'Recently'}
+                    </span>
+                  </div>
+                </div>
+                {verificationStatus.verification_notes && (
+                  <div className="mt-3 p-3 bg-red-50 rounded border border-red-200">
+                    <p className="text-xs font-medium text-red-700 mb-1">Rejection Reason:</p>
+                    <p className="text-sm text-red-800">{verificationStatus.verification_notes}</p>
+                  </div>
+                )}
+                <button
+                  onClick={handleSubmitVerification}
+                  disabled={isSubmittingVerification}
+                  className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  Resubmit for Verification
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

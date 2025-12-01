@@ -99,12 +99,53 @@ export const projectsApi = {
   },
 
   /**
-   * Submit project for JNARRDC verification
+   * Get verification status
    */
-  submitForVerification: async (projectId: string): Promise<{ message: string }> => {
-    const response = await api.post(`/projects/${projectId}/submit-verification`)
+  getVerificationStatus: async (projectId: string): Promise<VerificationStatus> => {
+    const response = await api.get(`/projects/${projectId}/verification`)
     return response.data
   },
+
+  /**
+   * Submit project for JNARRDC verification
+   */
+  submitForVerification: async (projectId: string): Promise<{ message: string; request_id: string; status: string }> => {
+    const response = await api.post(`/projects/${projectId}/verification/submit`)
+    return response.data
+  },
+
+  /**
+   * Get verification certificate
+   */
+  getVerificationCertificate: async (projectId: string): Promise<VerificationCertificate> => {
+    const response = await api.get(`/projects/${projectId}/verification/certificate`)
+    return response.data
+  },
+}
+
+export interface VerificationStatus {
+  request_id?: string
+  project_id?: string
+  status: 'not_submitted' | 'pending' | 'under_review' | 'verified' | 'rejected'
+  submitted_at?: string
+  verified_at?: string
+  verifier_name?: string
+  verifier_notes?: string
+  certificate_id?: string
+  flags?: { type: string; message: string }[]
+}
+
+export interface VerificationCertificate {
+  certificate_id: string
+  project_name: string
+  organization: string
+  verified_at: string
+  verifier_name: string
+  gwp_total: number
+  mci_score: number
+  validity: string
+  issuer: string
+  qr_code_data: string
 }
 
 export interface MCIResult {
@@ -245,6 +286,8 @@ export interface NLPParseResult {
     project: NLPParsedProject
     assumptions: NLPAssumption[]
     tokens: NLPToken[]
+    suggested_name?: string
+    coatings?: string[]
   }
 }
 
@@ -575,6 +618,39 @@ export const downloadCBAMExcel = async (projectId: string): Promise<void> => {
   }
   
   // Create download link
+  const url = window.URL.createObjectURL(new Blob([response.data]))
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute('download', filename)
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(url)
+}
+
+/**
+ * Get BRSR (SEBI) Export data
+ */
+export const getBRSRExport = async (projectId: string): Promise<any> => {
+  const response = await api.get(`/projects/${projectId}/brsr-export`)
+  return response.data
+}
+
+/**
+ * Download BRSR Excel export (SEBI format)
+ */
+export const downloadBRSRExcel = async (projectId: string): Promise<void> => {
+  const response = await api.get(`/projects/${projectId}/brsr-export/excel`, {
+    responseType: 'blob'
+  })
+  
+  const contentDisposition = response.headers['content-disposition']
+  let filename = `BRSR_Report_${projectId.slice(0, 8)}.xlsx`
+  if (contentDisposition) {
+    const match = contentDisposition.match(/filename="?(.+)"?/)
+    if (match) filename = match[1]
+  }
+  
   const url = window.URL.createObjectURL(new Blob([response.data]))
   const link = document.createElement('a')
   link.href = url

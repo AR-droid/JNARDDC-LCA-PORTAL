@@ -112,8 +112,18 @@ export default function MaterialAddModal({ projectId, onClose, onSuccess }: Prop
                     <option key={m.id} value={m.type}>{m.name} ({m.gwp_factor} kg CO₂-eq/kg)</option>
                   ))}
                 </optgroup>
-                <optgroup label="Battery Metals">
-                  {library.filter(m => ['lithium', 'cobalt', 'nickel'].includes(m.type)).map(m => (
+                <optgroup label="🔋 Battery Minerals">
+                  {library.filter(m => ['lithium_carbonate', 'lithium_hydroxide', 'cobalt_sulfate', 'nickel_class1', 'manganese', 'graphite'].some(t => m.type.includes(t))).map(m => (
+                    <option key={m.id} value={m.type}>{m.name} ({m.gwp_factor} kg CO₂-eq/kg)</option>
+                  ))}
+                </optgroup>
+                <optgroup label="⚡ Rare Earth Elements">
+                  {library.filter(m => ['neodymium', 'dysprosium', 'praseodymium', 'rare_earth'].some(t => m.type.includes(t))).map(m => (
+                    <option key={m.id} value={m.type}>{m.name} ({m.gwp_factor} kg CO₂-eq/kg)</option>
+                  ))}
+                </optgroup>
+                <optgroup label="🔧 Other Critical Minerals">
+                  {library.filter(m => ['tungsten', 'vanadium', 'titanium', 'tantalum'].some(t => m.type.includes(t))).map(m => (
                     <option key={m.id} value={m.type}>{m.name} ({m.gwp_factor} kg CO₂-eq/kg)</option>
                   ))}
                 </optgroup>

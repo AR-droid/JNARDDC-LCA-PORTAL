@@ -58,12 +58,21 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
         is_designed_for_disassembly: result.parsed.project.is_designed_for_disassembly,
       }));
       
-      // Generate project name from materials
-      if (result.parsed.materials.length > 0) {
-        const matNames = result.parsed.materials.map(m => m.material_name).join(', ');
+      // Use suggested project name from NLP parser
+      if (result.parsed.suggested_name) {
+        const suggestedName = result.parsed.suggested_name;
         setFormData(prev => ({
           ...prev,
-          name: prev.name || `LCA - ${matNames}`,
+          name: prev.name || suggestedName,
+          description: nlpInput,
+        }));
+      } else if (result.parsed.materials.length > 0) {
+        // Fallback to category + primary material
+        const category = result.parsed.project?.product_category?.replace('_', ' ')?.replace(/\b\w/g, (c: string) => c.toUpperCase()) || '';
+        const primaryMaterial = result.parsed.materials[0]?.material_name || '';
+        setFormData(prev => ({
+          ...prev,
+          name: prev.name || (category ? `${category} - ${primaryMaterial}` : primaryMaterial),
           description: nlpInput,
         }));
       }

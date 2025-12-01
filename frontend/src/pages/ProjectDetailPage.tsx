@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { projectsApi, Project } from '../api/projects'
 import { materialsApi, Material } from '../api/materials'
 import MaterialAddModal from '../components/MaterialAddModal'
 import ProjectEditModal from '../components/ProjectEditModal'
 import BOMUploadModal from '../components/BOMUploadModal'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon, EUFlagIcon, UploadIcon, PlusIcon, PackageIcon } from '../components/Icons'
+import { useAuthStore } from '../stores/authStore'
 
 interface VerificationStatus {
   verification_status: 'not_submitted' | 'pending' | 'approved' | 'rejected'
@@ -17,6 +18,11 @@ interface VerificationStatus {
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { user } = useAuthStore()
+  
+  // Feature access checks
+  const hasVerificationAccess = user?.tier === 'enterprise' || user?.features?.verification
+  const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise' || user?.features?.cbam_export
   
   const [project, setProject] = useState<Project | null>(null)
   const [materials, setMaterials] = useState<Material[]>([])
@@ -286,12 +292,22 @@ export default function ProjectDetailPage() {
             >
               <FlaskIcon size={14} /> Scenarios
             </button>
-            <button
-              onClick={() => navigate(`/projects/${id}/cbam-export`)}
-              className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors flex items-center gap-1.5"
-            >
-              <EUFlagIcon size={14} /> CBAM Export
-            </button>
+            {hasCBAMAccess ? (
+              <button
+                onClick={() => navigate(`/projects/${id}/cbam-export`)}
+                className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors flex items-center gap-1.5"
+              >
+                <EUFlagIcon size={14} /> CBAM Export
+              </button>
+            ) : (
+              <Link
+                to="/pricing"
+                className="px-3 py-1.5 text-sm bg-gray-400 text-white rounded-md hover:bg-gray-500 transition-colors flex items-center gap-1.5"
+                title="CBAM Export requires Pro plan"
+              >
+                <span>🔒</span> CBAM Export
+              </Link>
+            )}
           </div>
         </div>
 
@@ -301,13 +317,23 @@ export default function ProjectDetailPage() {
             <div>
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 🏛️ JNARRDC Verification
+                {!hasVerificationAccess && (
+                  <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">Enterprise</span>
+                )}
               </h2>
               <p className="text-sm text-gray-500 mt-1">
                 Get your LCA assessment verified by JNARRDC (Joint National Action for Rare Earths & Defense Compliance)
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {verificationStatus?.verification_status === 'not_submitted' && (
+              {!hasVerificationAccess ? (
+                <Link
+                  to="/pricing"
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+                >
+                  <span>🔒</span> Upgrade to Enterprise
+                </Link>
+              ) : verificationStatus?.verification_status === 'not_submitted' && (
                 <button
                   onClick={handleSubmitVerification}
                   disabled={isSubmittingVerification || materials.length === 0}

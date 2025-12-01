@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getCBAMReport, downloadCBAMCSV, downloadCBAMExcel, downloadBRSRExcel, CBAMReport, projectsApi } from '../api/projects'
+import { useAuthStore } from '../stores/authStore'
+import { UpgradePrompt } from '../components/FeatureGate'
 
 export default function CBAMExportPage() {
   const { id } = useParams<{ id: string }>()
@@ -128,6 +130,25 @@ export default function CBAMExportPage() {
   }
 
   if (!report) return null
+
+  // Check feature access
+  const { user } = useAuthStore.getState()
+  const hasAccess = user?.tier === 'pro' || user?.tier === 'enterprise' || user?.features?.cbam_export
+
+  if (!hasAccess) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-8">
+            <Link to={`/projects/${id}`} className="text-blue-600 hover:text-blue-700">
+              ← Back to Project
+            </Link>
+          </div>
+          <UpgradePrompt feature="cbam_export" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

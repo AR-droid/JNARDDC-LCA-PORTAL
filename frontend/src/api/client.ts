@@ -2,11 +2,6 @@ import axios, { AxiosInstance, AxiosError } from 'axios'
 
 const API_URL = 'http://localhost:5000/api/v1'
 
-console.log('🔧 API Configuration:', {
-  baseURL: API_URL,
-  environment: import.meta.env.MODE,
-})
-
 // Create axios instance
 const api: AxiosInstance = axios.create({
   baseURL: API_URL,
@@ -19,14 +14,6 @@ const api: AxiosInstance = axios.create({
 // Request interceptor - add auth token
 api.interceptors.request.use(
   (config) => {
-    console.log('📤 API Request:', {
-      method: config.method?.toUpperCase(),
-      url: config.url,
-      baseURL: config.baseURL,
-      fullURL: `${config.baseURL}${config.url}`,
-      headers: config.headers,
-    })
-    
     const token = localStorage.getItem('access_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`

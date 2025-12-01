@@ -41,11 +41,11 @@ export default function DashboardPage() {
       try {
         const analyticsData = await getDashboardAnalytics();
         setAnalytics(analyticsData);
-      } catch (err) {
-        console.log('Analytics not available yet');
+      } catch {
+        // Analytics not available yet - ignore silently
       }
-    } catch (error) {
-      console.error('Error loading dashboard:', error);
+    } catch {
+      // Error loading dashboard
     } finally {
       setIsLoading(false);
     }
@@ -71,6 +71,87 @@ export default function DashboardPage() {
             <PlusIcon size={18} /> New Project
           </Link>
         </div>
+
+        {/* Subscription Status Card */}
+        {user?.tier === 'free' ? (
+          <div className="rounded-xl mb-8 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-4 shadow-lg shadow-indigo-500/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+                  <span className="text-2xl">✨</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-white">Upgrade to Pro</h3>
+                    <span className="px-2.5 py-0.5 bg-white/20 backdrop-blur text-white text-xs font-bold rounded-full">SAVE 20%</span>
+                  </div>
+                  <p className="text-white/80 text-sm">
+                    Unlimited projects • CBAM/BRSR exports • AI Design Advisor
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-right hidden sm:block">
+                  <div className="text-sm text-white/80 mb-1">
+                    <span className="font-semibold text-white">{user?.project_count || 0}</span>
+                    <span className="text-white/60"> / </span>
+                    <span>{user?.project_limit || 3} projects</span>
+                  </div>
+                  <div className="w-32 bg-white/20 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all ${
+                        (user?.project_count || 0) >= (user?.project_limit || 3) ? 'bg-red-300' :
+                        (user?.project_count || 0) >= (user?.project_limit || 3) - 1 ? 'bg-yellow-300' :
+                        'bg-white'
+                      }`}
+                      style={{ width: `${Math.min(((user?.project_count || 0) / (user?.project_limit || 3)) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+                <Link
+                  to="/pricing"
+                  className="bg-white text-indigo-600 px-6 py-2.5 rounded-xl font-bold hover:bg-indigo-50 hover:-translate-y-0.5 transition-all flex items-center gap-2 dark:bg-white dark:text-indigo-600 dark:hover:bg-indigo-100"
+                >
+                  Upgrade <span>→</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className={`rounded-xl p-5 mb-8 text-white ${
+            user?.tier === 'enterprise' ? 'bg-gradient-to-r from-purple-600 to-indigo-600' :
+            'bg-gradient-to-r from-blue-600 to-cyan-600'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                  <span className="text-2xl">
+                    {user?.tier === 'enterprise' ? '🏢' : '⭐'}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold mb-0.5">
+                    {user?.tier === 'enterprise' ? 'Enterprise' : 'Pro'} Plan
+                  </h3>
+                  <p className="text-white/80 text-sm">
+                    {user?.tier === 'pro'
+                      ? 'Unlimited projects • Pro features enabled'
+                      : 'Full access • Priority support • Custom integrations'
+                    }
+                  </p>
+                </div>
+              </div>
+              {user?.tier === 'pro' && (
+                <Link
+                  to="/pricing"
+                  className="bg-white/20 text-white px-5 py-2 rounded-lg font-medium hover:bg-white/30 transition text-sm"
+                >
+                  View Enterprise
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
@@ -193,24 +274,6 @@ export default function DashboardPage() {
                 ))}
               </div>
             )}
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
-          <div className="flex items-start gap-4">
-            <div className="text-3xl">💡</div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-gray-900 mb-2">Phase 1 MVP Features Active</h3>
-              <ul className="text-sm text-gray-700 space-y-1">
-                <li>✅ Aluminium & Copper material library with emission factors</li>
-                <li>✅ GWP calculator with recycled content optimization</li>
-                <li>✅ Bill of Materials tracking and visualization</li>
-                <li>✅ Real-time carbon footprint calculation</li>
-              </ul>
-              <p className="text-xs text-gray-600 mt-3">
-                <strong>Account:</strong> {user?.email} • <strong>Org:</strong> {user?.organization_name || 'None'}
-              </p>
-            </div>
           </div>
         </div>
 

@@ -79,9 +79,12 @@ def register():
         user_id = str(uuid.uuid4())
         hashed_pw = hash_password(password)
         created_at = datetime.utcnow().isoformat()
+        default_tier = 'free'
+        default_project_limit = 3
         
-        c.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?)",
-                  (user_id, email, hashed_pw, full_name, org_name, created_at))
+        c.execute("""INSERT INTO users (id, email, password, full_name, organization_name, created_at, tier, tier_expires_at, project_limit)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                  (user_id, email, hashed_pw, full_name, org_name, created_at, default_tier, None, default_project_limit))
         conn.commit()
         conn.close()
         
@@ -99,7 +102,10 @@ def register():
                 "id": user_id,
                 "email": email,
                 "full_name": full_name,
-                "organization_name": org_name
+                "organization_name": org_name,
+                "tier": default_tier,
+                "tier_expires_at": None,
+                "project_limit": default_project_limit
             }
         }), 201
     except Exception as e:
@@ -126,7 +132,7 @@ def login():
         
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
-        c.execute("SELECT * FROM users WHERE email = ?", (email,))
+        c.execute("SELECT id, email, password, full_name, organization_name, created_at, tier, tier_expires_at, project_limit FROM users WHERE email = ?", (email,))
         user = c.fetchone()
         conn.close()
         
@@ -147,7 +153,10 @@ def login():
                 "id": user[0],
                 "email": user[1],
                 "full_name": user[3],
-                "organization_name": user[4]
+                "organization_name": user[4],
+                "tier": user[6] or 'free',
+                "tier_expires_at": user[7],
+                "project_limit": user[8] or 3
             }
         }), 200
     except Exception as e:
@@ -169,18 +178,39 @@ def get_me():
         
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
-        c.execute("SELECT * FROM users WHERE id = ?", (payload['user_id'],))
+        c.execute("SELECT id, email, password, full_name, organization_name, created_at, tier, tier_expires_at, project_limit FROM users WHERE id = ?", (payload['user_id'],))
         user = c.fetchone()
+        
+        # Get project count for this user
+        c.execute("SELECT COUNT(*) FROM projects WHERE user_id = ?", (payload['user_id'],))
+        project_count = c.fetchone()[0]
         conn.close()
         
         if not user:
             return jsonify({"detail": "User not found"}), 404
         
+        tier = user[6] or 'free'
+        project_limit = user[8] or 3
+        
+        # Set limits based on tier
+        tier_limits = {
+            'free': {'projects': 3, 'cbam_export': False, 'brsr_export': False, 'scenario_compare': False, 'ai_advisor': False, 'verification': False},
+            'pro': {'projects': -1, 'cbam_export': True, 'brsr_export': True, 'scenario_compare': True, 'ai_advisor': True, 'verification': False},
+            'enterprise': {'projects': -1, 'cbam_export': True, 'brsr_export': True, 'scenario_compare': True, 'ai_advisor': True, 'verification': True}
+        }
+        
+        limits = tier_limits.get(tier, tier_limits['free'])
+        
         return jsonify({
             "id": user[0],
             "email": user[1],
             "full_name": user[3],
-            "organization_name": user[4]
+            "organization_name": user[4],
+            "tier": tier,
+            "tier_expires_at": user[7],
+            "project_limit": limits['projects'],
+            "project_count": project_count,
+            "features": limits
         }), 200
     except jwt.ExpiredSignatureError:
         return jsonify({"detail": "Token expired"}), 401
@@ -437,15 +467,26 @@ def get_verification_status(project_id):
         return '', 200
     
     try:
-        verification = VERIFICATION_REQUESTS.get(project_id, {
-            'status': 'not_submitted',
-            'submitted_at': None,
-            'verified_at': None,
-            'verifier_notes': None,
-            'certificate_id': None
-        })
+        verification = VERIFICATION_REQUESTS.get(project_id)
         
-        return jsonify(verification), 200
+        if verification:
+            return jsonify({
+                'verification_status': verification.get('status', 'not_submitted'),
+                'verification_submitted_at': verification.get('submitted_at'),
+                'verification_reviewed_at': verification.get('verified_at'),
+                'verifier_notes': verification.get('verifier_notes'),
+                'certificate_id': verification.get('certificate_id'),
+                'request_id': verification.get('request_id'),
+                'flags': verification.get('flags', [])
+            }), 200
+        else:
+            return jsonify({
+                'verification_status': 'not_submitted',
+                'verification_submitted_at': None,
+                'verification_reviewed_at': None,
+                'verifier_notes': None,
+                'certificate_id': None
+            }), 200
     except Exception as e:
         return jsonify({"detail": str(e)}), 500
 
@@ -912,6 +953,12 @@ def calculate_gwp(material_type, quantity, recycled_content, transport_distance)
         # Precious Metals
         'platinum': 12500.0,
         'palladium': 9800.0,
+        'silver': 104.0,
+        'gold': 31500.0,
+        # Joining/Brazing Materials
+        'solder_lead_free': 25.0,
+        'brazing_alloy': 85.0,  # Silver-based brazing alloy
+        'flux': 3.0,
     }
     
     # Get base emission factor
@@ -962,10 +1009,16 @@ def get_scarcity_score(material_type):
         # Precious Metals
         'platinum': 88,
         'palladium': 86,
+        'silver': 60,
+        'gold': 95,
         # Base metals (lower scarcity)
         'aluminium_primary': 20, 'aluminium_secondary': 20,
         'copper_primary': 35, 'copper_secondary': 35,
         'steel_primary': 15, 'steel_secondary': 15,
+        # Joining materials (low scarcity)
+        'solder_lead_free': 25,
+        'brazing_alloy': 50,
+        'flux': 5,
     }
     return scarcity_scores.get(material_type, 0)
 
@@ -1023,7 +1076,95 @@ EMISSION_FACTORS = {
     'gallium': {'virgin': 185, 'recycled': 20, 'scarcity_score': 80},
     'germanium': {'virgin': 165, 'recycled': 18, 'scarcity_score': 84},
     'tantalum': {'virgin': 48.0, 'recycled': 6.5, 'scarcity_score': 88},
+    # Precious Metals
+    'silver': {'virgin': 104, 'recycled': 8.0, 'scarcity_score': 60},
+    'gold': {'virgin': 31500, 'recycled': 1200, 'scarcity_score': 95},
+    # Joining/Brazing Materials
+    'solder_lead_free': {'virgin': 25.0, 'recycled': 4.0, 'scarcity_score': 25},
+    'brazing_alloy': {'virgin': 85.0, 'recycled': 12.0, 'scarcity_score': 50},
+    'flux': {'virgin': 3.0, 'recycled': 3.0, 'scarcity_score': 5},
 }
+
+# Waste generation factors per material type (percentage of material input that becomes waste)
+# Based on industry averages for metal processing
+WASTE_FACTORS = {
+    # Base Metals - lower waste due to established recycling infrastructure
+    'aluminium': 0.03,           # 3% - well-established scrap recycling
+    'aluminium_primary': 0.04,   # 4% - primary production has more losses
+    'aluminium_secondary': 0.02, # 2% - secondary already optimized
+    'copper': 0.03,              # 3% - high value, well recovered
+    'copper_primary': 0.04,
+    'copper_secondary': 0.02,
+    'steel': 0.04,               # 4% - some scale/slag losses
+    'steel_primary': 0.05,
+    'steel_secondary': 0.03,
+    'iron': 0.05,                # 5% - more slag in processing
+    
+    # Critical Minerals - Battery Metals - higher waste due to complex processing
+    'lithium': 0.08,             # 8% - complex extraction process
+    'lithium_carbonate': 0.08,
+    'lithium_hydroxide': 0.08,
+    'cobalt': 0.07,              # 7% - refining losses
+    'cobalt_sulfate': 0.07,
+    'nickel': 0.06,              # 6% - smelting losses
+    'nickel_class1': 0.05,
+    'nickel_ferronickel': 0.07,
+    'manganese': 0.06,           # 6% - processing losses
+    'graphite': 0.10,            # 10% - high waste in processing
+    
+    # Rare Earths - highest waste due to complex separation
+    'neodymium': 0.12,           # 12% - separation losses
+    'dysprosium': 0.15,          # 15% - very complex separation
+    'praseodymium': 0.12,
+    'terbium': 0.15,
+    'rare_earth_mixed': 0.10,    # 10% - before separation
+    
+    # Other Critical Minerals
+    'tungsten': 0.08,            # 8% - hard to process
+    'vanadium': 0.09,            # 9% - extraction losses
+    'titanium': 0.07,            # 7% - machining waste
+    'platinum': 0.02,            # 2% - very high recovery due to value
+    'palladium': 0.02,
+    'indium': 0.12,              # 12% - byproduct recovery
+    'gallium': 0.12,
+    'germanium': 0.12,
+    'tantalum': 0.10,            # 10% - complex extraction
+    
+    # Precious Metals - very low waste due to high value
+    'silver': 0.02,              # 2%
+    'gold': 0.01,                # 1% - extremely high recovery
+    
+    # Joining/Brazing Materials
+    'solder_lead_free': 0.05,    # 5% - application losses
+    'brazing_alloy': 0.06,
+    'flux': 0.15,                # 15% - consumable
+    
+    # Default
+    'default': 0.05              # 5% default for unknown materials
+}
+
+
+def get_waste_factor(material_type: str) -> float:
+    """Get waste generation factor for a material type"""
+    material_lower = material_type.lower().replace(' ', '_').replace('-', '_')
+    
+    # Direct match
+    if material_lower in WASTE_FACTORS:
+        return WASTE_FACTORS[material_lower]
+    
+    # Check for partial matches (e.g., 'aluminium_alloy_6061' matches 'aluminium')
+    for key in WASTE_FACTORS:
+        if key in material_lower or material_lower in key:
+            return WASTE_FACTORS[key]
+    
+    # Check base material type
+    base_types = ['aluminium', 'copper', 'steel', 'iron', 'lithium', 'cobalt', 
+                  'nickel', 'tungsten', 'titanium', 'gold', 'silver', 'platinum']
+    for base in base_types:
+        if base in material_lower:
+            return WASTE_FACTORS.get(base, WASTE_FACTORS['default'])
+    
+    return WASTE_FACTORS['default']
 
 
 def calculate_mci(recycled_content_input, recycled_content_output, 
@@ -1366,6 +1507,53 @@ NLP_MATERIAL_PATTERNS = {
         'national_baseline_recycled': 10,
         'gwp_factor': 3.2,
         'scarcity_score': 30
+    },
+    # Precious Metals
+    'silver': {
+        'keywords': ['silver', 'ag', 'sterling silver'],
+        'forms': ['wire', 'sheet', 'powder', 'paste', 'coating', 'contact'],
+        'default_type': 'silver',
+        'recycled_type': 'silver',
+        'national_baseline_recycled': 50,
+        'gwp_factor': 104.0,
+        'scarcity_score': 60
+    },
+    'gold': {
+        'keywords': ['gold', 'au'],
+        'forms': ['wire', 'sheet', 'powder', 'plating', 'contact', 'bonding'],
+        'default_type': 'gold',
+        'recycled_type': 'gold',
+        'national_baseline_recycled': 60,
+        'gwp_factor': 31500.0,
+        'scarcity_score': 95
+    },
+    # Joining/Brazing Materials
+    'brazing_alloy': {
+        'keywords': ['brazing alloy', 'braze', 'brazing', 'bag-1', 'silver braze', 'copper braze'],
+        'forms': ['rod', 'wire', 'paste', 'ring', 'preform', 'filler'],
+        'default_type': 'brazing_alloy',
+        'recycled_type': 'brazing_alloy',
+        'national_baseline_recycled': 30,
+        'gwp_factor': 85.0,
+        'scarcity_score': 50
+    },
+    'solder': {
+        'keywords': ['solder', 'soldering', 'lead-free solder', 'sn-ag-cu', 'sac305', 'sac405'],
+        'forms': ['wire', 'paste', 'bar', 'ball', 'preform'],
+        'default_type': 'solder_lead_free',
+        'recycled_type': 'solder_lead_free',
+        'national_baseline_recycled': 35,
+        'gwp_factor': 25.0,
+        'scarcity_score': 25
+    },
+    'flux': {
+        'keywords': ['flux', 'brazing flux', 'soldering flux'],
+        'forms': ['powder', 'paste', 'liquid'],
+        'default_type': 'flux',
+        'recycled_type': 'flux',
+        'national_baseline_recycled': 0,
+        'gwp_factor': 3.0,
+        'scarcity_score': 5
     }
 }
 
@@ -2193,6 +2381,15 @@ def combined_material_library():
         precious_metals = [
             {"id": "platinum", "name": "Platinum", "type": "platinum", "unit": "kg", "gwp_factor": 12500.0, "source": "ecoinvent", "region": "Global", "category": "precious_metal", "scarcity_score": 88},
             {"id": "palladium", "name": "Palladium", "type": "palladium", "unit": "kg", "gwp_factor": 9800.0, "source": "ecoinvent", "region": "Global", "category": "precious_metal", "scarcity_score": 86},
+            {"id": "silver", "name": "Silver", "type": "silver", "unit": "kg", "gwp_factor": 104.0, "source": "ecoinvent", "region": "Global", "category": "precious_metal", "scarcity_score": 60},
+            {"id": "gold", "name": "Gold", "type": "gold", "unit": "kg", "gwp_factor": 31500.0, "source": "ecoinvent", "region": "Global", "category": "precious_metal", "scarcity_score": 95},
+        ]
+        
+        # Joining/Brazing Materials
+        joining_materials = [
+            {"id": "brazing_alloy", "name": "Brazing Alloy (Silver-based)", "type": "brazing_alloy", "unit": "kg", "gwp_factor": 85.0, "source": "ecoinvent", "region": "Global", "category": "joining_material", "scarcity_score": 50},
+            {"id": "solder_lead_free", "name": "Lead-Free Solder (SAC305)", "type": "solder_lead_free", "unit": "kg", "gwp_factor": 25.0, "source": "ecoinvent", "region": "Global", "category": "joining_material", "scarcity_score": 25},
+            {"id": "flux", "name": "Brazing/Soldering Flux", "type": "flux", "unit": "kg", "gwp_factor": 3.0, "source": "system", "region": "Global", "category": "joining_material", "scarcity_score": 5},
         ]
         
         # India-specific materials (JNARRDC baseline)
@@ -2220,7 +2417,7 @@ def combined_material_library():
         
         # Combine all materials
         all_materials = (system_materials + battery_minerals + rare_earth_minerals + 
-                         other_critical + precious_metals + india_materials + custom_materials)
+                         other_critical + precious_metals + joining_materials + india_materials + custom_materials)
         
         return jsonify({
             "system": system_materials,
@@ -2228,6 +2425,7 @@ def combined_material_library():
             "rare_earth": rare_earth_minerals,
             "critical_minerals": other_critical,
             "precious_metals": precious_metals,
+            "joining_materials": joining_materials,
             "india": india_materials,
             "custom": custom_materials,
             "all": all_materials
@@ -2267,6 +2465,15 @@ def material_library():
         {"id": "vanadium", "name": "Vanadium", "type": "vanadium", "unit": "kg", "gwp_factor": 28.0, "category": "critical_mineral", "scarcity_score": 72},
         {"id": "titanium", "name": "Titanium", "type": "titanium", "unit": "kg", "gwp_factor": 8.1, "category": "critical_mineral", "scarcity_score": 45},
         {"id": "tantalum", "name": "Tantalum", "type": "tantalum", "unit": "kg", "gwp_factor": 48.0, "category": "critical_mineral", "scarcity_score": 88},
+        # Precious Metals
+        {"id": "silver", "name": "Silver", "type": "silver", "unit": "kg", "gwp_factor": 104.0, "category": "precious_metal", "scarcity_score": 60},
+        {"id": "gold", "name": "Gold", "type": "gold", "unit": "kg", "gwp_factor": 31500.0, "category": "precious_metal", "scarcity_score": 95},
+        {"id": "platinum", "name": "Platinum", "type": "platinum", "unit": "kg", "gwp_factor": 12500.0, "category": "precious_metal", "scarcity_score": 88},
+        {"id": "palladium", "name": "Palladium", "type": "palladium", "unit": "kg", "gwp_factor": 9800.0, "category": "precious_metal", "scarcity_score": 86},
+        # Joining/Brazing Materials
+        {"id": "brazing_alloy", "name": "Brazing Alloy (Silver-based)", "type": "brazing_alloy", "unit": "kg", "gwp_factor": 85.0, "category": "joining_material", "scarcity_score": 50},
+        {"id": "solder_lead_free", "name": "Lead-Free Solder (SAC305)", "type": "solder_lead_free", "unit": "kg", "gwp_factor": 25.0, "category": "joining_material", "scarcity_score": 25},
+        {"id": "flux", "name": "Brazing/Soldering Flux", "type": "flux", "unit": "kg", "gwp_factor": 3.0, "category": "joining_material", "scarcity_score": 5},
     ]
     
     return jsonify(materials), 200
@@ -2789,8 +2996,106 @@ def generate_design_recommendations(project_data, materials_data):
             'high_priority': len([r for r in recommendations if r.get('priority') == 'high']),
             'medium_priority': len([r for r in recommendations if r.get('priority') == 'medium']),
             'low_priority': len([r for r in recommendations if r.get('priority') == 'low'])
-        }
+        },
+        'source': 'rule_based'
     }
+
+
+def generate_groq_design_insights(project_data, materials_data, rule_based_recommendations):
+    """
+    Enhanced AI Design Advisor using Groq LLM
+    Generates additional AI-powered insights alongside rule-based recommendations
+    """
+    if not groq_client:
+        return None
+    
+    try:
+        # Prepare context for Groq
+        project_id, name, desc, status, category, lifespan, disassembly, user_id, gwp_total, mci, cds, created = project_data
+        
+        materials_summary = []
+        for mat in materials_data:
+            mat_id, proj_id, mat_name, mat_type, quantity, unit, recycled_content, gwp, transport_dist, created = mat
+            materials_summary.append({
+                'name': mat_name,
+                'type': mat_type,
+                'quantity': f"{quantity} {unit}",
+                'recycled_content': f"{recycled_content or 0}%",
+                'gwp': f"{gwp or 0} kg CO2e"
+            })
+        
+        # Get top rule-based recommendations for context
+        top_rules = [r['title'] for r in rule_based_recommendations[:5]]
+        
+        prompt = f"""Analyze this LCA project and provide strategic sustainability insights:
+
+PROJECT: {name}
+CATEGORY: {category or 'General'}
+DESCRIPTION: {desc or 'No description'}
+TARGET LIFESPAN: {lifespan or 'Not specified'} years
+DESIGNED FOR DISASSEMBLY: {'Yes' if disassembly else 'No'}
+CURRENT GWP: {gwp_total or 0} kg CO2e
+CURRENT MCI: {mci or 0}
+
+MATERIALS:
+{chr(10).join([f"- {m['name']}: {m['quantity']}, {m['recycled_content']} recycled, GWP: {m['gwp']}" for m in materials_summary])}
+
+RULE-BASED RECOMMENDATIONS ALREADY IDENTIFIED:
+{chr(10).join([f"- {r}" for r in top_rules])}
+
+Provide 3-5 ADDITIONAL strategic insights that complement the rule-based recommendations. Focus on:
+1. Industry-specific best practices for {category or 'this product'}
+2. Emerging technologies or materials that could improve sustainability
+3. Supply chain or circular economy opportunities
+4. Regulatory compliance considerations (CBAM, EPR, etc.)
+5. Cost-benefit analysis of sustainability improvements
+
+Format as JSON array:
+[
+  {{
+    "title": "Insight title",
+    "description": "Detailed description (2-3 sentences)",
+    "category": "technology|supply_chain|regulatory|cost_benefit|circular_economy",
+    "impact_potential": "high|medium|low",
+    "implementation_timeframe": "short_term|medium_term|long_term"
+  }}
+]
+
+Output ONLY the JSON array, no other text."""
+
+        response = groq_client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[
+                {"role": "system", "content": "You are an expert LCA consultant specializing in sustainable materials and circular economy for the metals industry. Provide actionable, specific insights."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.4,
+            max_tokens=1500
+        )
+        
+        response_text = response.choices[0].message.content.strip()
+        
+        # Clean up response - remove markdown code blocks if present
+        if response_text.startswith('```'):
+            response_text = response_text.split('```')[1]
+            if response_text.startswith('json'):
+                response_text = response_text[4:]
+        if response_text.endswith('```'):
+            response_text = response_text[:-3]
+        response_text = response_text.strip()
+        
+        import json
+        insights = json.loads(response_text)
+        
+        return {
+            'ai_insights': insights,
+            'model': GROQ_MODEL,
+            'source': 'groq_ai'
+        }
+        
+    except Exception as e:
+        print(f"Groq Design Advisor Error: {e}")
+        return None
 
 
 @app.route('/api/v1/projects/<project_id>/recommendations', methods=['GET', 'OPTIONS'])
@@ -2806,6 +3111,9 @@ def get_design_recommendations(project_id):
         
         token = auth_header.split(' ')[1]
         payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        
+        # Check if AI enhancement is requested (default: True if Groq available)
+        use_ai = request.args.get('use_ai', 'true').lower() == 'true'
         
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
@@ -2836,10 +3144,24 @@ def get_design_recommendations(project_id):
                 "message": "Add materials to get AI recommendations"
             }), 200
         
-        # Generate recommendations
+        # Generate rule-based recommendations (always runs - reliable fallback)
         result = generate_design_recommendations(project, materials)
         result['project_id'] = project_id
         result['project_name'] = project[1]
+        
+        # Try to enhance with Groq AI insights if enabled
+        if use_ai and groq_client:
+            ai_result = generate_groq_design_insights(project, materials, result['recommendations'])
+            if ai_result:
+                result['ai_insights'] = ai_result.get('ai_insights', [])
+                result['ai_model'] = ai_result.get('model')
+                result['source'] = 'hybrid'  # Rule-based + AI enhanced
+            else:
+                result['ai_insights'] = []
+                result['source'] = 'rule_based'
+        else:
+            result['ai_insights'] = []
+            result['source'] = 'rule_based'
         
         return jsonify(result), 200
         
@@ -2971,20 +3293,18 @@ def get_project_analytics(project_id):
                 {'id': 'raw_materials', 'name': 'Raw Materials'},
                 {'id': 'recycled_input', 'name': 'Recycled Input'},
                 {'id': 'manufacturing', 'name': 'Manufacturing'},
-                {'id': 'product', 'name': 'Product'},
                 {'id': 'use_phase', 'name': 'Use Phase'},
                 {'id': 'end_of_life', 'name': 'End of Life'},
                 {'id': 'recycling', 'name': 'Recycling'},
-                {'id': 'landfill', 'name': 'Landfill/Incineration'}
+                {'id': 'waste', 'name': 'Waste'}
             ],
             'links': [
                 {'source': 'raw_materials', 'target': 'manufacturing', 'value': round(total_mass * (1 - avg_recycled/100), 2)},
                 {'source': 'recycled_input', 'target': 'manufacturing', 'value': round(total_mass * (avg_recycled/100), 2)},
-                {'source': 'manufacturing', 'target': 'product', 'value': round(total_mass * 0.95, 2)},
-                {'source': 'product', 'target': 'use_phase', 'value': round(total_mass * 0.95, 2)},
+                {'source': 'manufacturing', 'target': 'use_phase', 'value': round(total_mass * 0.95, 2)},
                 {'source': 'use_phase', 'target': 'end_of_life', 'value': round(total_mass * 0.90, 2)},
                 {'source': 'end_of_life', 'target': 'recycling', 'value': round(total_mass * 0.90 * 0.7, 2)},
-                {'source': 'end_of_life', 'target': 'landfill', 'value': round(total_mass * 0.90 * 0.3, 2)}
+                {'source': 'end_of_life', 'target': 'waste', 'value': round(total_mass * 0.90 * 0.3, 2)}
             ]
         }
         
@@ -3062,6 +3382,16 @@ def get_dashboard_analytics():
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
         
+        # Helper function for safe float conversion
+        def safe_float(val):
+            """Safely convert value to float"""
+            if val is None:
+                return 0.0
+            try:
+                return float(val)
+            except (ValueError, TypeError):
+                return 0.0
+        
         # First, recalculate MCI for any projects that have materials but no MCI score
         c.execute("""SELECT id, target_lifespan, is_designed_for_disassembly, product_category 
                      FROM projects WHERE user_id = ? AND (mci_score IS NULL OR mci_score = 0)""", (user_id,))
@@ -3069,7 +3399,7 @@ def get_dashboard_analytics():
         
         for proj in projects_to_update:
             proj_id, target_lifespan, is_disassembly, category = proj
-            target_lifespan = target_lifespan or 10
+            target_lifespan = safe_float(target_lifespan) or 10
             is_disassembly = bool(is_disassembly)
             category = category or 'other'
             
@@ -3079,9 +3409,9 @@ def get_dashboard_analytics():
             materials = c.fetchall()
             
             if materials:
-                total_mass = sum(m[1] or 0 for m in materials)
+                total_mass = sum(safe_float(m[1]) for m in materials)
                 if total_mass > 0:
-                    weighted_recycled = sum((m[1] or 0) * (m[2] or 0) for m in materials) / total_mass
+                    weighted_recycled = sum(safe_float(m[1]) * safe_float(m[2]) for m in materials) / total_mass
                     benchmark = INDUSTRY_BENCHMARKS.get(category, INDUSTRY_BENCHMARKS['other'])
                     industry_avg_lifespan = benchmark['avg_lifespan']
                     
@@ -3115,10 +3445,10 @@ def get_dashboard_analytics():
         
         conn.close()
         
-        # Calculate totals
-        total_gwp = sum(p[3] or 0 for p in projects)
-        avg_mci = sum(p[4] or 0 for p in projects) / len(projects) if projects else 0
-        avg_circular = sum(p[5] or 0 for p in projects) / len(projects) if projects else 0
+        # Calculate totals with proper type handling (safe_float defined above)
+        total_gwp = sum(safe_float(p[3]) for p in projects)
+        avg_mci = sum(safe_float(p[4]) for p in projects) / len(projects) if projects else 0
+        avg_circular = sum(safe_float(p[5]) for p in projects) / len(projects) if projects else 0
         
         # Projects over time (for trend chart)
         projects_timeline = []
@@ -3127,8 +3457,8 @@ def get_dashboard_analytics():
                 'id': p[0],
                 'name': p[1],
                 'status': p[2],
-                'gwp': p[3] or 0,
-                'mci': p[4] or 0,
+                'gwp': safe_float(p[3]),
+                'mci': safe_float(p[4]),
                 'created_at': p[6]
             })
         
@@ -3136,7 +3466,7 @@ def get_dashboard_analytics():
         type_totals = {}
         for stat in material_stats:
             mat_type = stat[1] or 'Unknown'
-            type_totals[mat_type] = type_totals.get(mat_type, 0) + (stat[3] or 0)
+            type_totals[mat_type] = type_totals.get(mat_type, 0) + safe_float(stat[3])
         
         material_distribution = [{'name': k, 'value': round(v, 2)} for k, v in type_totals.items()]
         material_distribution.sort(key=lambda x: x['value'], reverse=True)
@@ -3950,6 +4280,33 @@ def brsr_export(project_id):
         recycled_input = sum((m[2] or 0) * (m[4] or 0) / 100 for m in materials)
         virgin_input = total_mass - recycled_input
         
+        # Calculate waste per material using dynamic waste factors
+        waste_by_material = []
+        total_waste = 0
+        for m in materials:
+            material_name = m[0] or ''
+            material_type = m[1] or ''
+            quantity = m[2] or 0
+            recycled_content = m[4] or 0
+            
+            # Get waste factor for this material type
+            waste_factor = get_waste_factor(material_type)
+            material_waste = quantity * waste_factor
+            total_waste += material_waste
+            
+            waste_by_material.append({
+                'material': material_name,
+                'material_type': material_type,
+                'quantity_kg': round(quantity, 2),
+                'waste_factor_percent': round(waste_factor * 100, 1),
+                'waste_generated_kg': round(material_waste, 2),
+                'waste_recycled_kg': round(material_waste * (recycled_content / 100), 2),
+                'waste_to_landfill_kg': round(material_waste * (1 - recycled_content / 100), 2)
+            })
+        
+        # Calculate weighted average waste factor
+        avg_waste_factor = (total_waste / total_mass) if total_mass > 0 else 0.05
+        
         # BRSR Principle 6 Format
         report = {
             'report_metadata': {
@@ -3999,11 +4356,13 @@ def brsr_export(project_id):
                 },
                 'section_d_waste': {
                     'disclosure': 'Details of waste generated and recycled',
-                    'total_waste_generated_mt': round(total_mass * 0.05 / 1000, 4),  # Estimate 5% waste
-                    'waste_recycled_mt': round(total_mass * 0.05 * (avg_recycled / 100) / 1000, 4),
-                    'waste_to_landfill_mt': round(total_mass * 0.05 * (1 - avg_recycled / 100) / 1000, 4),
-                    'waste_intensity': round(total_mass * 0.05 / total_mass, 4) if total_mass > 0 else 0,
-                    'note': 'Waste estimated at 5% of material input'
+                    'total_waste_generated_mt': round(total_waste / 1000, 4),
+                    'waste_recycled_mt': round(sum(w['waste_recycled_kg'] for w in waste_by_material) / 1000, 4),
+                    'waste_to_landfill_mt': round(sum(w['waste_to_landfill_kg'] for w in waste_by_material) / 1000, 4),
+                    'waste_intensity': round(avg_waste_factor, 4),
+                    'avg_waste_factor_percent': round(avg_waste_factor * 100, 1),
+                    'breakdown_by_material': waste_by_material,
+                    'note': 'Waste estimated using material-specific waste factors based on industry averages'
                 },
                 'section_e_circularity': {
                     'disclosure': 'Details related to circularity',
@@ -4346,6 +4705,28 @@ if __name__ == '__main__':
     except sqlite3.OperationalError:
         print("⚠️  Migrating projects table: adding circular_design_score column")
         c.execute("ALTER TABLE projects ADD COLUMN circular_design_score REAL DEFAULT 0")
+        conn.commit()
+    
+    # Migration: Add tier and tier_expires_at columns to users table
+    try:
+        c.execute("SELECT tier FROM users LIMIT 1")
+    except sqlite3.OperationalError:
+        print("⚠️  Migrating users table: adding tier column")
+        c.execute("ALTER TABLE users ADD COLUMN tier TEXT DEFAULT 'free'")
+        conn.commit()
+    
+    try:
+        c.execute("SELECT tier_expires_at FROM users LIMIT 1")
+    except sqlite3.OperationalError:
+        print("⚠️  Migrating users table: adding tier_expires_at column")
+        c.execute("ALTER TABLE users ADD COLUMN tier_expires_at TEXT")
+        conn.commit()
+    
+    try:
+        c.execute("SELECT project_limit FROM users LIMIT 1")
+    except sqlite3.OperationalError:
+        print("⚠️  Migrating users table: adding project_limit column")
+        c.execute("ALTER TABLE users ADD COLUMN project_limit INTEGER DEFAULT 3")
         conn.commit()
         
     c.execute('''CREATE TABLE IF NOT EXISTS project_materials

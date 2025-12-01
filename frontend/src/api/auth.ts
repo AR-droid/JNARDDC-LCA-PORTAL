@@ -17,6 +17,18 @@ export interface User {
   email: string
   full_name?: string
   organization_name?: string
+  tier?: 'free' | 'pro' | 'enterprise'
+  tier_expires_at?: string | null
+  project_limit?: number
+  project_count?: number
+  features?: {
+    projects: number
+    cbam_export: boolean
+    brsr_export: boolean
+    scenario_compare: boolean
+    ai_advisor: boolean
+    verification: boolean
+  }
 }
 
 export interface AuthResponse {
@@ -27,16 +39,12 @@ export interface AuthResponse {
 
 export const authApi = {
   register: async (data: RegisterData): Promise<AuthResponse> => {
-    console.log('🔐 Register:', data.email)
     const response = await api.post('/auth/register', data)
-    console.log('✅ Registered:', response.data)
     return response.data
   },
 
   login: async (data: LoginData): Promise<AuthResponse> => {
-    console.log('🔐 Login:', data.email)
     const response = await api.post('/auth/login', data)
-    console.log('✅ Logged in:', response.data)
     return response.data
   },
 

@@ -107,11 +107,39 @@ export default function Layout({ children }: NavbarProps) {
 
                     {/* Dropdown Menu */}
                     {isProfileOpen && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                      <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
                         {/* User Info */}
                         <div className="px-4 py-3 border-b border-gray-100">
-                          <p className="text-sm font-semibold text-gray-900">{user?.full_name || 'User'}</p>
-                          <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-semibold text-gray-900">{user?.full_name || 'User'}</p>
+                              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                            </div>
+                            {/* Tier Badge */}
+                            <span className={`px-2 py-1 text-xs font-bold rounded-full ${
+                              user?.tier === 'enterprise' ? 'bg-purple-100 text-purple-700' :
+                              user?.tier === 'pro' ? 'bg-blue-100 text-blue-700' :
+                              'bg-gray-100 text-gray-600'
+                            }`}>
+                              {user?.tier === 'enterprise' ? '🏢 Enterprise' :
+                               user?.tier === 'pro' ? '⭐ Pro' : 'Free'}
+                            </span>
+                          </div>
+                          {/* Project Usage */}
+                          {user?.tier === 'free' && (
+                            <div className="mt-2">
+                              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                <span>Projects</span>
+                                <span>{user?.project_count || 0} / {user?.project_limit || 3}</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                <div 
+                                  className="bg-blue-600 h-1.5 rounded-full" 
+                                  style={{ width: `${Math.min(((user?.project_count || 0) / (user?.project_limit || 3)) * 100, 100)}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Dark Mode Toggle */}

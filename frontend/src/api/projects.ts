@@ -107,6 +107,14 @@ export const projectsApi = {
   },
 
   /**
+   * Check verification status (alias for getVerificationStatus)
+   */
+  checkVerificationStatus: async (projectId: string): Promise<VerificationStatus> => {
+    const response = await api.get(`/projects/${projectId}/verification`)
+    return response.data
+  },
+
+  /**
    * Submit project for JNARRDC verification
    */
   submitForVerification: async (projectId: string): Promise<{ message: string; request_id: string; status: string }> => {
@@ -244,6 +252,19 @@ export interface DesignRecommendationsResult {
     low_priority: number
   }
   message?: string
+  // Groq AI Enhancement
+  source?: 'rule_based' | 'hybrid'
+  ai_model?: string
+  ai_insights?: AIDesignInsight[]
+}
+
+// AI-powered strategic insights from Groq
+export interface AIDesignInsight {
+  title: string
+  description: string
+  category: 'technology' | 'supply_chain' | 'regulatory' | 'cost_benefit' | 'circular_economy'
+  impact_potential: 'high' | 'medium' | 'low'
+  implementation_timeframe: 'short_term' | 'medium_term' | 'long_term'
 }
 
 // NLP Parsing Types

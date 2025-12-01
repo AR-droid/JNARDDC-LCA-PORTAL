@@ -130,6 +130,185 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section id="pricing" className="container mx-auto px-4 py-20">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Simple, Transparent Pricing</h2>
+          <p className="text-xl text-gray-600">Choose the plan that fits your organization's needs</p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          {/* Free Tier */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 relative">
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Free</h3>
+              <p className="text-gray-500 text-sm">For MSMEs & Individual Users</p>
+              <div className="mt-4">
+                <span className="text-4xl font-bold text-gray-900">₹0</span>
+                <span className="text-gray-500">/month</span>
+              </div>
+            </div>
+            <ul className="space-y-3 mb-8">
+              <li className="flex items-start gap-2">
+                <span className="text-green-500 mt-0.5">✓</span>
+                <span className="text-gray-600">Up to 3 projects</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-500 mt-0.5">✓</span>
+                <span className="text-gray-600">Basic LCA calculator</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-500 mt-0.5">✓</span>
+                <span className="text-gray-600">Natural language input</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-500 mt-0.5">✓</span>
+                <span className="text-gray-600">Watermarked reports</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-500 mt-0.5">✓</span>
+                <span className="text-gray-600">Community support</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-gray-300 mt-0.5">✗</span>
+                <span className="text-gray-400">CBAM & ISO reports</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-gray-300 mt-0.5">✗</span>
+                <span className="text-gray-400">Scenario comparison</span>
+              </li>
+            </ul>
+            <Link 
+              to="/register" 
+              className="block w-full text-center py-3 px-4 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition"
+            >
+              Get Started Free
+            </Link>
+          </div>
+
+          {/* Pro Tier */}
+          <div className="bg-gradient-to-b from-blue-600 to-blue-700 rounded-2xl shadow-xl p-8 relative transform scale-105">
+            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+              <span className="bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full">MOST POPULAR</span>
+            </div>
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-bold text-white mb-2">Pro</h3>
+              <p className="text-blue-100 text-sm">For Exporters & Growing Businesses</p>
+              <div className="mt-4">
+                <span className="text-4xl font-bold text-white">₹15,000</span>
+                <span className="text-blue-200">/month</span>
+              </div>
+              <p className="text-blue-200 text-xs mt-1">or $180/month</p>
+            </div>
+            <ul className="space-y-3 mb-8">
+              <li className="flex items-start gap-2">
+                <span className="text-green-300 mt-0.5">✓</span>
+                <span className="text-white">Unlimited projects</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-300 mt-0.5">✓</span>
+                <span className="text-white">CBAM & ISO 14040 reports</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-300 mt-0.5">✓</span>
+                <span className="text-white">Scenario comparison tool</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-300 mt-0.5">✓</span>
+                <span className="text-white">Premium Indian datasets</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-300 mt-0.5">✓</span>
+                <span className="text-white">AI Design Advisor</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-300 mt-0.5">✓</span>
+                <span className="text-white">BRSR export</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-300 mt-0.5">✓</span>
+                <span className="text-white">Email support</span>
+              </li>
+            </ul>
+            <Link 
+              to="/register" 
+              className="block w-full text-center py-3 px-4 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition"
+            >
+              Start 14-Day Trial
+            </Link>
+          </div>
+
+          {/* Enterprise Tier */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 relative">
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Enterprise</h3>
+              <p className="text-gray-500 text-sm">For Large Organizations & PSUs</p>
+              <div className="mt-4">
+                <span className="text-4xl font-bold text-gray-900">Custom</span>
+              </div>
+              <p className="text-gray-500 text-xs mt-1">Contact for pricing</p>
+            </div>
+            <ul className="space-y-3 mb-8">
+              <li className="flex items-start gap-2">
+                <span className="text-green-500 mt-0.5">✓</span>
+                <span className="text-gray-600">Everything in Pro</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-500 mt-0.5">✓</span>
+                <span className="text-gray-600">Team management (unlimited)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-500 mt-0.5">✓</span>
+                <span className="text-gray-600">API access</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-500 mt-0.5">✓</span>
+                <span className="text-gray-600">Private dataset uploads</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-500 mt-0.5">✓</span>
+                <span className="text-gray-600">JNARRDC verification</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-500 mt-0.5">✓</span>
+                <span className="text-gray-600">Dedicated account manager</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-500 mt-0.5">✓</span>
+                <span className="text-gray-600">White-label options</span>
+              </li>
+            </ul>
+            <a 
+              href="mailto:contact@jnarrdc.gov.in" 
+              className="block w-full text-center py-3 px-4 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition"
+            >
+              Contact Sales
+            </a>
+          </div>
+        </div>
+
+        {/* Consultant License */}
+        <div className="mt-12 max-w-3xl mx-auto">
+          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200 p-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="text-3xl">👨‍💼</div>
+                <div>
+                  <h4 className="font-bold text-gray-900">Consultant License</h4>
+                  <p className="text-sm text-gray-600">Multi-client management with verified badge • ₹25,000/month</p>
+                </div>
+              </div>
+              <a 
+                href="mailto:consultants@jnarrdc.gov.in" 
+                className="px-6 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition whitespace-nowrap"
+              >
+                Apply Now
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-20 text-center">
         <div className="max-w-2xl mx-auto">

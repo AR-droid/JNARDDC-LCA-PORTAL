@@ -77,6 +77,15 @@ export default function ScenarioPage() {
     setScenarioResult(null)
   }
 
+  // Calculate current averages from materials
+  const avgRecycledContent = materials.length > 0 
+    ? Math.round(materials.reduce((sum, m) => sum + (m.recycled_content || 0), 0) / materials.length)
+    : 0
+  const avgTransportDistance = materials.length > 0
+    ? Math.round(materials.reduce((sum, m) => sum + (m.transport_distance || 0), 0) / materials.length)
+    : 0
+  const currentLifespan = project?.target_lifespan || 0
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -130,11 +139,33 @@ export default function ScenarioPage() {
             </p>
 
             <div className="space-y-6">
+              {/* Current Values Summary */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-2">
+                <h3 className="text-sm font-semibold text-blue-800 mb-2">📊 Current Product Values</h3>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <p className="text-xs text-blue-600">Avg Recycled Content</p>
+                    <p className="text-lg font-bold text-blue-900">{avgRecycledContent}%</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-blue-600">Target Lifespan</p>
+                    <p className="text-lg font-bold text-blue-900">{currentLifespan} yrs</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-blue-600">Avg Transport Distance</p>
+                    <p className="text-lg font-bold text-blue-900">{avgTransportDistance} km</p>
+                  </div>
+                </div>
+              </div>
+
               {/* Recycled Content Modifier */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Recycled Content Change: <span className="text-blue-600 font-bold">{recycledModifier > 0 ? '+' : ''}{recycledModifier}%</span>
                 </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Current: {avgRecycledContent}% → Simulated: <span className="font-semibold text-blue-600">{Math.min(100, Math.max(0, avgRecycledContent + recycledModifier))}%</span>
+                </p>
                 <input
                   type="range"
                   min="-50"
@@ -152,9 +183,12 @@ export default function ScenarioPage() {
 
               {/* Lifespan Modifier */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Lifespan Change: <span className="text-blue-600 font-bold">{lifespanModifier > 0 ? '+' : ''}{lifespanModifier} years</span>
                 </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Current: {currentLifespan} yrs → Simulated: <span className="font-semibold text-blue-600">{Math.max(1, currentLifespan + lifespanModifier)} yrs</span>
+                </p>
                 <input
                   type="range"
                   min="-10"
@@ -172,9 +206,12 @@ export default function ScenarioPage() {
 
               {/* Transport Reduction */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Transport Distance Reduction: <span className="text-blue-600 font-bold">{transportReduction}%</span>
                 </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Current: {avgTransportDistance} km → Simulated: <span className="font-semibold text-blue-600">{Math.round(avgTransportDistance * (1 - transportReduction / 100))} km</span>
+                </p>
                 <input
                   type="range"
                   min="0"

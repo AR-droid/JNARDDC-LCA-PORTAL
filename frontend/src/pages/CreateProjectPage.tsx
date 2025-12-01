@@ -1,6 +1,7 @@
 import { useState, FormEvent, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { projectsApi, parseNLPDescription, uploadDataset, NLPParseResult, NLPAssumption, NLPParsedMaterial, DatasetMaterial } from '../api/projects';
+import { useAuthStore } from '../stores/authStore';
 
 type InputMode = 'nlp' | 'manual';
 
@@ -14,6 +15,51 @@ interface UploadedDataset {
 export default function CreateProjectPage() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuthStore();
+  
+  // Check project limit for free tier
+  const projectCount = user?.project_count || 0;
+  const projectLimit = user?.project_limit || 3;
+  const canCreateProject = user?.tier !== 'free' || projectCount < projectLimit;
+  
+  // If user has reached limit, show upgrade prompt
+  if (!canCreateProject) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
+          <div className="text-5xl mb-4">🚫</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Project Limit Reached</h2>
+          <p className="text-gray-600 mb-4">
+            You've used all {projectLimit} projects on your Free plan. 
+            Upgrade to Pro for unlimited projects and premium features.
+          </p>
+          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-gray-500">Projects used</span>
+              <span className="font-semibold text-red-600">{projectCount}/{projectLimit}</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="bg-red-500 h-2 rounded-full" style={{ width: '100%' }}></div>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <Link
+              to="/pricing"
+              className="block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+            >
+              ⚡ Upgrade to Pro
+            </Link>
+            <Link
+              to="/dashboard"
+              className="block w-full border border-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-50 transition"
+            >
+              Back to Dashboard
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   // Active mode (determines which side is "active" for submission)
   const [activeMode, setActiveMode] = useState<InputMode>('nlp');

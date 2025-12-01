@@ -1,0 +1,5 @@
+material_name,material_type,quantity,unit,recycled_content,transport_distance
+Tungsten Carbide Inserts,tungsten,60,kg,15,500
+Cast Steel Body,steel_primary,180,kg,40,200
+Brazing Alloy (Silver-based),brazing_alloy,2.5,kg,30,300
+Brazing Flux,flux,0.5,kg,0,300

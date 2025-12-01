@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { projectsApi, DesignRecommendation, DesignRecommendationsResult } from '../api/projects'
+import { projectsApi, DesignRecommendation, DesignRecommendationsResult, AIDesignInsight } from '../api/projects'
 
 export default function RecommendationsPage() {
   const { id } = useParams<{ id: string }>()
@@ -100,6 +100,28 @@ export default function RecommendationsPage() {
           ← Back to Project
         </button>
 
+        {/* Action Buttons - Navigation at top for easy access */}
+        <div className="mb-6 flex flex-wrap gap-3">
+          <button
+            onClick={() => navigate(`/projects/${id}/analysis`)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          >
+            📊 View Analysis
+          </button>
+          <button
+            onClick={() => navigate(`/projects/${id}/scenario`)}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2"
+          >
+            🔬 What-if Scenarios
+          </button>
+          <button
+            onClick={loadRecommendations}
+            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2"
+          >
+            🔄 Refresh
+          </button>
+        </div>
+
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl shadow-lg p-6 mb-6 text-white">
           <div className="flex items-center gap-3 mb-2">
@@ -130,7 +152,83 @@ export default function RecommendationsPage() {
               </div>
             </div>
           )}
+          
+          {/* Source Badge */}
+          {recommendations && (
+            <div className="mt-4 flex items-center gap-2">
+              {recommendations.source === 'hybrid' ? (
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-500/30 text-green-100 rounded-full text-sm font-medium">
+                  🤖 AI Enhanced
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-white/20 text-purple-100 rounded-full text-sm font-medium">
+                  📊 Rule-Based Analysis
+                </span>
+              )}
+            </div>
+          )}
         </div>
+
+        {/* AI Strategic Insights Section */}
+        {recommendations?.ai_insights && recommendations.ai_insights.length > 0 && (
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl shadow-lg p-6 mb-6 border border-emerald-200">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-2xl">🧠</span>
+              <div>
+                <h2 className="text-xl font-bold text-emerald-900">AI Strategic Insights</h2>
+                <p className="text-sm text-emerald-600">Powered by Groq LLM - Additional recommendations beyond rule-based analysis</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {recommendations.ai_insights.map((insight: AIDesignInsight, index: number) => (
+                <div 
+                  key={index}
+                  className={`bg-white rounded-lg p-4 shadow-sm border-l-4 ${
+                    insight.impact_potential === 'high' ? 'border-l-emerald-500' :
+                    insight.impact_potential === 'medium' ? 'border-l-teal-400' :
+                    'border-l-gray-300'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-semibold text-gray-900">{insight.title}</h3>
+                    <div className="flex gap-1">
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                        insight.impact_potential === 'high' ? 'bg-emerald-100 text-emerald-700' :
+                        insight.impact_potential === 'medium' ? 'bg-teal-100 text-teal-700' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>
+                        {insight.impact_potential}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3">{insight.description}</p>
+                  <div className="flex items-center gap-3 text-xs">
+                    <span className={`px-2 py-1 rounded ${
+                      insight.category === 'technology' ? 'bg-blue-50 text-blue-600' :
+                      insight.category === 'supply_chain' ? 'bg-orange-50 text-orange-600' :
+                      insight.category === 'regulatory' ? 'bg-red-50 text-red-600' :
+                      insight.category === 'cost_benefit' ? 'bg-green-50 text-green-600' :
+                      'bg-purple-50 text-purple-600'
+                    }`}>
+                      {insight.category === 'supply_chain' ? '🔗 Supply Chain' :
+                       insight.category === 'technology' ? '💡 Technology' :
+                       insight.category === 'regulatory' ? '📋 Regulatory' :
+                       insight.category === 'cost_benefit' ? '💰 Cost-Benefit' :
+                       '♻️ Circular Economy'}
+                    </span>
+                    <span className="text-gray-400">|</span>
+                    <span className="text-gray-500">
+                      ⏱️ {insight.implementation_timeframe === 'short_term' ? 'Short-term (0-6 mo)' :
+                          insight.implementation_timeframe === 'medium_term' ? 'Medium-term (6-18 mo)' :
+                          'Long-term (18+ mo)'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* No Recommendations State */}
         {recommendations && recommendations.recommendations.length === 0 && (
@@ -305,28 +403,6 @@ export default function RecommendationsPage() {
             ))}
           </div>
         )}
-
-        {/* Action Buttons */}
-        <div className="mt-6 flex gap-4">
-          <button
-            onClick={() => navigate(`/projects/${id}/analysis`)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            📊 View Analysis
-          </button>
-          <button
-            onClick={() => navigate(`/projects/${id}/scenario`)}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-          >
-            🔬 What-if Scenarios
-          </button>
-          <button
-            onClick={loadRecommendations}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-          >
-            🔄 Refresh Recommendations
-          </button>
-        </div>
       </div>
     </div>
   )

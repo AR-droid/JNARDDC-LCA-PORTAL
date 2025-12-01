@@ -12,6 +12,7 @@ import CreateProjectPage from './pages/CreateProjectPage'
 import RecommendationsPage from './pages/RecommendationsPage'
 import ProjectAnalyticsPage from './pages/ProjectAnalyticsPage'
 import CBAMExportPage from './pages/CBAMExportPage'
+import PricingPage from './pages/PricingPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 
@@ -20,6 +21,7 @@ function App() {
     <Layout>
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/pricing" element={<PricingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route

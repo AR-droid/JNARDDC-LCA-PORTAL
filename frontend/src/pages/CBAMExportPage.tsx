@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { getCBAMReport, downloadCBAMCSV, downloadCBAMExcel, downloadBRSRExcel, CBAMReport, projectsApi } from '../api/projects'
 import { useAuthStore } from '../stores/authStore'
 import { UpgradePrompt } from '../components/FeatureGate'
+import { FileSpreadsheet, Download, FileText, Loader2 } from 'lucide-react'
 
 export default function CBAMExportPage() {
   const { id } = useParams<{ id: string }>()
@@ -173,27 +174,27 @@ export default function CBAMExportPage() {
                 disabled={isDownloading}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 font-medium"
               >
-                {downloadingType === 'excel' ? '⏳' : '🇪🇺'} CBAM Excel
+                {downloadingType === 'excel' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />} CBAM Excel
               </button>
               <button
                 onClick={handleDownloadBRSR}
                 disabled={isDownloading}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2 font-medium"
               >
-                {downloadingType === 'brsr' ? '⏳' : '🇮🇳'} BRSR Excel
+                {downloadingType === 'brsr' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />} BRSR Excel
               </button>
               <button
                 onClick={handleDownloadCSV}
                 disabled={isDownloading}
                 className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 flex items-center gap-2"
               >
-                📥 CSV
+                {downloadingType === 'csv' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} CSV
               </button>
               <button
                 onClick={handleDownloadJSON}
                 className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 flex items-center gap-2"
               >
-                📄 JSON
+                <FileText className="w-4 h-4" /> JSON
               </button>
             </div>
           </div>

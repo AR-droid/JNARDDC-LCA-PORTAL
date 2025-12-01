@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { aiChat } from '../api/projects'
+import { Mic, MicOff, Loader2 } from 'lucide-react'
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -23,7 +26,11 @@ export default function AIChatPanel({ projectId, initialContext, isOpen, onClose
   ])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [isTranscribing, setIsTranscribing] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -58,6 +65,75 @@ export default function AIChatPanel({ projectId, initialContext, isOpen, onClose
       }])
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' })
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        stream.getTracks().forEach(track => track.stop())
+        await transcribeAudio(audioBlob)
+      }
+
+      mediaRecorder.start()
+      setIsRecording(true)
+    } catch (error) {
+      console.error('Error starting recording:', error)
+      alert('Could not access microphone. Please ensure you have granted permission.')
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+  }
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsTranscribing(true)
+    try {
+      const formData = new FormData()
+      formData.append('audio', audioBlob, 'recording.webm')
+
+      const response = await fetch(`${API_BASE}/ai/transcribe`, {
+        method: 'POST',
+        body: formData
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.text) {
+        setInput(data.text)
+      } else {
+        console.error('Transcription failed:', data.detail)
+        alert(data.detail || 'Failed to transcribe audio')
+      }
+    } catch (error) {
+      console.error('Transcription error:', error)
+      alert('Failed to transcribe audio. Please try again.')
+    } finally {
+      setIsTranscribing(false)
+    }
+  }
+
+  const handleVoiceButton = () => {
+    if (isRecording) {
+      stopRecording()
+    } else {
+      startRecording()
     }
   }
 
@@ -151,17 +227,36 @@ export default function AIChatPanel({ projectId, initialContext, isOpen, onClose
       {/* Input */}
       <form onSubmit={handleSubmit} className="p-4 border-t">
         <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleVoiceButton}
+            disabled={isLoading || isTranscribing}
+            className={`px-3 py-2 rounded-lg transition flex items-center justify-center ${
+              isRecording 
+                ? 'bg-red-500 text-white animate-pulse hover:bg-red-600' 
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            title={isRecording ? 'Stop recording' : 'Voice input'}
+          >
+            {isTranscribing ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : isRecording ? (
+              <MicOff className="w-5 h-5" />
+            ) : (
+              <Mic className="w-5 h-5" />
+            )}
+          </button>
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about LCA, MCI, CBAM..."
+            placeholder={isTranscribing ? "Transcribing..." : "Ask about LCA, MCI, CBAM..."}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            disabled={isLoading}
+            disabled={isLoading || isTranscribing}
           />
           <button
             type="submit"
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || !input.trim() || isTranscribing}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -169,6 +264,12 @@ export default function AIChatPanel({ projectId, initialContext, isOpen, onClose
             </svg>
           </button>
         </div>
+        {isRecording && (
+          <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
+            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+            Recording... Click mic to stop
+          </p>
+        )}
       </form>
     </div>
   )

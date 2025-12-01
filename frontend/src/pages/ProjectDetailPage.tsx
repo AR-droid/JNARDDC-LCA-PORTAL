@@ -5,8 +5,9 @@ import { materialsApi, Material } from '../api/materials'
 import MaterialAddModal from '../components/MaterialAddModal'
 import ProjectEditModal from '../components/ProjectEditModal'
 import BOMUploadModal from '../components/BOMUploadModal'
-import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon, EUFlagIcon, UploadIcon, PlusIcon, PackageIcon } from '../components/Icons'
+import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon, UploadIcon, PlusIcon, PackageIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
+import { FileSpreadsheet } from 'lucide-react'
 
 interface VerificationStatus {
   verification_status: 'not_submitted' | 'pending' | 'approved' | 'rejected'
@@ -297,7 +298,7 @@ export default function ProjectDetailPage() {
                 onClick={() => navigate(`/projects/${id}/cbam-export`)}
                 className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors flex items-center gap-1.5"
               >
-                <EUFlagIcon size={14} /> CBAM Export
+                <FileSpreadsheet size={14} /> CBAM Export
               </button>
             ) : (
               <Link

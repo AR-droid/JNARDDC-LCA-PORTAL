@@ -343,6 +343,42 @@ def get_account_stats():
         print(f"Error getting account stats: {e}")
         return jsonify({"detail": "Failed to get account stats"}), 500
 
+@app.route('/api/v1/auth/upgrade', methods=['POST', 'OPTIONS'])
+def upgrade_to_pro():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        
+        data = request.json
+        target_tier = data.get('tier', 'pro')
+        
+        if target_tier not in ['pro', 'enterprise']:
+            return jsonify({"detail": "Invalid tier"}), 400
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Update user tier to pro (without payment for now)
+        c.execute("""UPDATE users SET tier = ?, project_limit = ? WHERE id = ?""",
+                  (target_tier, -1, payload['user_id']))  # -1 means unlimited
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": f"Successfully upgraded to {target_tier.title()} plan!", "tier": target_tier}), 200
+    except jwt.ExpiredSignatureError:
+        return jsonify({"detail": "Token expired"}), 401
+    except Exception as e:
+        print(f"Error upgrading account: {e}")
+        return jsonify({"detail": "Failed to upgrade account"}), 500
+
 @app.route('/api/v1/auth/account', methods=['DELETE', 'OPTIONS'])
 def delete_account():
     if request.method == 'OPTIONS':
@@ -3789,6 +3825,53 @@ def ai_chat():
         
     except Exception as e:
         print(f"AI Chat Error: {e}")
+        return jsonify({"detail": str(e)}), 500
+
+
+@app.route('/api/v1/ai/transcribe', methods=['POST', 'OPTIONS'])
+def ai_transcribe_voice():
+    """Transcribe voice audio to text using Groq Whisper"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        if 'audio' not in request.files:
+            return jsonify({"detail": "No audio file provided"}), 400
+        
+        audio_file = request.files['audio']
+        
+        if not groq_client:
+            return jsonify({"detail": "Voice transcription not available - Groq not configured"}), 503
+        
+        # Save temporarily
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.webm') as tmp:
+            audio_file.save(tmp.name)
+            tmp_path = tmp.name
+        
+        try:
+            # Use Groq's Whisper model for transcription
+            with open(tmp_path, 'rb') as f:
+                transcription = groq_client.audio.transcriptions.create(
+                    file=(audio_file.filename or 'audio.webm', f.read()),
+                    model="whisper-large-v3",
+                    language="en",
+                    response_format="json"
+                )
+            
+            return jsonify({
+                "text": transcription.text,
+                "success": True
+            }), 200
+            
+        finally:
+            # Clean up temp file
+            import os
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        
+    except Exception as e:
+        print(f"Voice Transcription Error: {e}")
         return jsonify({"detail": str(e)}), 500
 
 

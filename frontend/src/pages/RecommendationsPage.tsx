@@ -125,7 +125,7 @@ export default function RecommendationsPage() {
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl shadow-lg p-6 mb-6 text-white">
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-3xl">🤖</span>
+            <img src="/images/ai.png" alt="AI" className="w-10 h-10 object-contain" />
             <h1 className="text-3xl font-bold">AI Design Advisor</h1>
           </div>
           <p className="text-purple-100 mb-4">
@@ -150,21 +150,6 @@ export default function RecommendationsPage() {
                 <p className="text-sm text-purple-100">🟢 Low Priority</p>
                 <p className="text-2xl font-bold">{recommendations.summary.low_priority}</p>
               </div>
-            </div>
-          )}
-          
-          {/* Source Badge */}
-          {recommendations && (
-            <div className="mt-4 flex items-center gap-2">
-              {recommendations.source === 'hybrid' ? (
-                <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-500/30 text-green-100 rounded-full text-sm font-medium">
-                  🤖 AI Enhanced
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 px-3 py-1 bg-white/20 text-purple-100 rounded-full text-sm font-medium">
-                  📊 Rule-Based Analysis
-                </span>
-              )}
             </div>
           )}
         </div>

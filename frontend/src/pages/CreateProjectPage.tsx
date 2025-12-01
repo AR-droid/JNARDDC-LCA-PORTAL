@@ -2,6 +2,9 @@ import { useState, FormEvent, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { projectsApi, parseNLPDescription, uploadDataset, NLPParseResult, NLPAssumption, NLPParsedMaterial, DatasetMaterial } from '../api/projects';
 import { useAuthStore } from '../stores/authStore';
+import { Mic, MicOff, Loader2 } from 'lucide-react';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 
 type InputMode = 'nlp' | 'manual';
 
@@ -69,6 +72,12 @@ export default function CreateProjectPage() {
   const [nlpResult, setNlpResult] = useState<NLPParseResult | null>(null);
   const [isParsingNLP, setIsParsingNLP] = useState(false);
   
+  // Voice Input State
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  
   // Manual State
   const [manualForm, setManualForm] = useState({
     name: '',
@@ -87,6 +96,76 @@ export default function CreateProjectPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Voice Recording Functions
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        await transcribeAudio(audioBlob);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      alert('Could not access microphone. Please ensure you have granted permission.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsTranscribing(true);
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+
+      const response = await fetch(`${API_BASE}/ai/transcribe`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.text) {
+        setNlpInput(prev => prev ? prev + ' ' + data.text : data.text);
+      } else {
+        console.error('Transcription failed:', data.detail);
+        alert(data.detail || 'Failed to transcribe audio');
+      }
+    } catch (error) {
+      console.error('Transcription error:', error);
+      alert('Failed to transcribe audio. Please try again.');
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
+  const handleVoiceButton = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
 
   // Parse NLP description
   const handleNLPParse = async () => {
@@ -286,7 +365,7 @@ export default function CreateProjectPage() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">🤖</span>
+                    <img src="/images/ai.png" alt="AI" className="w-8 h-8 object-contain" />
                     <div>
                       <h2 className="text-xl font-bold">Smart Input (NLP)</h2>
                       <p className={`text-sm ${activeMode === 'nlp' ? 'text-green-100' : 'text-green-600'}`}>
@@ -307,14 +386,41 @@ export default function CreateProjectPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Product Description
                   </label>
-                  <textarea
-                    value={nlpInput}
-                    onChange={(e) => setNlpInput(e.target.value)}
-                    rows={5}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="Example: 10kg copper wire, PVC coated, used in an electric motor for 10 years. Contains 30% recycled content."
-                    disabled={isParsingNLP}
-                  />
+                  <div className="relative">
+                    <textarea
+                      value={nlpInput}
+                      onChange={(e) => setNlpInput(e.target.value)}
+                      rows={5}
+                      className="w-full px-4 py-3 pr-14 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder={isTranscribing ? "Transcribing..." : "Example: 10kg copper wire, PVC coated, used in an electric motor for 10 years. Contains 30% recycled content."}
+                      disabled={isParsingNLP || isTranscribing}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleVoiceButton}
+                      disabled={isParsingNLP || isTranscribing}
+                      className={`absolute right-3 top-3 p-2 rounded-lg transition flex items-center justify-center ${
+                        isRecording 
+                          ? 'bg-red-500 text-white animate-pulse hover:bg-red-600' 
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      title={isRecording ? 'Stop recording' : 'Voice input'}
+                    >
+                      {isTranscribing ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : isRecording ? (
+                        <MicOff className="w-5 h-5" />
+                      ) : (
+                        <Mic className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                  {isRecording && (
+                    <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
+                      <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                      Recording... Click mic to stop
+                    </p>
+                  )}
                 </div>
 
                 <button
@@ -367,12 +473,12 @@ export default function CreateProjectPage() {
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="font-medium text-blue-800">🔩 Materials Detected</h4>
                           {nlpResult.parsed.parsing_method && (
-                            <span className={`text-xs px-2 py-1 rounded-full ${
+                            <span className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${
                               nlpResult.parsed.parsing_method === 'groq_llm' 
                                 ? 'bg-purple-100 text-purple-700' 
                                 : 'bg-gray-100 text-gray-600'
                             }`}>
-                              {nlpResult.parsed.parsing_method === 'groq_llm' ? '🤖 AI Parsed' : '📝 Regex Parsed'}
+                              {nlpResult.parsed.parsing_method === 'groq_llm' ? <><img src="/images/ai.png" alt="AI" className="w-4 h-4 inline" /> AI Parsed</> : '📝 Regex Parsed'}
                             </span>
                           )}
                         </div>
@@ -634,8 +740,8 @@ export default function CreateProjectPage() {
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-600">
                 <span className="font-medium">Mode:</span>{' '}
-                <span className={activeMode === 'nlp' ? 'text-green-600' : 'text-blue-600'}>
-                  {activeMode === 'nlp' ? '🤖 Smart Input (NLP)' : '📝 Manual Entry'}
+                <span className={`${activeMode === 'nlp' ? 'text-green-600' : 'text-blue-600'} inline-flex items-center gap-1`}>
+                  {activeMode === 'nlp' ? <><img src="/images/ai.png" alt="AI" className="w-4 h-4 inline" /> Smart Input (NLP)</> : '📝 Manual Entry'}
                 </span>
                 {uploadedDataset && (
                   <span className="ml-3 text-purple-600">📊 Custom Dataset Loaded</span>

@@ -1,5 +1,8 @@
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useRef } from 'react';
 import { projectsApi, parseNLPDescription, NLPParseResult, NLPAssumption } from '../api/projects';
+import { Mic, MicOff, Loader2 } from 'lucide-react';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 
 interface ProjectCreateModalProps {
   isOpen: boolean;
@@ -15,6 +18,12 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
   const [nlpInput, setNlpInput] = useState('');
   const [nlpResult, setNlpResult] = useState<NLPParseResult | null>(null);
   const [isParsingNLP, setIsParsingNLP] = useState(false);
+  
+  // Voice Input State
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -80,6 +89,76 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
       setError(err.response?.data?.detail || 'Failed to parse description');
     } finally {
       setIsParsingNLP(false);
+    }
+  };
+
+  // Voice Recording Functions
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        await transcribeAudio(audioBlob);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      alert('Could not access microphone. Please ensure you have granted permission.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsTranscribing(true);
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+
+      const response = await fetch(`${API_BASE}/ai/transcribe`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.text) {
+        setNlpInput(prev => prev ? prev + ' ' + data.text : data.text);
+      } else {
+        console.error('Transcription failed:', data.detail);
+        alert(data.detail || 'Failed to transcribe audio');
+      }
+    } catch (error) {
+      console.error('Transcription error:', error);
+      alert('Failed to transcribe audio. Please try again.');
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
+  const handleVoiceButton = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
     }
   };
 
@@ -164,7 +243,7 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              🤖 Smart Input (NLP)
+              <img src="/images/ai.png" alt="AI" className="w-4 h-4 inline mr-1" /> Smart Input (NLP)
             </button>
           </div>
         </div>
@@ -178,26 +257,53 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
         {/* NLP Input Mode */}
         {inputMode === 'nlp' && (
           <div className="p-6 bg-green-50 border-b border-green-200">
-            <h3 className="text-lg font-semibold text-green-800 mb-2">🤖 Smart Input</h3>
+            <h3 className="text-lg font-semibold text-green-800 mb-2 flex items-center gap-2"><img src="/images/ai.png" alt="AI" className="w-5 h-5" /> Smart Input</h3>
             <p className="text-sm text-green-700 mb-3">
               Describe your product in natural language. Our AI will extract materials, quantities, and lifecycle details.
             </p>
             
             <div className="space-y-3">
-              <textarea
-                value={nlpInput}
-                onChange={(e) => setNlpInput(e.target.value)}
-                rows={3}
-                className="w-full px-4 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="Example: 10kg copper wire, PVC coated, used in a motor for 10 years"
-                disabled={isParsingNLP}
-              />
+              <div className="relative">
+                <textarea
+                  value={nlpInput}
+                  onChange={(e) => setNlpInput(e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-2 pr-12 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder={isTranscribing ? "Transcribing..." : "Example: 10kg copper wire, PVC coated, used in a motor for 10 years"}
+                  disabled={isParsingNLP || isTranscribing}
+                />
+                <button
+                  type="button"
+                  onClick={handleVoiceButton}
+                  disabled={isParsingNLP || isTranscribing}
+                  className={`absolute right-2 top-2 p-2 rounded-lg transition flex items-center justify-center ${
+                    isRecording 
+                      ? 'bg-red-500 text-white animate-pulse hover:bg-red-600' 
+                      : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  title={isRecording ? 'Stop recording' : 'Voice input'}
+                >
+                  {isTranscribing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : isRecording ? (
+                    <MicOff className="w-4 h-4" />
+                  ) : (
+                    <Mic className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+              {isRecording && (
+                <p className="text-xs text-red-500 flex items-center gap-1">
+                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                  Recording... Click mic to stop
+                </p>
+              )}
               
               <button
                 type="button"
                 onClick={handleNLPParse}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium disabled:bg-green-300"
-                disabled={isParsingNLP || !nlpInput.trim()}
+                disabled={isParsingNLP || !nlpInput.trim() || isTranscribing}
               >
                 {isParsingNLP ? '⏳ Parsing...' : '✨ Parse Description'}
               </button>
@@ -235,12 +341,12 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-medium text-gray-700">🔩 Detected Materials</h4>
                       {nlpResult.parsed.parsing_method && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${
                           nlpResult.parsed.parsing_method === 'groq_llm' 
                             ? 'bg-purple-100 text-purple-700' 
                             : 'bg-gray-100 text-gray-600'
                         }`}>
-                          {nlpResult.parsed.parsing_method === 'groq_llm' ? '🤖 AI' : '📝 Regex'}
+                          {nlpResult.parsed.parsing_method === 'groq_llm' ? <><img src="/images/ai.png" alt="AI" className="w-3 h-3" /> AI</> : '📝 Regex'}
                         </span>
                       )}
                     </div>

@@ -1,10 +1,13 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { Check, X } from 'lucide-react'
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
+
 export default function PricingPage() {
-  const { isAuthenticated, user, checkAuth } = useAuthStore()
+  const { isAuthenticated, user, checkAuth, token } = useAuthStore()
+  const [upgrading, setUpgrading] = useState(false)
   
   // Refresh user data to get latest project count
   useEffect(() => {
@@ -12,6 +15,36 @@ export default function PricingPage() {
       checkAuth()
     }
   }, [isAuthenticated, checkAuth])
+
+  const handleUpgrade = async (tier: string) => {
+    if (!token) return
+    
+    setUpgrading(true)
+    try {
+      const res = await fetch(`${API_BASE}/auth/upgrade`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ tier })
+      })
+      
+      const data = await res.json()
+      
+      if (res.ok) {
+        alert(data.message || `Successfully upgraded to ${tier}!`)
+        checkAuth() // Refresh user data
+      } else {
+        alert(data.detail || 'Failed to upgrade')
+      }
+    } catch (error) {
+      console.error('Upgrade error:', error)
+      alert('Failed to upgrade. Please try again.')
+    } finally {
+      setUpgrading(false)
+    }
+  }
   
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -124,13 +157,20 @@ export default function PricingPage() {
               <button disabled className="block w-full text-center py-2.5 px-4 bg-white/30 text-white rounded-lg text-sm font-medium cursor-not-allowed">
                 Current Plan
               </button>
+            ) : isAuthenticated ? (
+              <button 
+                onClick={() => handleUpgrade('pro')}
+                disabled={upgrading}
+                className="block w-full text-center py-2.5 px-4 bg-white text-blue-600 rounded-lg text-sm font-bold hover:bg-blue-50 transition disabled:opacity-50"
+              >
+                {upgrading ? 'Upgrading...' : 'Upgrade Now'}
+              </button>
             ) : (
               <Link 
-                to={isAuthenticated ? "#" : "/register"}
-                onClick={isAuthenticated ? () => alert('Contact sales@jnarrdc.gov.in to upgrade') : undefined}
+                to="/register"
                 className="block w-full text-center py-2.5 px-4 bg-white text-blue-600 rounded-lg text-sm font-bold hover:bg-blue-50 transition"
               >
-                {isAuthenticated ? 'Upgrade Now' : 'Start 14-Day Trial'}
+                Start 14-Day Trial
               </Link>
             )}
           </div>
@@ -163,6 +203,14 @@ export default function PricingPage() {
             {user?.tier === 'enterprise' ? (
               <button disabled className="block w-full text-center py-2.5 px-4 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg text-sm font-medium cursor-not-allowed">
                 Current Plan
+              </button>
+            ) : isAuthenticated ? (
+              <button 
+                onClick={() => handleUpgrade('enterprise')}
+                disabled={upgrading}
+                className="block w-full text-center py-2.5 px-4 bg-gray-900 dark:bg-gray-700 text-white rounded-lg text-sm font-bold hover:bg-gray-800 dark:hover:bg-gray-600 transition disabled:opacity-50"
+              >
+                {upgrading ? 'Upgrading...' : 'Upgrade Now'}
               </button>
             ) : (
               <a 

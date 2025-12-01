@@ -59,7 +59,7 @@ export default function Layout({ children }: NavbarProps) {
               {isAuthenticated ? (
                 <>
                   <span className="text-sm text-gray-700">
-                    {user?.full_name || user?.email}
+                    {user?.full_name || user?.email?.split('@')[0]}
                   </span>
                   <button
                     onClick={handleLogout}

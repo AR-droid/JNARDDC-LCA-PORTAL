@@ -318,16 +318,42 @@ export default function CreateProjectPage() {
                     {/* Detected Materials */}
                     {nlpResult.parsed.materials.length > 0 && (
                       <div className="bg-blue-50 p-4 rounded-lg">
-                        <h4 className="font-medium text-blue-800 mb-2">🔩 Materials Detected</h4>
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-blue-800">🔩 Materials Detected</h4>
+                          {nlpResult.parsed.parsing_method && (
+                            <span className={`text-xs px-2 py-1 rounded-full ${
+                              nlpResult.parsed.parsing_method === 'groq_llm' 
+                                ? 'bg-purple-100 text-purple-700' 
+                                : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {nlpResult.parsed.parsing_method === 'groq_llm' ? '🤖 AI Parsed' : '📝 Regex Parsed'}
+                            </span>
+                          )}
+                        </div>
                         <div className="space-y-2">
                           {nlpResult.parsed.materials.map((mat: NLPParsedMaterial, idx: number) => (
-                            <div key={idx} className="flex justify-between items-center text-sm bg-white p-3 rounded-lg shadow-sm">
-                              <span className="font-medium text-gray-800">{mat.material_name}</span>
-                              <div className="flex gap-3 text-gray-600 text-xs">
-                                <span className="bg-gray-100 px-2 py-1 rounded">{mat.quantity} {mat.unit}</span>
-                                <span className="bg-green-100 px-2 py-1 rounded text-green-700">♻️ {mat.recycled_content}%</span>
-                                <span className="bg-orange-100 px-2 py-1 rounded text-orange-700">GWP: {mat.gwp_factor.toFixed(2)}</span>
+                            <div key={idx} className="bg-white p-3 rounded-lg shadow-sm">
+                              <div className="flex justify-between items-start">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-gray-800">{mat.material_name}</span>
+                                  {mat.is_coating && (
+                                    <span className="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full">Coating</span>
+                                  )}
+                                  {mat.is_composite && (
+                                    <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full">Composite</span>
+                                  )}
+                                </div>
+                                <div className="flex gap-2 text-xs">
+                                  <span className={`px-2 py-1 rounded ${mat.quantity ? 'bg-gray-100' : 'bg-amber-100 text-amber-700'}`}>
+                                    {mat.quantity ? `${mat.quantity} ${mat.unit}` : '⚠️ Unknown'}
+                                  </span>
+                                  <span className="bg-green-100 px-2 py-1 rounded text-green-700">♻️ {mat.recycled_content}%</span>
+                                  <span className="bg-orange-100 px-2 py-1 rounded text-orange-700">GWP: {mat.gwp_factor?.toFixed(2) || 'N/A'}</span>
+                                </div>
                               </div>
+                              {mat.quantity_note && (
+                                <p className="text-xs text-gray-500 mt-1 italic">📝 {mat.quantity_note}</p>
+                              )}
                             </div>
                           ))}
                         </div>

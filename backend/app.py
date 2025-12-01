@@ -15,7 +15,8 @@ from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
 
 # Load environment variables
-load_dotenv()
+load_dotenv()  # Try .env first
+load_dotenv('.env.example')  # Fallback to .env.example
 
 # Try to import Groq (optional dependency)
 try:
@@ -1143,8 +1144,8 @@ NLP_MATERIAL_PATTERNS = {
         'gwp_factor': 3.5
     },
     'steel': {
-        'keywords': ['steel', 'stainless steel', 'carbon steel', 'mild steel'],
-        'forms': ['sheet', 'rod', 'bar', 'beam', 'wire', 'plate', 'tube', 'coil', 'shank'],
+        'keywords': ['steel', 'stainless steel', 'carbon steel', 'mild steel', 'cast steel', 'tool steel', 'alloy steel', 'high-speed steel'],
+        'forms': ['sheet', 'rod', 'bar', 'beam', 'wire', 'plate', 'tube', 'coil', 'shank', 'body', 'casting'],
         'default_type': 'steel_primary',
         'recycled_type': 'steel_secondary',
         'national_baseline_recycled': 40,  # India avg recycled content %
@@ -1370,7 +1371,7 @@ NLP_MATERIAL_PATTERNS = {
 
 # Product category detection
 PRODUCT_CATEGORIES = {
-    'mining': ['mining', 'drill', 'drilling', 'excavation', 'extraction', 'ore', 'quarry', 'underground'],
+    'mining': ['mining', 'drill', 'drilling', 'excavation', 'extraction', 'ore', 'quarry', 'underground', 'excavator', 'bucket', 'teeth', 'hard-rock', 'hardrock'],
     'metallurgy': ['metallurgy', 'smelting', 'foundry', 'casting', 'forging', 'metal processing', 'furnace', 'crucible', 'ladle', 'converter'],
     'ev_battery': ['battery', 'cell', 'ev', 'electric vehicle', 'lithium-ion', 'bms', 'cathode', 'anode'],
     'power_transmission': ['transformer', 'cable', 'wire', 'conductor', 'transmission', 'power line'],
@@ -1463,12 +1464,88 @@ def parse_nlp_input(description):
         r'lifetime[:\s]+(\d+)',
     ]
     
+    # Patterns for months (convert to years)
+    month_lifespan_patterns = [
+        r'(\d+)\s*(?:months?|mo)',
+        r'last[s]?\s+(\d+)\s*(?:months?|mo)',
+        r'for\s+(\d+)\s*(?:months?|mo)',
+        r'lifespan[:\s]+(\d+)\s*(?:months?|mo)',
+    ]
+    
+    # Patterns for weeks (convert to years)
+    week_lifespan_patterns = [
+        r'(\d+)\s*(?:weeks?|wk|wks)',
+        r'last[s]?\s+(\d+)\s*(?:weeks?)',
+    ]
+    
+    # Patterns for days (convert to years)
+    day_lifespan_patterns = [
+        r'(\d+)\s*(?:days?|d)',
+        r'last[s]?\s+(\d+)\s*(?:days?)',
+    ]
+    
+    lifespan_found = False
+    
+    # Try years first
     for pattern in lifespan_patterns:
         match = re.search(pattern, description_lower)
         if match:
-            result['project']['target_lifespan'] = int(match.group(1))
-            result['tokens'].append({'type': 'lifespan', 'value': int(match.group(1))})
+            lifespan_years = int(match.group(1))
+            result['project']['target_lifespan'] = lifespan_years
+            result['tokens'].append({'type': 'lifespan', 'value': lifespan_years, 'unit': 'years'})
+            lifespan_found = True
             break
+    
+    # Try months if years not found
+    if not lifespan_found:
+        for pattern in month_lifespan_patterns:
+            match = re.search(pattern, description_lower)
+            if match:
+                months = int(match.group(1))
+                lifespan_years = round(months / 12, 2)
+                result['project']['target_lifespan'] = lifespan_years
+                result['tokens'].append({'type': 'lifespan', 'value': lifespan_years, 'unit': 'years', 'original': f'{months} months'})
+                result['assumptions'].append({
+                    'field': 'lifespan',
+                    'value': f'{lifespan_years} years',
+                    'reason': f'Converted from {months} months'
+                })
+                lifespan_found = True
+                break
+    
+    # Try weeks if still not found
+    if not lifespan_found:
+        for pattern in week_lifespan_patterns:
+            match = re.search(pattern, description_lower)
+            if match:
+                weeks = int(match.group(1))
+                lifespan_years = round(weeks / 52, 2)
+                result['project']['target_lifespan'] = lifespan_years
+                result['tokens'].append({'type': 'lifespan', 'value': lifespan_years, 'unit': 'years', 'original': f'{weeks} weeks'})
+                result['assumptions'].append({
+                    'field': 'lifespan',
+                    'value': f'{lifespan_years} years',
+                    'reason': f'Converted from {weeks} weeks'
+                })
+                lifespan_found = True
+                break
+    
+    # Try days if still not found
+    if not lifespan_found:
+        for pattern in day_lifespan_patterns:
+            match = re.search(pattern, description_lower)
+            if match:
+                days = int(match.group(1))
+                lifespan_years = round(days / 365, 2)
+                result['project']['target_lifespan'] = lifespan_years
+                result['tokens'].append({'type': 'lifespan', 'value': lifespan_years, 'unit': 'years', 'original': f'{days} days'})
+                result['assumptions'].append({
+                    'field': 'lifespan',
+                    'value': f'{lifespan_years} years',
+                    'reason': f'Converted from {days} days'
+                })
+                lifespan_found = True
+                break
     
     # Extract recycled content (e.g., "30% recycled", "recycled content 25%")
     recycled_patterns = [
@@ -1688,6 +1765,14 @@ def parse_nlp_input(description):
         (r'\b(kiln|rotary kiln)\b', 'Industrial Kiln'),
         (r'\b(boiler)\b', 'Industrial Boiler'),
         (r'\b(heat exchanger)\b', 'Heat Exchanger'),
+        (r'\b(excavator\s*bucket\s*teeth?|bucket\s*teeth?)\b', 'Excavator Bucket Teeth'),
+        (r'\b(excavator|backhoe|digger)\b', 'Excavator Component'),
+        (r'\b(crusher|jaw crusher|cone crusher)\b', 'Crusher'),
+        (r'\b(conveyor|conveyor belt)\b', 'Conveyor System'),
+        (r'\b(grinding mill|ball mill|sag mill)\b', 'Grinding Mill'),
+        (r'\b(shovel|loading shovel)\b', 'Mining Shovel'),
+        (r'\b(dragline)\b', 'Dragline'),
+        (r'\b(haul truck|mining truck|dump truck)\b', 'Haul Truck Component'),
     ]
     
     suggested_name = None
@@ -1714,6 +1799,170 @@ def parse_nlp_input(description):
     return result
 
 
+def parse_nlp_with_groq(description):
+    """
+    Use Groq LLM to intelligently parse product descriptions into structured BOM data.
+    Handles composite materials, proper weight attribution, and context understanding.
+    """
+    if not groq_client:
+        return None  # Fall back to regex-based parsing
+    
+    prompt = f"""You are an expert materials engineer and LCA (Life Cycle Assessment) specialist. 
+Analyze the following product description and extract structured Bill of Materials (BOM) data.
+
+CRITICAL RULES:
+1. COMPOSITE MATERIALS: If a material is described as a composite (e.g., "magnesia-chrome"), treat it as ONE material entry, not separate entries.
+2. WEIGHT ATTRIBUTION: Only assign a weight to a material if the weight is directly attached to it syntactically. For example:
+   - "800kg of magnesia-chrome bricks" → magnesia-chrome gets 800kg
+   - "coated with a 3mm layer of zirconia" → zirconia weight is UNKNOWN (only thickness given)
+3. COATINGS vs BULK: Distinguish between coating materials (thin layers) and bulk materials.
+4. PROCESS vs COMPONENT: If a material is mentioned as what the equipment PROCESSES (e.g., "copper smelting plant"), do NOT include it as a component material.
+5. LIFESPAN: Extract the service lifespan in years.
+6. CATEGORY: Identify the product category (ev_battery, mining, metallurgy, construction, automotive, electronics, renewable_energy, etc.)
+
+PRODUCT DESCRIPTION:
+{description}
+
+Respond ONLY with valid JSON in this exact format (no markdown, no explanation):
+{{
+  "suggested_name": "Product Name",
+  "product_category": "category_name",
+  "target_lifespan": number_or_null,
+  "is_designed_for_disassembly": true_or_false,
+  "materials": [
+    {{
+      "material_name": "Material Name",
+      "material_type": "material_type_code",
+      "quantity": number_or_null,
+      "unit": "kg",
+      "quantity_note": "explanation if quantity is estimated or unknown",
+      "recycled_content": number_0_to_100,
+      "is_coating": true_or_false,
+      "is_composite": true_or_false,
+      "composite_components": ["component1", "component2"] or null
+    }}
+  ],
+  "coatings": ["coating1", "coating2"],
+  "assumptions": [
+    {{
+      "field": "field_name",
+      "value": "assumed_value",
+      "reason": "why this was assumed"
+    }}
+  ]
+}}"""
+
+    try:
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": "You are a precise JSON generator for LCA material extraction. Output only valid JSON, no markdown formatting."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1,
+            max_tokens=2000
+        )
+        
+        response_text = response.choices[0].message.content.strip()
+        
+        # Clean up response - remove markdown code blocks if present
+        if response_text.startswith('```'):
+            response_text = response_text.split('```')[1]
+            if response_text.startswith('json'):
+                response_text = response_text[4:]
+        if response_text.endswith('```'):
+            response_text = response_text[:-3]
+        response_text = response_text.strip()
+        
+        # Parse the JSON response
+        import json
+        parsed_data = json.loads(response_text)
+        
+        # Convert to the expected format
+        result = {
+            'materials': [],
+            'project': {
+                'product_category': parsed_data.get('product_category', ''),
+                'target_lifespan': parsed_data.get('target_lifespan'),
+                'is_designed_for_disassembly': parsed_data.get('is_designed_for_disassembly', False)
+            },
+            'assumptions': parsed_data.get('assumptions', []),
+            'tokens': [],
+            'coatings': parsed_data.get('coatings', []),
+            'suggested_name': parsed_data.get('suggested_name', 'LCA Project'),
+            'parsing_method': 'groq_llm'
+        }
+        
+        # Process materials
+        for mat in parsed_data.get('materials', []):
+            material_entry = {
+                'material_name': mat.get('material_name', 'Unknown'),
+                'material_type': mat.get('material_type', 'custom'),
+                'quantity': mat.get('quantity') if mat.get('quantity') else 1.0,
+                'unit': mat.get('unit', 'kg'),
+                'recycled_content': mat.get('recycled_content', 0),
+                'transport_distance': 100,
+                'gwp_factor': get_gwp_factor(mat.get('material_type', 'custom')),
+                'is_coating': mat.get('is_coating', False),
+                'is_composite': mat.get('is_composite', False),
+                'quantity_note': mat.get('quantity_note', '')
+            }
+            
+            # Add to assumptions if quantity was unknown
+            if mat.get('quantity') is None:
+                result['assumptions'].append({
+                    'field': f"{mat.get('material_name')} quantity",
+                    'value': 'Unknown',
+                    'reason': mat.get('quantity_note', 'Weight not specified in description')
+                })
+            
+            result['materials'].append(material_entry)
+            
+            # Add token for UI display
+            result['tokens'].append({
+                'type': 'material',
+                'material': mat.get('material_name'),
+                'form': 'coating' if mat.get('is_coating') else 'bulk',
+                'is_recycled': mat.get('recycled_content', 0) > 50,
+                'is_composite': mat.get('is_composite', False)
+            })
+        
+        # Add category token
+        if result['project']['product_category']:
+            result['tokens'].append({
+                'type': 'category',
+                'value': result['project']['product_category']
+            })
+        
+        # Add lifespan token
+        if result['project']['target_lifespan']:
+            result['tokens'].append({
+                'type': 'lifespan',
+                'value': result['project']['target_lifespan']
+            })
+        
+        return result
+        
+    except Exception as e:
+        print(f"Groq NLP parsing error: {e}")
+        return None  # Fall back to regex-based parsing
+
+
+def get_gwp_factor(material_type):
+    """Get GWP factor for a material type from EMISSION_FACTORS"""
+    # Check direct match
+    if material_type in EMISSION_FACTORS:
+        return EMISSION_FACTORS[material_type]['production']
+    
+    # Check NLP patterns for GWP
+    for key, data in NLP_MATERIAL_PATTERNS.items():
+        if key in material_type.lower() or material_type.lower() in data.get('keywords', []):
+            return data.get('gwp_factor', 2.0)
+    
+    # Default GWP factor
+    return 2.0
+
+
 @app.route('/api/v1/parse-nlp', methods=['POST', 'OPTIONS'])
 def parse_nlp():
     """Parse natural language description into structured BOM data"""
@@ -1730,11 +1979,21 @@ def parse_nlp():
         
         data = request.get_json()
         description = data.get('description', '')
+        use_ai = data.get('use_ai', True)  # Default to using Groq if available
         
         if not description:
             return jsonify({"detail": "Description is required"}), 400
         
-        result = parse_nlp_input(description)
+        result = None
+        
+        # Try Groq-powered parsing first if enabled
+        if use_ai and groq_client:
+            result = parse_nlp_with_groq(description)
+        
+        # Fall back to regex-based parsing
+        if result is None:
+            result = parse_nlp_input(description)
+            result['parsing_method'] = 'regex_fallback'
         
         return jsonify({
             "success": True,

@@ -232,16 +232,42 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
                 {/* Detected Materials */}
                 {nlpResult.parsed.materials.length > 0 && (
                   <div className="bg-white p-3 rounded-lg border border-green-200">
-                    <h4 className="font-medium text-gray-700 mb-2">🔩 Detected Materials</h4>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium text-gray-700">🔩 Detected Materials</h4>
+                      {nlpResult.parsed.parsing_method && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          nlpResult.parsed.parsing_method === 'groq_llm' 
+                            ? 'bg-purple-100 text-purple-700' 
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {nlpResult.parsed.parsing_method === 'groq_llm' ? '🤖 AI' : '📝 Regex'}
+                        </span>
+                      )}
+                    </div>
                     <div className="space-y-2">
                       {nlpResult.parsed.materials.map((mat, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded">
-                          <span className="font-medium">{mat.material_name}</span>
-                          <div className="flex gap-4 text-gray-600">
-                            <span>{mat.quantity} {mat.unit}</span>
-                            <span>♻️ {mat.recycled_content}%</span>
-                            <span>GWP: {mat.gwp_factor.toFixed(2)}</span>
+                        <div key={idx} className="bg-gray-50 p-2 rounded">
+                          <div className="flex justify-between items-center text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{mat.material_name}</span>
+                              {mat.is_coating && (
+                                <span className="bg-yellow-100 text-yellow-700 text-xs px-1.5 py-0.5 rounded">Coating</span>
+                              )}
+                              {mat.is_composite && (
+                                <span className="bg-indigo-100 text-indigo-700 text-xs px-1.5 py-0.5 rounded">Composite</span>
+                              )}
+                            </div>
+                            <div className="flex gap-3 text-gray-600">
+                              <span className={mat.quantity ? '' : 'text-amber-600'}>
+                                {mat.quantity ? `${mat.quantity} ${mat.unit}` : '⚠️ Unknown'}
+                              </span>
+                              <span>♻️ {mat.recycled_content}%</span>
+                              <span>GWP: {mat.gwp_factor?.toFixed(2) || 'N/A'}</span>
+                            </div>
                           </div>
+                          {mat.quantity_note && (
+                            <p className="text-xs text-gray-500 mt-1 italic">{mat.quantity_note}</p>
+                          )}
                         </div>
                       ))}
                     </div>

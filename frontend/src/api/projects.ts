@@ -254,6 +254,8 @@ export interface NLPToken {
   material?: string
   form?: string
   is_recycled?: boolean
+  is_composite?: boolean
+  matched_keyword?: string
 }
 
 export interface NLPAssumption {
@@ -265,11 +267,14 @@ export interface NLPAssumption {
 export interface NLPParsedMaterial {
   material_name: string
   material_type: string
-  quantity: number
+  quantity: number | null
   unit: string
   recycled_content: number
   gwp_factor: number
   transport_distance: number
+  is_coating?: boolean
+  is_composite?: boolean
+  quantity_note?: string
 }
 
 export interface NLPParsedProject {
@@ -288,6 +293,7 @@ export interface NLPParseResult {
     tokens: NLPToken[]
     suggested_name?: string
     coatings?: string[]
+    parsing_method?: 'groq_llm' | 'regex_fallback'
   }
 }
 

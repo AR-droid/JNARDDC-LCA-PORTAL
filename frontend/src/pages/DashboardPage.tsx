@@ -3,7 +3,6 @@ import { useAuthStore } from '../stores/authStore';
 import { Link } from 'react-router-dom';
 import { projectsApi, getDashboardAnalytics, DashboardAnalytics } from '../api/projects';
 import { GWPBreakdownChart, MCIGauge } from '../components/charts';
-import AIChatPanel from '../components/AIChatPanel';
 import { PlusIcon } from '../components/Icons';
 
 export default function DashboardPage() {
@@ -16,7 +15,6 @@ export default function DashboardPage() {
     avgGwp: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
     // Refresh user data to get latest project_count
@@ -232,6 +230,18 @@ export default function DashboardPage() {
                   <p className="text-sm text-gray-600">Manage your LCA portfolio</p>
                 </div>
               </Link>
+              <Link
+                to="/teams"
+                className="flex items-center p-4 border-2 border-purple-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition"
+              >
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
+                  <span className="text-2xl">👥</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Team Management</h3>
+                  <p className="text-sm text-gray-600">Collaborate with your team on projects</p>
+                </div>
+              </Link>
             </div>
           </div>
 
@@ -278,18 +288,6 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
-
-        {/* AI Chat Button */}
-        <button
-          onClick={() => setShowChat(true)}
-          className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-lg flex items-center justify-center text-white hover:scale-105 transition-transform z-40"
-          title="Chat with AI Assistant"
-        >
-          <img src="/images/chatbot.png" alt="AI Assistant" className="w-12 h-12 object-contain" />
-        </button>
-
-        {/* AI Chat Panel */}
-        <AIChatPanel isOpen={showChat} onClose={() => setShowChat(false)} />
       </div>
     </div>
   );

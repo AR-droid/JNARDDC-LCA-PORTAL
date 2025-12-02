@@ -15,6 +15,7 @@ import CBAMExportPage from './pages/CBAMExportPage'
 import PricingPage from './pages/PricingPage'
 import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
+import TeamManagementPage from './pages/TeamManagementPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 
@@ -119,6 +120,14 @@ function App() {
           element={
             <ProtectedRoute>
               <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teams"
+          element={
+            <ProtectedRoute>
+              <TeamManagementPage />
             </ProtectedRoute>
           }
         />

@@ -415,6 +415,756 @@ def delete_account():
         print(f"Error deleting account: {e}")
         return jsonify({"detail": "Failed to delete account"}), 500
 
+
+# ==================== TEAM MANAGEMENT API ====================
+
+def get_user_from_token():
+    """Helper function to extract user from JWT token"""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return None, jsonify({"detail": "Not authenticated"}), 401
+    
+    try:
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        return payload['user_id'], None, None
+    except jwt.ExpiredSignatureError:
+        return None, jsonify({"detail": "Token expired"}), 401
+    except Exception:
+        return None, jsonify({"detail": "Invalid token"}), 401
+
+
+@app.route('/api/v1/teams', methods=['GET', 'OPTIONS'])
+def list_teams():
+    """List all teams the user is a member of"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    user_id, error_response, status = get_user_from_token()
+    if error_response:
+        return error_response, status
+    
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Get teams where user is owner or member
+        c.execute("""
+            SELECT DISTINCT t.id, t.name, t.description, t.owner_id, t.created_at,
+                   (SELECT COUNT(*) FROM team_members WHERE team_id = t.id) as member_count,
+                   CASE WHEN t.owner_id = ? THEN 'owner' 
+                        ELSE (SELECT role FROM team_members WHERE team_id = t.id AND user_id = ?) 
+                   END as user_role
+            FROM teams t
+            LEFT JOIN team_members tm ON t.id = tm.team_id
+            WHERE t.owner_id = ? OR tm.user_id = ?
+            ORDER BY t.created_at DESC
+        """, (user_id, user_id, user_id, user_id))
+        
+        teams = []
+        for row in c.fetchall():
+            teams.append({
+                "id": row[0],
+                "name": row[1],
+                "description": row[2],
+                "owner_id": row[3],
+                "created_at": row[4],
+                "member_count": row[5] or 1,
+                "user_role": row[6] or 'owner'
+            })
+        
+        conn.close()
+        return jsonify(teams), 200
+        
+    except Exception as e:
+        print(f"Error listing teams: {e}")
+        return jsonify({"detail": "Failed to list teams"}), 500
+
+
+@app.route('/api/v1/teams', methods=['POST', 'OPTIONS'])
+def create_team():
+    """Create a new team"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    user_id, error_response, status = get_user_from_token()
+    if error_response:
+        return error_response, status
+    
+    try:
+        data = request.get_json()
+        name = data.get('name', '').strip()
+        description = data.get('description', '').strip()
+        
+        if not name:
+            return jsonify({"detail": "Team name is required"}), 400
+        
+        team_id = str(uuid.uuid4())
+        created_at = datetime.utcnow().isoformat()
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        c.execute("""INSERT INTO teams (id, name, description, owner_id, created_at)
+                     VALUES (?, ?, ?, ?, ?)""",
+                  (team_id, name, description, user_id, created_at))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            "id": team_id,
+            "name": name,
+            "description": description,
+            "owner_id": user_id,
+            "created_at": created_at,
+            "message": "Team created successfully"
+        }), 201
+        
+    except Exception as e:
+        print(f"Error creating team: {e}")
+        return jsonify({"detail": "Failed to create team"}), 500
+
+
+@app.route('/api/v1/teams/<team_id>', methods=['GET', 'OPTIONS'])
+def get_team(team_id):
+    """Get team details with members"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    user_id, error_response, status = get_user_from_token()
+    if error_response:
+        return error_response, status
+    
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Get team
+        c.execute("SELECT * FROM teams WHERE id = ?", (team_id,))
+        team = c.fetchone()
+        
+        if not team:
+            conn.close()
+            return jsonify({"detail": "Team not found"}), 404
+        
+        # Check if user has access
+        c.execute("""SELECT 1 FROM teams WHERE id = ? AND owner_id = ?
+                     UNION
+                     SELECT 1 FROM team_members WHERE team_id = ? AND user_id = ?""",
+                  (team_id, user_id, team_id, user_id))
+        
+        if not c.fetchone():
+            conn.close()
+            return jsonify({"detail": "Access denied"}), 403
+        
+        # Get members
+        c.execute("""
+            SELECT u.id, u.email, u.full_name, tm.role, tm.joined_at
+            FROM team_members tm
+            JOIN users u ON tm.user_id = u.id
+            WHERE tm.team_id = ?
+        """, (team_id,))
+        
+        members = []
+        for row in c.fetchall():
+            members.append({
+                "id": row[0],
+                "email": row[1],
+                "full_name": row[2],
+                "role": row[3],
+                "joined_at": row[4]
+            })
+        
+        # Get owner info
+        c.execute("SELECT id, email, full_name FROM users WHERE id = ?", (team[3],))
+        owner = c.fetchone()
+        
+        # Get pending invites
+        c.execute("""SELECT id, email, status, created_at FROM team_invites 
+                     WHERE team_id = ? AND status = 'pending'""", (team_id,))
+        invites = []
+        for row in c.fetchall():
+            invites.append({
+                "id": row[0],
+                "email": row[1],
+                "status": row[2],
+                "created_at": row[3]
+            })
+        
+        # Get shared projects
+        c.execute("""
+            SELECT p.id, p.name, p.status, pc.permission
+            FROM project_collaborators pc
+            JOIN projects p ON pc.project_id = p.id
+            WHERE pc.team_id = ?
+        """, (team_id,))
+        
+        projects = []
+        for row in c.fetchall():
+            projects.append({
+                "id": row[0],
+                "name": row[1],
+                "status": row[2],
+                "permission": row[3]
+            })
+        
+        conn.close()
+        
+        return jsonify({
+            "id": team[0],
+            "name": team[1],
+            "description": team[2],
+            "owner": {
+                "id": owner[0],
+                "email": owner[1],
+                "full_name": owner[2]
+            } if owner else None,
+            "created_at": team[4],
+            "members": members,
+            "pending_invites": invites,
+            "shared_projects": projects,
+            "is_owner": team[3] == user_id
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting team: {e}")
+        return jsonify({"detail": "Failed to get team"}), 500
+
+
+@app.route('/api/v1/teams/<team_id>', methods=['PUT', 'OPTIONS'])
+def update_team(team_id):
+    """Update team details"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    user_id, error_response, status = get_user_from_token()
+    if error_response:
+        return error_response, status
+    
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Check ownership
+        c.execute("SELECT owner_id FROM teams WHERE id = ?", (team_id,))
+        team = c.fetchone()
+        
+        if not team:
+            conn.close()
+            return jsonify({"detail": "Team not found"}), 404
+        
+        if team[0] != user_id:
+            conn.close()
+            return jsonify({"detail": "Only team owner can update team"}), 403
+        
+        data = request.get_json()
+        name = data.get('name', '').strip()
+        description = data.get('description', '').strip()
+        
+        if not name:
+            conn.close()
+            return jsonify({"detail": "Team name is required"}), 400
+        
+        c.execute("UPDATE teams SET name = ?, description = ? WHERE id = ?",
+                  (name, description, team_id))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Team updated successfully"}), 200
+        
+    except Exception as e:
+        print(f"Error updating team: {e}")
+        return jsonify({"detail": "Failed to update team"}), 500
+
+
+@app.route('/api/v1/teams/<team_id>', methods=['DELETE', 'OPTIONS'])
+def delete_team(team_id):
+    """Delete a team"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    user_id, error_response, status = get_user_from_token()
+    if error_response:
+        return error_response, status
+    
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Check ownership
+        c.execute("SELECT owner_id FROM teams WHERE id = ?", (team_id,))
+        team = c.fetchone()
+        
+        if not team:
+            conn.close()
+            return jsonify({"detail": "Team not found"}), 404
+        
+        if team[0] != user_id:
+            conn.close()
+            return jsonify({"detail": "Only team owner can delete team"}), 403
+        
+        # Delete related data
+        c.execute("DELETE FROM project_collaborators WHERE team_id = ?", (team_id,))
+        c.execute("DELETE FROM team_invites WHERE team_id = ?", (team_id,))
+        c.execute("DELETE FROM team_members WHERE team_id = ?", (team_id,))
+        c.execute("DELETE FROM teams WHERE id = ?", (team_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Team deleted successfully"}), 200
+        
+    except Exception as e:
+        print(f"Error deleting team: {e}")
+        return jsonify({"detail": "Failed to delete team"}), 500
+
+
+@app.route('/api/v1/teams/<team_id>/invite', methods=['POST', 'OPTIONS'])
+def invite_member(team_id):
+    """Invite a member to the team"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    user_id, error_response, status = get_user_from_token()
+    if error_response:
+        return error_response, status
+    
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip().lower()
+        
+        if not email:
+            return jsonify({"detail": "Email is required"}), 400
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Check if user has invite permissions (owner or admin)
+        c.execute("""SELECT 1 FROM teams WHERE id = ? AND owner_id = ?
+                     UNION
+                     SELECT 1 FROM team_members WHERE team_id = ? AND user_id = ? AND role = 'admin'""",
+                  (team_id, user_id, team_id, user_id))
+        
+        if not c.fetchone():
+            conn.close()
+            return jsonify({"detail": "You don't have permission to invite members"}), 403
+        
+        # Check if already a member
+        c.execute("""SELECT u.id FROM users u 
+                     JOIN team_members tm ON u.id = tm.user_id
+                     WHERE u.email = ? AND tm.team_id = ?""", (email, team_id))
+        if c.fetchone():
+            conn.close()
+            return jsonify({"detail": "User is already a team member"}), 400
+        
+        # Check for existing pending invite
+        c.execute("SELECT id FROM team_invites WHERE team_id = ? AND email = ? AND status = 'pending'",
+                  (team_id, email))
+        if c.fetchone():
+            conn.close()
+            return jsonify({"detail": "Invitation already sent"}), 400
+        
+        # Check if user exists - if so, add directly
+        c.execute("SELECT id FROM users WHERE email = ?", (email,))
+        existing_user = c.fetchone()
+        
+        if existing_user:
+            # Add user directly as member
+            member_id = str(uuid.uuid4())
+            joined_at = datetime.utcnow().isoformat()
+            c.execute("""INSERT INTO team_members (id, team_id, user_id, role, joined_at)
+                         VALUES (?, ?, ?, 'member', ?)""",
+                      (member_id, team_id, existing_user[0], joined_at))
+            conn.commit()
+            conn.close()
+            return jsonify({"message": "Member added successfully", "added_directly": True}), 201
+        
+        # Create invite for non-existing user
+        invite_id = str(uuid.uuid4())
+        created_at = datetime.utcnow().isoformat()
+        
+        c.execute("""INSERT INTO team_invites (id, team_id, email, invited_by, status, created_at)
+                     VALUES (?, ?, ?, ?, 'pending', ?)""",
+                  (invite_id, team_id, email, user_id, created_at))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            "message": "Invitation sent",
+            "invite_id": invite_id,
+            "added_directly": False
+        }), 201
+        
+    except Exception as e:
+        print(f"Error inviting member: {e}")
+        return jsonify({"detail": "Failed to send invitation"}), 500
+
+
+@app.route('/api/v1/teams/<team_id>/members/<member_id>', methods=['PUT', 'OPTIONS'])
+def update_member_role(team_id, member_id):
+    """Update a member's role"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    user_id, error_response, status = get_user_from_token()
+    if error_response:
+        return error_response, status
+    
+    try:
+        data = request.get_json()
+        role = data.get('role', 'member')
+        
+        if role not in ['admin', 'member']:
+            return jsonify({"detail": "Invalid role"}), 400
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Check ownership
+        c.execute("SELECT owner_id FROM teams WHERE id = ?", (team_id,))
+        team = c.fetchone()
+        
+        if not team or team[0] != user_id:
+            conn.close()
+            return jsonify({"detail": "Only team owner can change roles"}), 403
+        
+        c.execute("UPDATE team_members SET role = ? WHERE team_id = ? AND user_id = ?",
+                  (role, team_id, member_id))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Role updated successfully"}), 200
+        
+    except Exception as e:
+        print(f"Error updating member role: {e}")
+        return jsonify({"detail": "Failed to update role"}), 500
+
+
+@app.route('/api/v1/teams/<team_id>/members/<member_id>', methods=['DELETE', 'OPTIONS'])
+def remove_member(team_id, member_id):
+    """Remove a member from the team"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    user_id, error_response, status = get_user_from_token()
+    if error_response:
+        return error_response, status
+    
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Check if owner or self-removal
+        c.execute("SELECT owner_id FROM teams WHERE id = ?", (team_id,))
+        team = c.fetchone()
+        
+        if not team:
+            conn.close()
+            return jsonify({"detail": "Team not found"}), 404
+        
+        # Owner can remove anyone, members can only remove themselves
+        if team[0] != user_id and member_id != user_id:
+            conn.close()
+            return jsonify({"detail": "You don't have permission to remove this member"}), 403
+        
+        c.execute("DELETE FROM team_members WHERE team_id = ? AND user_id = ?",
+                  (team_id, member_id))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Member removed successfully"}), 200
+        
+    except Exception as e:
+        print(f"Error removing member: {e}")
+        return jsonify({"detail": "Failed to remove member"}), 500
+
+
+@app.route('/api/v1/teams/<team_id>/projects', methods=['POST', 'OPTIONS'])
+def share_project_with_team(team_id):
+    """Share a project with a team"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    user_id, error_response, status = get_user_from_token()
+    if error_response:
+        return error_response, status
+    
+    try:
+        data = request.get_json()
+        project_id = data.get('project_id')
+        permission = data.get('permission', 'view')
+        
+        if not project_id:
+            return jsonify({"detail": "Project ID is required"}), 400
+        
+        if permission not in ['view', 'edit']:
+            return jsonify({"detail": "Invalid permission"}), 400
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Check project ownership
+        c.execute("SELECT user_id FROM projects WHERE id = ?", (project_id,))
+        project = c.fetchone()
+        
+        if not project or project[0] != user_id:
+            conn.close()
+            return jsonify({"detail": "You can only share your own projects"}), 403
+        
+        # Check team membership
+        c.execute("""SELECT 1 FROM teams WHERE id = ? AND owner_id = ?
+                     UNION
+                     SELECT 1 FROM team_members WHERE team_id = ? AND user_id = ?""",
+                  (team_id, user_id, team_id, user_id))
+        
+        if not c.fetchone():
+            conn.close()
+            return jsonify({"detail": "You must be a team member to share projects"}), 403
+        
+        # Check if already shared
+        c.execute("SELECT id FROM project_collaborators WHERE project_id = ? AND team_id = ?",
+                  (project_id, team_id))
+        existing = c.fetchone()
+        
+        if existing:
+            # Update permission
+            c.execute("UPDATE project_collaborators SET permission = ? WHERE id = ?",
+                      (permission, existing[0]))
+        else:
+            # Create new share
+            collab_id = str(uuid.uuid4())
+            added_at = datetime.utcnow().isoformat()
+            c.execute("""INSERT INTO project_collaborators (id, project_id, team_id, permission, added_at)
+                         VALUES (?, ?, ?, ?, ?)""",
+                      (collab_id, project_id, team_id, permission, added_at))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Project shared successfully"}), 200
+        
+    except Exception as e:
+        print(f"Error sharing project: {e}")
+        return jsonify({"detail": "Failed to share project"}), 500
+
+
+@app.route('/api/v1/teams/<team_id>/projects/<project_id>', methods=['DELETE', 'OPTIONS'])
+def unshare_project(team_id, project_id):
+    """Remove project sharing with a team"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    user_id, error_response, status = get_user_from_token()
+    if error_response:
+        return error_response, status
+    
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Check project ownership
+        c.execute("SELECT user_id FROM projects WHERE id = ?", (project_id,))
+        project = c.fetchone()
+        
+        if not project or project[0] != user_id:
+            conn.close()
+            return jsonify({"detail": "You can only manage your own projects"}), 403
+        
+        c.execute("DELETE FROM project_collaborators WHERE project_id = ? AND team_id = ?",
+                  (project_id, team_id))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Project unshared successfully"}), 200
+        
+    except Exception as e:
+        print(f"Error unsharing project: {e}")
+        return jsonify({"detail": "Failed to unshare project"}), 500
+
+
+@app.route('/api/v1/my-invites', methods=['GET', 'OPTIONS'])
+def get_my_invites():
+    """Get pending team invites for current user"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    user_id, error_response, status = get_user_from_token()
+    if error_response:
+        return error_response, status
+    
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Get user email
+        c.execute("SELECT email FROM users WHERE id = ?", (user_id,))
+        user = c.fetchone()
+        
+        if not user:
+            conn.close()
+            return jsonify({"detail": "User not found"}), 404
+        
+        # Get pending invites
+        c.execute("""
+            SELECT ti.id, t.id, t.name, u.full_name, ti.created_at
+            FROM team_invites ti
+            JOIN teams t ON ti.team_id = t.id
+            JOIN users u ON ti.invited_by = u.id
+            WHERE ti.email = ? AND ti.status = 'pending'
+        """, (user[0],))
+        
+        invites = []
+        for row in c.fetchall():
+            invites.append({
+                "invite_id": row[0],
+                "team_id": row[1],
+                "team_name": row[2],
+                "invited_by": row[3],
+                "created_at": row[4]
+            })
+        
+        conn.close()
+        return jsonify(invites), 200
+        
+    except Exception as e:
+        print(f"Error getting invites: {e}")
+        return jsonify({"detail": "Failed to get invites"}), 500
+
+
+@app.route('/api/v1/invites/<invite_id>/accept', methods=['POST', 'OPTIONS'])
+def accept_invite(invite_id):
+    """Accept a team invite"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    user_id, error_response, status = get_user_from_token()
+    if error_response:
+        return error_response, status
+    
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Get user email
+        c.execute("SELECT email FROM users WHERE id = ?", (user_id,))
+        user = c.fetchone()
+        
+        # Get invite
+        c.execute("SELECT team_id, email FROM team_invites WHERE id = ? AND status = 'pending'",
+                  (invite_id,))
+        invite = c.fetchone()
+        
+        if not invite or invite[1] != user[0]:
+            conn.close()
+            return jsonify({"detail": "Invalid invite"}), 404
+        
+        # Add as member
+        member_id = str(uuid.uuid4())
+        joined_at = datetime.utcnow().isoformat()
+        c.execute("""INSERT INTO team_members (id, team_id, user_id, role, joined_at)
+                     VALUES (?, ?, ?, 'member', ?)""",
+                  (member_id, invite[0], user_id, joined_at))
+        
+        # Update invite status
+        c.execute("UPDATE team_invites SET status = 'accepted' WHERE id = ?", (invite_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Invite accepted"}), 200
+        
+    except Exception as e:
+        print(f"Error accepting invite: {e}")
+        return jsonify({"detail": "Failed to accept invite"}), 500
+
+
+@app.route('/api/v1/invites/<invite_id>/decline', methods=['POST', 'OPTIONS'])
+def decline_invite(invite_id):
+    """Decline a team invite"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    user_id, error_response, status = get_user_from_token()
+    if error_response:
+        return error_response, status
+    
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Get user email
+        c.execute("SELECT email FROM users WHERE id = ?", (user_id,))
+        user = c.fetchone()
+        
+        # Get invite
+        c.execute("SELECT email FROM team_invites WHERE id = ? AND status = 'pending'", (invite_id,))
+        invite = c.fetchone()
+        
+        if not invite or invite[0] != user[0]:
+            conn.close()
+            return jsonify({"detail": "Invalid invite"}), 404
+        
+        c.execute("UPDATE team_invites SET status = 'declined' WHERE id = ?", (invite_id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Invite declined"}), 200
+        
+    except Exception as e:
+        print(f"Error declining invite: {e}")
+        return jsonify({"detail": "Failed to decline invite"}), 500
+
+
+@app.route('/api/v1/shared-projects', methods=['GET', 'OPTIONS'])
+def get_shared_projects():
+    """Get projects shared with the user through teams"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    user_id, error_response, status = get_user_from_token()
+    if error_response:
+        return error_response, status
+    
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Get projects shared through teams user is a member of
+        c.execute("""
+            SELECT DISTINCT p.id, p.name, p.description, p.status, p.gwp_total, p.mci_score,
+                   pc.permission, t.name as team_name, u.full_name as owner_name
+            FROM project_collaborators pc
+            JOIN projects p ON pc.project_id = p.id
+            JOIN teams t ON pc.team_id = t.id
+            JOIN users u ON p.user_id = u.id
+            LEFT JOIN team_members tm ON pc.team_id = tm.team_id
+            WHERE t.owner_id = ? OR tm.user_id = ?
+        """, (user_id, user_id))
+        
+        projects = []
+        for row in c.fetchall():
+            projects.append({
+                "id": row[0],
+                "name": row[1],
+                "description": row[2],
+                "status": row[3],
+                "gwp_total": row[4],
+                "mci_score": row[5],
+                "permission": row[6],
+                "team_name": row[7],
+                "owner_name": row[8]
+            })
+        
+        conn.close()
+        return jsonify(projects), 200
+        
+    except Exception as e:
+        print(f"Error getting shared projects: {e}")
+        return jsonify({"detail": "Failed to get shared projects"}), 500
+
+
 @app.route('/api/v1/projects', methods=['GET', 'OPTIONS'])
 def list_projects():
     if request.method == 'OPTIONS':
@@ -4985,6 +5735,47 @@ if __name__ == '__main__':
                   transport_distance REAL DEFAULT 0,
                   created_at TEXT,
                   FOREIGN KEY(project_id) REFERENCES projects(id))''')
+    
+    # Team Management Tables
+    c.execute('''CREATE TABLE IF NOT EXISTS teams
+                 (id TEXT PRIMARY KEY,
+                  name TEXT NOT NULL,
+                  description TEXT,
+                  owner_id TEXT NOT NULL,
+                  created_at TEXT,
+                  FOREIGN KEY(owner_id) REFERENCES users(id))''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS team_members
+                 (id TEXT PRIMARY KEY,
+                  team_id TEXT NOT NULL,
+                  user_id TEXT NOT NULL,
+                  role TEXT DEFAULT 'member',
+                  joined_at TEXT,
+                  FOREIGN KEY(team_id) REFERENCES teams(id),
+                  FOREIGN KEY(user_id) REFERENCES users(id),
+                  UNIQUE(team_id, user_id))''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS team_invites
+                 (id TEXT PRIMARY KEY,
+                  team_id TEXT NOT NULL,
+                  email TEXT NOT NULL,
+                  invited_by TEXT NOT NULL,
+                  status TEXT DEFAULT 'pending',
+                  created_at TEXT,
+                  FOREIGN KEY(team_id) REFERENCES teams(id),
+                  FOREIGN KEY(invited_by) REFERENCES users(id))''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS project_collaborators
+                 (id TEXT PRIMARY KEY,
+                  project_id TEXT NOT NULL,
+                  team_id TEXT,
+                  user_id TEXT,
+                  permission TEXT DEFAULT 'view',
+                  added_at TEXT,
+                  FOREIGN KEY(project_id) REFERENCES projects(id),
+                  FOREIGN KEY(team_id) REFERENCES teams(id),
+                  FOREIGN KEY(user_id) REFERENCES users(id))''')
+    
     conn.commit()
     conn.close()
     

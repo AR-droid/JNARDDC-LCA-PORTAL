@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
+import AIChatPanel from './AIChatPanel';
+import { MessageCircle } from 'lucide-react';
 
 interface NavbarProps {
   children: React.ReactNode;
@@ -11,6 +13,7 @@ export default function Layout({ children }: NavbarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('darkMode') === 'true';
   });
@@ -76,6 +79,12 @@ export default function Layout({ children }: NavbarProps) {
                     className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
                   >
                     Projects
+                  </Link>
+                  <Link
+                    to="/teams"
+                    className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    Teams
                   </Link>
                   <Link
                     to="/comparison"
@@ -247,6 +256,24 @@ export default function Layout({ children }: NavbarProps) {
         </div>
       </nav>
       <main>{children}</main>
+      
+      {/* Floating Chat Button - only for authenticated users */}
+      {isAuthenticated && (
+        <>
+          <button
+            onClick={() => setIsChatOpen(true)}
+            className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center z-40 hover:scale-110"
+            title="AI Assistant"
+          >
+            <img src="/images/chatbot.png" alt="AI" className="w-8 h-8" />
+          </button>
+          
+          <AIChatPanel
+            isOpen={isChatOpen}
+            onClose={() => setIsChatOpen(false)}
+          />
+        </>
+      )}
     </div>
   );
 }

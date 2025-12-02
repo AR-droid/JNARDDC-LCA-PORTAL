@@ -813,3 +813,74 @@ export const calculateMaterialLCIA = async (
   })
   return response.data
 }
+
+// =============================================
+// GAP 8: AI Gap Filling Types and Functions
+// =============================================
+
+export interface AIGapFilledField {
+  field: string
+  value: number
+  confidence: number
+  method: string
+}
+
+export interface EOLPathway {
+  pathway: string
+  confidence: number
+  description: string
+}
+
+export interface ImpactPrediction {
+  gwp_estimate: number
+  confidence_interval: { lower: number; upper: number }
+  data_quality: string
+  model_used: string
+}
+
+export interface AIFilledMaterial {
+  material_id: string
+  material_name: string
+  material_type: string
+  original_data: {
+    recycled_content: number | null
+    transport_distance: number | null
+  }
+  filled_data: {
+    recycled_content: number | null
+    transport_distance: number | null
+    lifespan: number | null
+    recyclability: number | null
+    density: number | null
+  }
+  gaps_filled: AIGapFilledField[]
+  eol_pathway: EOLPathway
+  impact_prediction: ImpactPrediction
+  overall_confidence: number
+}
+
+export interface AIModel {
+  name: string
+  purpose: string
+  method: string
+}
+
+export interface AIGapFillResult {
+  success: boolean
+  project_id: string
+  product_category: string
+  total_gaps_filled: number
+  materials_processed: number
+  materials: AIFilledMaterial[]
+  ai_models_used: AIModel[]
+}
+
+/**
+ * AI-powered gap filling for missing material data
+ * Uses ML regression, classification, and ensemble models
+ */
+export const aiGapFill = async (projectId: string): Promise<AIGapFillResult> => {
+  const response = await api.post(`/projects/${projectId}/ai-fill-gaps`)
+  return response.data
+}
+

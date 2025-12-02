@@ -687,3 +687,129 @@ export const downloadBRSRExcel = async (projectId: string): Promise<void> => {
   link.remove()
   window.URL.revokeObjectURL(url)
 }
+
+// =====================================================
+// LCIA (Life Cycle Impact Assessment) TYPES & API
+// =====================================================
+
+export interface LCIACategoryMetadata {
+  name: string
+  short_name: string
+  unit: string
+  description: string
+  methodology: string
+  category_type: string
+}
+
+export interface LCIACategories {
+  gwp: LCIACategoryMetadata
+  ap: LCIACategoryMetadata
+  ep: LCIACategoryMetadata
+  odp: LCIACategoryMetadata
+  pocp: LCIACategoryMetadata
+  htp: LCIACategoryMetadata
+  faetp: LCIACategoryMetadata
+  tetp: LCIACategoryMetadata
+  adp_elements: LCIACategoryMetadata
+  adp_fossil: LCIACategoryMetadata
+  water_use: LCIACategoryMetadata
+  land_use: LCIACategoryMetadata
+}
+
+export interface EnergyBreakdown {
+  mining_kwh: number
+  refining_kwh: number
+  smelting_kwh: number
+  total_kwh: number
+}
+
+export interface LCIAImpacts {
+  gwp: number
+  ap: number
+  ep: number
+  odp: number
+  pocp: number
+  htp: number
+  faetp: number
+  tetp: number
+  adp_elements: number
+  adp_fossil: number
+  water_use: number
+  land_use: number
+  energy_breakdown: EnergyBreakdown
+  grid_gwp: number
+}
+
+export interface MaterialLCIA {
+  name: string
+  type: string
+  quantity: number
+  impacts: LCIAImpacts
+}
+
+export interface ProjectLCIAResult {
+  project_id: string
+  project_name: string
+  product_category: string
+  total_impacts: LCIAImpacts
+  materials_breakdown: MaterialLCIA[]
+  categories_metadata: LCIACategories
+  grid_region: string
+  grid_emission_factor: number
+}
+
+export interface LCIACategoriesResponse {
+  categories: LCIACategories
+  grid_factors: Record<string, number>
+  transport_factors: Record<string, number>
+}
+
+/**
+ * Get LCIA categories metadata
+ */
+export const getLCIACategories = async (): Promise<LCIACategoriesResponse> => {
+  const response = await api.get('/lcia-categories')
+  return response.data
+}
+
+/**
+ * Calculate LCIA for a project
+ */
+export const calculateProjectLCIA = async (
+  projectId: string, 
+  gridRegion: string = 'national_average'
+): Promise<ProjectLCIAResult> => {
+  const response = await api.post(`/projects/${projectId}/calculate-lcia`, {
+    grid_region: gridRegion
+  })
+  return response.data
+}
+
+/**
+ * Calculate LCIA for a single material (real-time)
+ */
+export const calculateMaterialLCIA = async (
+  materialType: string,
+  quantity: number,
+  recycledContent: number = 0,
+  transportDistance: number = 0,
+  transportMode: string = 'road_truck',
+  gridRegion: string = 'national_average'
+): Promise<{
+  material_type: string
+  quantity: number
+  unit: string
+  recycled_content: number
+  impacts: LCIAImpacts
+  categories_metadata: LCIACategories
+}> => {
+  const response = await api.post('/lcia/calculate-material', {
+    material_type: materialType,
+    quantity,
+    recycled_content: recycledContent,
+    transport_distance: transportDistance,
+    transport_mode: transportMode,
+    grid_region: gridRegion
+  })
+  return response.data
+}

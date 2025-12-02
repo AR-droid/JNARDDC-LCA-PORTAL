@@ -276,6 +276,12 @@ export default function ProjectDetailPage() {
               <ChartIcon size={14} /> Analytics
             </button>
             <button
+              onClick={() => navigate(`/projects/${id}/lcia`)}
+              className="px-3 py-1.5 text-sm bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors flex items-center gap-1.5"
+            >
+              <AnalyticsIcon size={14} /> LCIA
+            </button>
+            <button
               onClick={() => navigate(`/projects/${id}/analysis`)}
               className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center gap-1.5"
             >

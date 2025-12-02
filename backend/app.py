@@ -2091,6 +2091,986 @@ WASTE_FACTORS = {
 }
 
 
+# =====================================================
+# LCIA IMPACT CATEGORIES - Life Cycle Impact Assessment
+# Based on ReCiPe 2016, CML 2001, and TRACI 2.1 methodologies
+# =====================================================
+
+# LCIA characterization factors per material type
+# Units: Various (see individual category definitions)
+LCIA_IMPACT_FACTORS = {
+    # =========================================================================
+    # BASE METALS
+    # =========================================================================
+    'aluminium_primary': {
+        'gwp': 12.5,           # Global Warming Potential (kg CO2-eq/kg)
+        'ap': 0.052,           # Acidification Potential (kg SO2-eq/kg)
+        'ep': 0.0042,          # Eutrophication Potential (kg PO4-eq/kg)
+        'odp': 2.1e-8,         # Ozone Depletion Potential (kg CFC-11-eq/kg)
+        'pocp': 0.0031,        # Photochemical Ozone Creation (kg C2H4-eq/kg)
+        'htp': 1.8,            # Human Toxicity Potential (kg 1,4-DCB-eq/kg)
+        'faetp': 0.45,         # Freshwater Aquatic Ecotoxicity (kg 1,4-DCB-eq/kg)
+        'tetp': 0.012,         # Terrestrial Ecotoxicity (kg 1,4-DCB-eq/kg)
+        'adp_elements': 1.1e-5, # Abiotic Depletion - Elements (kg Sb-eq/kg)
+        'adp_fossil': 165.0,   # Abiotic Depletion - Fossil (MJ/kg)
+        'water_use': 85.0,     # Water Use (L/kg)
+        'land_use': 0.8,       # Land Use (m2a/kg)
+        # Process-level energy breakdown (kWh/kg)
+        'energy_mining': 0.5,
+        'energy_refining': 8.5,    # Bayer process
+        'energy_smelting': 15.0,   # Hall-Héroult process
+        'energy_total': 24.0,
+    },
+    'aluminium_secondary': {
+        'gwp': 0.6,
+        'ap': 0.003,
+        'ep': 0.0003,
+        'odp': 1.2e-9,
+        'pocp': 0.0002,
+        'htp': 0.12,
+        'faetp': 0.03,
+        'tetp': 0.001,
+        'adp_elements': 5.5e-7,
+        'adp_fossil': 8.5,
+        'water_use': 5.0,
+        'land_use': 0.02,
+        'energy_mining': 0.0,
+        'energy_refining': 0.0,
+        'energy_smelting': 0.8,    # Remelting only
+        'energy_total': 0.8,
+    },
+    'copper_primary': {
+        'gwp': 3.5,
+        'ap': 0.18,            # High due to SO2 from smelting
+        'ep': 0.0025,
+        'odp': 8.5e-9,
+        'pocp': 0.0018,
+        'htp': 45.0,           # High due to heavy metal emissions
+        'faetp': 28.0,
+        'tetp': 0.85,
+        'adp_elements': 0.0042,
+        'adp_fossil': 42.0,
+        'water_use': 120.0,
+        'land_use': 1.2,
+        'energy_mining': 1.5,
+        'energy_refining': 2.8,
+        'energy_smelting': 3.2,
+        'energy_total': 7.5,
+    },
+    'copper_secondary': {
+        'gwp': 0.5,
+        'ap': 0.008,
+        'ep': 0.0002,
+        'odp': 4.2e-10,
+        'pocp': 0.0001,
+        'htp': 2.5,
+        'faetp': 1.2,
+        'tetp': 0.04,
+        'adp_elements': 2.1e-5,
+        'adp_fossil': 6.0,
+        'water_use': 8.0,
+        'land_use': 0.03,
+        'energy_mining': 0.0,
+        'energy_refining': 0.5,
+        'energy_smelting': 0.8,
+        'energy_total': 1.3,
+    },
+    'steel_primary': {
+        'gwp': 2.1,
+        'ap': 0.008,
+        'ep': 0.0012,
+        'odp': 4.5e-9,
+        'pocp': 0.0012,
+        'htp': 0.95,
+        'faetp': 0.22,
+        'tetp': 0.008,
+        'adp_elements': 2.8e-6,
+        'adp_fossil': 28.0,
+        'water_use': 45.0,
+        'land_use': 0.35,
+        'energy_mining': 0.8,
+        'energy_refining': 1.2,
+        'energy_smelting': 4.5,
+        'energy_total': 6.5,
+    },
+    'steel_secondary': {
+        'gwp': 0.4,
+        'ap': 0.002,
+        'ep': 0.0002,
+        'odp': 2.2e-10,
+        'pocp': 0.0002,
+        'htp': 0.15,
+        'faetp': 0.04,
+        'tetp': 0.001,
+        'adp_elements': 1.4e-7,
+        'adp_fossil': 5.5,
+        'water_use': 6.0,
+        'land_use': 0.02,
+        'energy_mining': 0.0,
+        'energy_refining': 0.0,
+        'energy_smelting': 0.6,
+        'energy_total': 0.6,
+    },
+    
+    # =========================================================================
+    # CRITICAL MINERALS - BATTERY METALS
+    # =========================================================================
+    'lithium': {
+        'gwp': 15.0,
+        'ap': 0.045,
+        'ep': 0.018,
+        'odp': 1.8e-8,
+        'pocp': 0.0028,
+        'htp': 2.8,
+        'faetp': 1.2,
+        'tetp': 0.035,
+        'adp_elements': 0.012,
+        'adp_fossil': 185.0,
+        'water_use': 1900.0,      # Very high - brine extraction
+        'land_use': 2.5,
+        'energy_mining': 2.5,
+        'energy_refining': 12.0,
+        'energy_smelting': 0.0,
+        'energy_total': 14.5,
+    },
+    'lithium_carbonate': {
+        'gwp': 15.0,
+        'ap': 0.045,
+        'ep': 0.018,
+        'odp': 1.8e-8,
+        'pocp': 0.0028,
+        'htp': 2.8,
+        'faetp': 1.2,
+        'tetp': 0.035,
+        'adp_elements': 0.012,
+        'adp_fossil': 185.0,
+        'water_use': 1900.0,
+        'land_use': 2.5,
+        'energy_mining': 2.5,
+        'energy_refining': 12.0,
+        'energy_smelting': 0.0,
+        'energy_total': 14.5,
+    },
+    'lithium_hydroxide': {
+        'gwp': 18.0,
+        'ap': 0.055,
+        'ep': 0.022,
+        'odp': 2.2e-8,
+        'pocp': 0.0035,
+        'htp': 3.2,
+        'faetp': 1.5,
+        'tetp': 0.042,
+        'adp_elements': 0.014,
+        'adp_fossil': 220.0,
+        'water_use': 2200.0,
+        'land_use': 2.8,
+        'energy_mining': 2.5,
+        'energy_refining': 15.0,
+        'energy_smelting': 0.0,
+        'energy_total': 17.5,
+    },
+    'cobalt': {
+        'gwp': 10.0,
+        'ap': 0.28,            # High due to sulfide processing
+        'ep': 0.025,
+        'odp': 1.2e-8,
+        'pocp': 0.0045,
+        'htp': 85.0,           # Very high - toxic metal
+        'faetp': 42.0,
+        'tetp': 2.5,
+        'adp_elements': 0.052,
+        'adp_fossil': 125.0,
+        'water_use': 350.0,
+        'land_use': 3.5,
+        'energy_mining': 3.5,
+        'energy_refining': 8.5,
+        'energy_smelting': 2.0,
+        'energy_total': 14.0,
+    },
+    'cobalt_sulfate': {
+        'gwp': 10.0,
+        'ap': 0.28,
+        'ep': 0.025,
+        'odp': 1.2e-8,
+        'pocp': 0.0045,
+        'htp': 85.0,
+        'faetp': 42.0,
+        'tetp': 2.5,
+        'adp_elements': 0.052,
+        'adp_fossil': 125.0,
+        'water_use': 350.0,
+        'land_use': 3.5,
+        'energy_mining': 3.5,
+        'energy_refining': 8.5,
+        'energy_smelting': 2.0,
+        'energy_total': 14.0,
+    },
+    'nickel': {
+        'gwp': 8.5,
+        'ap': 0.15,
+        'ep': 0.012,
+        'odp': 8.5e-9,
+        'pocp': 0.0032,
+        'htp': 52.0,
+        'faetp': 25.0,
+        'tetp': 1.8,
+        'adp_elements': 0.0085,
+        'adp_fossil': 95.0,
+        'water_use': 180.0,
+        'land_use': 2.2,
+        'energy_mining': 2.5,
+        'energy_refining': 5.5,
+        'energy_smelting': 4.5,
+        'energy_total': 12.5,
+    },
+    'nickel_class1': {
+        'gwp': 12.5,
+        'ap': 0.22,
+        'ep': 0.018,
+        'odp': 1.2e-8,
+        'pocp': 0.0048,
+        'htp': 68.0,
+        'faetp': 35.0,
+        'tetp': 2.4,
+        'adp_elements': 0.012,
+        'adp_fossil': 145.0,
+        'water_use': 250.0,
+        'land_use': 2.8,
+        'energy_mining': 2.5,
+        'energy_refining': 8.5,
+        'energy_smelting': 6.5,
+        'energy_total': 17.5,
+    },
+    'nickel_ferronickel': {
+        'gwp': 8.5,
+        'ap': 0.15,
+        'ep': 0.012,
+        'odp': 8.5e-9,
+        'pocp': 0.0032,
+        'htp': 52.0,
+        'faetp': 25.0,
+        'tetp': 1.8,
+        'adp_elements': 0.0085,
+        'adp_fossil': 95.0,
+        'water_use': 180.0,
+        'land_use': 2.2,
+        'energy_mining': 2.5,
+        'energy_refining': 5.5,
+        'energy_smelting': 4.5,
+        'energy_total': 12.5,
+    },
+    'manganese': {
+        'gwp': 2.8,
+        'ap': 0.015,
+        'ep': 0.0035,
+        'odp': 3.2e-9,
+        'pocp': 0.0012,
+        'htp': 4.5,
+        'faetp': 1.8,
+        'tetp': 0.15,
+        'adp_elements': 0.0012,
+        'adp_fossil': 35.0,
+        'water_use': 45.0,
+        'land_use': 0.85,
+        'energy_mining': 1.2,
+        'energy_refining': 2.8,
+        'energy_smelting': 1.5,
+        'energy_total': 5.5,
+    },
+    'graphite': {
+        'gwp': 4.2,
+        'ap': 0.018,
+        'ep': 0.0028,
+        'odp': 4.5e-9,
+        'pocp': 0.0015,
+        'htp': 1.2,
+        'faetp': 0.45,
+        'tetp': 0.08,
+        'adp_elements': 0.0008,
+        'adp_fossil': 55.0,
+        'water_use': 65.0,
+        'land_use': 1.2,
+        'energy_mining': 1.8,
+        'energy_refining': 4.5,
+        'energy_smelting': 0.0,
+        'energy_total': 6.3,
+    },
+    
+    # =========================================================================
+    # RARE EARTH ELEMENTS
+    # =========================================================================
+    'neodymium': {
+        'gwp': 35.0,
+        'ap': 0.12,
+        'ep': 0.085,           # High due to processing chemicals
+        'odp': 3.5e-8,
+        'pocp': 0.0085,
+        'htp': 125.0,          # Very high - radioactive byproducts
+        'faetp': 85.0,
+        'tetp': 8.5,
+        'adp_elements': 0.42,
+        'adp_fossil': 420.0,
+        'water_use': 850.0,
+        'land_use': 12.0,
+        'energy_mining': 8.5,
+        'energy_refining': 35.0,
+        'energy_smelting': 12.0,
+        'energy_total': 55.5,
+    },
+    'dysprosium': {
+        'gwp': 45.0,
+        'ap': 0.15,
+        'ep': 0.095,
+        'odp': 4.5e-8,
+        'pocp': 0.0095,
+        'htp': 145.0,
+        'faetp': 95.0,
+        'tetp': 9.5,
+        'adp_elements': 0.85,
+        'adp_fossil': 550.0,
+        'water_use': 950.0,
+        'land_use': 14.0,
+        'energy_mining': 10.0,
+        'energy_refining': 45.0,
+        'energy_smelting': 15.0,
+        'energy_total': 70.0,
+    },
+    'praseodymium': {
+        'gwp': 32.0,
+        'ap': 0.11,
+        'ep': 0.078,
+        'odp': 3.2e-8,
+        'pocp': 0.0078,
+        'htp': 115.0,
+        'faetp': 78.0,
+        'tetp': 7.8,
+        'adp_elements': 0.38,
+        'adp_fossil': 385.0,
+        'water_use': 780.0,
+        'land_use': 11.0,
+        'energy_mining': 7.8,
+        'energy_refining': 32.0,
+        'energy_smelting': 11.0,
+        'energy_total': 50.8,
+    },
+    'terbium': {
+        'gwp': 50.0,
+        'ap': 0.18,
+        'ep': 0.12,
+        'odp': 5.0e-8,
+        'pocp': 0.012,
+        'htp': 165.0,
+        'faetp': 105.0,
+        'tetp': 10.5,
+        'adp_elements': 1.2,
+        'adp_fossil': 650.0,
+        'water_use': 1050.0,
+        'land_use': 16.0,
+        'energy_mining': 12.0,
+        'energy_refining': 55.0,
+        'energy_smelting': 18.0,
+        'energy_total': 85.0,
+    },
+    'rare_earth_mixed': {
+        'gwp': 38.0,
+        'ap': 0.13,
+        'ep': 0.088,
+        'odp': 3.8e-8,
+        'pocp': 0.0088,
+        'htp': 130.0,
+        'faetp': 88.0,
+        'tetp': 8.8,
+        'adp_elements': 0.55,
+        'adp_fossil': 450.0,
+        'water_use': 880.0,
+        'land_use': 13.0,
+        'energy_mining': 9.0,
+        'energy_refining': 38.0,
+        'energy_smelting': 13.0,
+        'energy_total': 60.0,
+    },
+    
+    # =========================================================================
+    # OTHER CRITICAL MINERALS
+    # =========================================================================
+    'tungsten': {
+        'gwp': 22.0,
+        'ap': 0.065,
+        'ep': 0.025,
+        'odp': 2.2e-8,
+        'pocp': 0.0055,
+        'htp': 35.0,
+        'faetp': 18.0,
+        'tetp': 1.5,
+        'adp_elements': 0.18,
+        'adp_fossil': 280.0,
+        'water_use': 320.0,
+        'land_use': 4.5,
+        'energy_mining': 5.5,
+        'energy_refining': 18.0,
+        'energy_smelting': 8.5,
+        'energy_total': 32.0,
+    },
+    'vanadium': {
+        'gwp': 28.0,
+        'ap': 0.085,
+        'ep': 0.032,
+        'odp': 2.8e-8,
+        'pocp': 0.0068,
+        'htp': 45.0,
+        'faetp': 22.0,
+        'tetp': 2.2,
+        'adp_elements': 0.025,
+        'adp_fossil': 350.0,
+        'water_use': 280.0,
+        'land_use': 3.8,
+        'energy_mining': 4.5,
+        'energy_refining': 22.0,
+        'energy_smelting': 6.5,
+        'energy_total': 33.0,
+    },
+    'titanium': {
+        'gwp': 8.1,
+        'ap': 0.035,
+        'ep': 0.008,
+        'odp': 8.1e-9,
+        'pocp': 0.0025,
+        'htp': 8.5,
+        'faetp': 3.5,
+        'tetp': 0.35,
+        'adp_elements': 0.0015,
+        'adp_fossil': 95.0,
+        'water_use': 120.0,
+        'land_use': 1.8,
+        'energy_mining': 2.5,
+        'energy_refining': 8.5,
+        'energy_smelting': 12.0,
+        'energy_total': 23.0,
+    },
+    'tantalum': {
+        'gwp': 48.0,
+        'ap': 0.14,
+        'ep': 0.055,
+        'odp': 4.8e-8,
+        'pocp': 0.012,
+        'htp': 95.0,
+        'faetp': 55.0,
+        'tetp': 5.5,
+        'adp_elements': 0.65,
+        'adp_fossil': 580.0,
+        'water_use': 450.0,
+        'land_use': 8.5,
+        'energy_mining': 8.0,
+        'energy_refining': 35.0,
+        'energy_smelting': 15.0,
+        'energy_total': 58.0,
+    },
+    'indium': {
+        'gwp': 142.0,
+        'ap': 0.42,
+        'ep': 0.15,
+        'odp': 1.4e-7,
+        'pocp': 0.035,
+        'htp': 280.0,
+        'faetp': 145.0,
+        'tetp': 14.5,
+        'adp_elements': 2.5,
+        'adp_fossil': 1850.0,
+        'water_use': 1200.0,
+        'land_use': 25.0,
+        'energy_mining': 25.0,
+        'energy_refining': 120.0,
+        'energy_smelting': 35.0,
+        'energy_total': 180.0,
+    },
+    'gallium': {
+        'gwp': 185.0,
+        'ap': 0.55,
+        'ep': 0.18,
+        'odp': 1.8e-7,
+        'pocp': 0.045,
+        'htp': 320.0,
+        'faetp': 165.0,
+        'tetp': 16.5,
+        'adp_elements': 3.2,
+        'adp_fossil': 2400.0,
+        'water_use': 1500.0,
+        'land_use': 32.0,
+        'energy_mining': 32.0,
+        'energy_refining': 155.0,
+        'energy_smelting': 45.0,
+        'energy_total': 232.0,
+    },
+    'germanium': {
+        'gwp': 165.0,
+        'ap': 0.48,
+        'ep': 0.16,
+        'odp': 1.6e-7,
+        'pocp': 0.042,
+        'htp': 295.0,
+        'faetp': 155.0,
+        'tetp': 15.5,
+        'adp_elements': 2.8,
+        'adp_fossil': 2150.0,
+        'water_use': 1350.0,
+        'land_use': 28.0,
+        'energy_mining': 28.0,
+        'energy_refining': 140.0,
+        'energy_smelting': 40.0,
+        'energy_total': 208.0,
+    },
+    
+    # =========================================================================
+    # PRECIOUS METALS
+    # =========================================================================
+    'platinum': {
+        'gwp': 12500.0,
+        'ap': 38.0,
+        'ep': 12.0,
+        'odp': 1.2e-5,
+        'pocp': 3.2,
+        'htp': 25000.0,
+        'faetp': 12500.0,
+        'tetp': 1250.0,
+        'adp_elements': 185.0,
+        'adp_fossil': 165000.0,
+        'water_use': 285000.0,
+        'land_use': 2500.0,
+        'energy_mining': 2500.0,
+        'energy_refining': 8500.0,
+        'energy_smelting': 2500.0,
+        'energy_total': 13500.0,
+    },
+    'palladium': {
+        'gwp': 9800.0,
+        'ap': 32.0,
+        'ep': 9.8,
+        'odp': 9.8e-6,
+        'pocp': 2.8,
+        'htp': 19500.0,
+        'faetp': 9800.0,
+        'tetp': 980.0,
+        'adp_elements': 145.0,
+        'adp_fossil': 128000.0,
+        'water_use': 225000.0,
+        'land_use': 1950.0,
+        'energy_mining': 1950.0,
+        'energy_refining': 6500.0,
+        'energy_smelting': 1950.0,
+        'energy_total': 10400.0,
+    },
+    'silver': {
+        'gwp': 104.0,
+        'ap': 0.35,
+        'ep': 0.11,
+        'odp': 1.0e-7,
+        'pocp': 0.028,
+        'htp': 210.0,
+        'faetp': 105.0,
+        'tetp': 10.5,
+        'adp_elements': 1.8,
+        'adp_fossil': 1350.0,
+        'water_use': 950.0,
+        'land_use': 18.0,
+        'energy_mining': 18.0,
+        'energy_refining': 85.0,
+        'energy_smelting': 25.0,
+        'energy_total': 128.0,
+    },
+    'gold': {
+        'gwp': 31500.0,
+        'ap': 95.0,
+        'ep': 32.0,
+        'odp': 3.2e-5,
+        'pocp': 8.5,
+        'htp': 65000.0,
+        'faetp': 32000.0,
+        'tetp': 3200.0,
+        'adp_elements': 520.0,
+        'adp_fossil': 420000.0,
+        'water_use': 750000.0,
+        'land_use': 6500.0,
+        'energy_mining': 6500.0,
+        'energy_refining': 22000.0,
+        'energy_smelting': 6500.0,
+        'energy_total': 35000.0,
+    },
+    
+    # =========================================================================
+    # JOINING/BRAZING MATERIALS
+    # =========================================================================
+    'solder_lead_free': {
+        'gwp': 25.0,
+        'ap': 0.075,
+        'ep': 0.028,
+        'odp': 2.5e-8,
+        'pocp': 0.0065,
+        'htp': 15.0,
+        'faetp': 8.5,
+        'tetp': 0.85,
+        'adp_elements': 0.045,
+        'adp_fossil': 320.0,
+        'water_use': 180.0,
+        'land_use': 3.2,
+        'energy_mining': 3.5,
+        'energy_refining': 18.0,
+        'energy_smelting': 5.5,
+        'energy_total': 27.0,
+    },
+    'brazing_alloy': {
+        'gwp': 85.0,
+        'ap': 0.28,
+        'ep': 0.088,
+        'odp': 8.5e-8,
+        'pocp': 0.022,
+        'htp': 165.0,
+        'faetp': 85.0,
+        'tetp': 8.5,
+        'adp_elements': 1.2,
+        'adp_fossil': 1100.0,
+        'water_use': 650.0,
+        'land_use': 12.0,
+        'energy_mining': 12.0,
+        'energy_refining': 65.0,
+        'energy_smelting': 22.0,
+        'energy_total': 99.0,
+    },
+    'flux': {
+        'gwp': 3.0,
+        'ap': 0.015,
+        'ep': 0.005,
+        'odp': 3.0e-9,
+        'pocp': 0.001,
+        'htp': 2.5,
+        'faetp': 1.2,
+        'tetp': 0.12,
+        'adp_elements': 0.0005,
+        'adp_fossil': 38.0,
+        'water_use': 25.0,
+        'land_use': 0.45,
+        'energy_mining': 0.5,
+        'energy_refining': 2.5,
+        'energy_smelting': 0.0,
+        'energy_total': 3.0,
+    },
+}
+
+# LCIA Impact Category Metadata - descriptions and units
+LCIA_CATEGORIES = {
+    'gwp': {
+        'name': 'Global Warming Potential',
+        'short_name': 'GWP',
+        'unit': 'kg CO2-eq',
+        'description': 'Contribution to climate change through greenhouse gas emissions',
+        'methodology': 'IPCC AR5 100-year',
+        'category_type': 'midpoint'
+    },
+    'ap': {
+        'name': 'Acidification Potential',
+        'short_name': 'AP',
+        'unit': 'kg SO2-eq',
+        'description': 'Contribution to acid rain through sulfur and nitrogen oxide emissions',
+        'methodology': 'CML 2001',
+        'category_type': 'midpoint'
+    },
+    'ep': {
+        'name': 'Eutrophication Potential',
+        'short_name': 'EP',
+        'unit': 'kg PO4-eq',
+        'description': 'Contribution to nutrient enrichment in water bodies',
+        'methodology': 'CML 2001',
+        'category_type': 'midpoint'
+    },
+    'odp': {
+        'name': 'Ozone Depletion Potential',
+        'short_name': 'ODP',
+        'unit': 'kg CFC-11-eq',
+        'description': 'Contribution to stratospheric ozone layer depletion',
+        'methodology': 'WMO 2014',
+        'category_type': 'midpoint'
+    },
+    'pocp': {
+        'name': 'Photochemical Ozone Creation Potential',
+        'short_name': 'POCP',
+        'unit': 'kg C2H4-eq',
+        'description': 'Contribution to ground-level ozone (smog) formation',
+        'methodology': 'ReCiPe 2016',
+        'category_type': 'midpoint'
+    },
+    'htp': {
+        'name': 'Human Toxicity Potential',
+        'short_name': 'HTP',
+        'unit': 'kg 1,4-DCB-eq',
+        'description': 'Potential toxic effects on human health',
+        'methodology': 'USEtox 2.0',
+        'category_type': 'midpoint'
+    },
+    'faetp': {
+        'name': 'Freshwater Aquatic Ecotoxicity Potential',
+        'short_name': 'FAETP',
+        'unit': 'kg 1,4-DCB-eq',
+        'description': 'Potential toxic effects on freshwater ecosystems',
+        'methodology': 'USEtox 2.0',
+        'category_type': 'midpoint'
+    },
+    'tetp': {
+        'name': 'Terrestrial Ecotoxicity Potential',
+        'short_name': 'TETP',
+        'unit': 'kg 1,4-DCB-eq',
+        'description': 'Potential toxic effects on terrestrial ecosystems',
+        'methodology': 'USEtox 2.0',
+        'category_type': 'midpoint'
+    },
+    'adp_elements': {
+        'name': 'Abiotic Depletion - Elements',
+        'short_name': 'ADP-E',
+        'unit': 'kg Sb-eq',
+        'description': 'Depletion of non-renewable mineral resources',
+        'methodology': 'CML 2001',
+        'category_type': 'midpoint'
+    },
+    'adp_fossil': {
+        'name': 'Abiotic Depletion - Fossil',
+        'short_name': 'ADP-F',
+        'unit': 'MJ',
+        'description': 'Depletion of non-renewable fossil fuel resources',
+        'methodology': 'CML 2001',
+        'category_type': 'midpoint'
+    },
+    'water_use': {
+        'name': 'Water Use',
+        'short_name': 'WU',
+        'unit': 'L',
+        'description': 'Freshwater consumption throughout the life cycle',
+        'methodology': 'AWARE',
+        'category_type': 'midpoint'
+    },
+    'land_use': {
+        'name': 'Land Use',
+        'short_name': 'LU',
+        'unit': 'm²a',
+        'description': 'Land occupation and transformation impacts',
+        'methodology': 'ReCiPe 2016',
+        'category_type': 'midpoint'
+    },
+}
+
+# Indian Grid Emission Factors by Region (kg CO2/kWh)
+# Source: CEA CO2 Baseline Database 2023
+INDIAN_GRID_FACTORS = {
+    'national_average': 0.82,       # India national grid average
+    'northern': 0.85,               # Northern Regional Grid
+    'western': 0.78,                # Western Regional Grid  
+    'southern': 0.72,               # Southern Regional Grid (more hydro)
+    'eastern': 0.92,                # Eastern Regional Grid (more coal)
+    'northeastern': 0.65,           # Northeastern Regional Grid (more hydro)
+    'captive_coal': 1.05,           # Captive coal power plant
+    'captive_gas': 0.45,            # Captive natural gas
+    'renewable_solar': 0.05,        # Solar PV (lifecycle)
+    'renewable_wind': 0.02,         # Wind (lifecycle)
+    'renewable_hydro': 0.01,        # Hydropower (lifecycle)
+}
+
+# Transport Emission Factors (kg CO2-eq per ton-km)
+TRANSPORT_EMISSION_FACTORS = {
+    'road_truck': 0.062,            # Heavy goods vehicle
+    'road_lcv': 0.089,              # Light commercial vehicle
+    'rail_freight': 0.022,          # Rail freight (Indian Railways avg)
+    'rail_electric': 0.018,         # Electric rail
+    'sea_container': 0.008,         # Container ship
+    'sea_bulk': 0.005,              # Bulk carrier
+    'air_freight': 0.602,           # Air cargo
+    'pipeline': 0.015,              # Pipeline transport
+}
+
+# Default LCIA factors for unknown materials
+DEFAULT_LCIA_FACTORS = {
+    'gwp': 5.0,
+    'ap': 0.02,
+    'ep': 0.005,
+    'odp': 5.0e-9,
+    'pocp': 0.002,
+    'htp': 5.0,
+    'faetp': 2.5,
+    'tetp': 0.25,
+    'adp_elements': 0.001,
+    'adp_fossil': 65.0,
+    'water_use': 50.0,
+    'land_use': 1.0,
+    'energy_mining': 1.0,
+    'energy_refining': 3.0,
+    'energy_smelting': 2.0,
+    'energy_total': 6.0,
+}
+
+
+def get_lcia_factors(material_type: str) -> dict:
+    """Get LCIA impact factors for a material type"""
+    material_lower = material_type.lower().replace(' ', '_').replace('-', '_')
+    
+    # Direct match
+    if material_lower in LCIA_IMPACT_FACTORS:
+        return LCIA_IMPACT_FACTORS[material_lower]
+    
+    # Check for partial matches
+    for key in LCIA_IMPACT_FACTORS:
+        if key in material_lower or material_lower in key:
+            return LCIA_IMPACT_FACTORS[key]
+    
+    # Check base material type
+    base_types = ['aluminium', 'copper', 'steel', 'lithium', 'cobalt', 
+                  'nickel', 'tungsten', 'titanium', 'gold', 'silver', 'platinum']
+    for base in base_types:
+        if base in material_lower:
+            primary_key = f'{base}_primary'
+            if primary_key in LCIA_IMPACT_FACTORS:
+                return LCIA_IMPACT_FACTORS[primary_key]
+            if base in LCIA_IMPACT_FACTORS:
+                return LCIA_IMPACT_FACTORS[base]
+    
+    return DEFAULT_LCIA_FACTORS
+
+
+def calculate_lcia_impacts(material_type: str, quantity: float, recycled_content: float = 0, 
+                           transport_distance: float = 0, transport_mode: str = 'road_truck',
+                           grid_region: str = 'national_average') -> dict:
+    """
+    Calculate comprehensive LCIA impacts for a material
+    
+    Args:
+        material_type: Type of material
+        quantity: Amount in kg
+        recycled_content: Percentage of recycled content (0-100)
+        transport_distance: Distance in km
+        transport_mode: Mode of transport (road_truck, rail_freight, sea_container, etc.)
+        grid_region: Indian grid region for electricity factor
+    
+    Returns:
+        Dictionary with all LCIA impact values
+    """
+    factors = get_lcia_factors(material_type)
+    
+    # Calculate virgin vs recycled portions
+    virgin_fraction = (100 - recycled_content) / 100
+    recycled_fraction = recycled_content / 100
+    
+    # Recycled material has ~90% lower impacts (varies by category)
+    recycled_reduction = {
+        'gwp': 0.10,
+        'ap': 0.15,
+        'ep': 0.12,
+        'odp': 0.10,
+        'pocp': 0.12,
+        'htp': 0.15,
+        'faetp': 0.15,
+        'tetp': 0.15,
+        'adp_elements': 0.05,  # Resources already extracted
+        'adp_fossil': 0.15,
+        'water_use': 0.20,
+        'land_use': 0.05,
+    }
+    
+    impacts = {}
+    for category in LCIA_CATEGORIES.keys():
+        base_factor = factors.get(category, DEFAULT_LCIA_FACTORS.get(category, 0))
+        reduction = recycled_reduction.get(category, 0.10)
+        
+        # Calculate material impacts
+        virgin_impact = quantity * base_factor * virgin_fraction
+        recycled_impact = quantity * base_factor * reduction * recycled_fraction
+        material_impact = virgin_impact + recycled_impact
+        
+        impacts[category] = round(material_impact, 6)
+    
+    # Add transport impacts (primarily affects GWP)
+    if transport_distance > 0:
+        transport_factor = TRANSPORT_EMISSION_FACTORS.get(transport_mode, 0.062)
+        transport_gwp = (quantity / 1000) * transport_distance * transport_factor
+        impacts['gwp'] = round(impacts['gwp'] + transport_gwp, 6)
+        
+        # Transport also contributes to other categories (simplified)
+        impacts['ap'] = round(impacts['ap'] + transport_gwp * 0.002, 6)
+        impacts['pocp'] = round(impacts['pocp'] + transport_gwp * 0.0003, 6)
+    
+    # Add energy breakdown
+    impacts['energy_breakdown'] = {
+        'mining_kwh': round(factors.get('energy_mining', 0) * quantity, 2),
+        'refining_kwh': round(factors.get('energy_refining', 0) * quantity, 2),
+        'smelting_kwh': round(factors.get('energy_smelting', 0) * quantity, 2),
+        'total_kwh': round(factors.get('energy_total', 0) * quantity, 2),
+    }
+    
+    # Calculate electricity-related GWP based on grid region
+    grid_factor = INDIAN_GRID_FACTORS.get(grid_region, INDIAN_GRID_FACTORS['national_average'])
+    impacts['grid_gwp'] = round(impacts['energy_breakdown']['total_kwh'] * grid_factor, 2)
+    
+    return impacts
+
+
+def calculate_project_lcia(materials: list, grid_region: str = 'national_average') -> dict:
+    """
+    Calculate comprehensive LCIA for a project with multiple materials
+    
+    Args:
+        materials: List of material dictionaries with type, quantity, recycled_content, transport_distance
+        grid_region: Indian grid region for electricity calculations
+    
+    Returns:
+        Aggregated LCIA results with per-material and total impacts
+    """
+    total_impacts = {cat: 0 for cat in LCIA_CATEGORIES.keys()}
+    total_impacts['grid_gwp'] = 0
+    total_impacts['energy_breakdown'] = {
+        'mining_kwh': 0,
+        'refining_kwh': 0,
+        'smelting_kwh': 0,
+        'total_kwh': 0,
+    }
+    
+    materials_impacts = []
+    
+    for mat in materials:
+        mat_type = mat.get('type', mat.get('material_type', 'unknown'))
+        quantity = float(mat.get('quantity', 0))
+        recycled = float(mat.get('recycled_content', 0))
+        transport = float(mat.get('transport_distance', 0))
+        transport_mode = mat.get('transport_mode', 'road_truck')
+        
+        impacts = calculate_lcia_impacts(
+            mat_type, quantity, recycled, transport, transport_mode, grid_region
+        )
+        
+        # Add to totals
+        for cat in LCIA_CATEGORIES.keys():
+            total_impacts[cat] += impacts.get(cat, 0)
+        
+        total_impacts['grid_gwp'] += impacts.get('grid_gwp', 0)
+        for key in total_impacts['energy_breakdown']:
+            total_impacts['energy_breakdown'][key] += impacts['energy_breakdown'].get(key, 0)
+        
+        materials_impacts.append({
+            'name': mat.get('name', mat_type),
+            'type': mat_type,
+            'quantity': quantity,
+            'impacts': impacts
+        })
+    
+    # Round totals
+    for cat in LCIA_CATEGORIES.keys():
+        total_impacts[cat] = round(total_impacts[cat], 4)
+    total_impacts['grid_gwp'] = round(total_impacts['grid_gwp'], 2)
+    for key in total_impacts['energy_breakdown']:
+        total_impacts['energy_breakdown'][key] = round(total_impacts['energy_breakdown'][key], 2)
+    
+    return {
+        'total_impacts': total_impacts,
+        'materials_breakdown': materials_impacts,
+        'categories_metadata': LCIA_CATEGORIES,
+        'grid_region': grid_region,
+        'grid_emission_factor': INDIAN_GRID_FACTORS.get(grid_region, INDIAN_GRID_FACTORS['national_average']),
+    }
+
+
 def get_waste_factor(material_type: str) -> float:
     """Get waste generation factor for a material type"""
     material_lower = material_type.lower().replace(' ', '_').replace('-', '_')
@@ -3141,6 +4121,135 @@ def parse_nlp():
         return jsonify({"detail": str(e)}), 500
 
 
+@app.route('/api/v1/parse-document', methods=['POST', 'OPTIONS'])
+def parse_document():
+    """Upload and parse document (PDF, DOCX, TXT) for NLP input"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        
+        if 'file' not in request.files:
+            return jsonify({"detail": "No file uploaded"}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"detail": "No file selected"}), 400
+        
+        filename = file.filename.lower()
+        extracted_text = ""
+        
+        # Parse based on file type
+        if filename.endswith('.txt'):
+            # Plain text file
+            extracted_text = file.read().decode('utf-8', errors='ignore')
+            
+        elif filename.endswith('.pdf'):
+            # PDF parsing
+            try:
+                import PyPDF2
+                pdf_reader = PyPDF2.PdfReader(io.BytesIO(file.read()))
+                for page in pdf_reader.pages:
+                    text = page.extract_text()
+                    if text:
+                        extracted_text += text + "\n"
+            except ImportError:
+                return jsonify({"detail": "PDF parsing not available. Install PyPDF2."}), 500
+            except Exception as e:
+                return jsonify({"detail": f"Error parsing PDF: {str(e)}"}), 400
+                
+        elif filename.endswith('.docx'):
+            # Word document parsing
+            try:
+                from docx import Document
+                doc = Document(io.BytesIO(file.read()))
+                for para in doc.paragraphs:
+                    extracted_text += para.text + "\n"
+                # Also get text from tables
+                for table in doc.tables:
+                    for row in table.rows:
+                        row_text = " | ".join(cell.text for cell in row.cells)
+                        extracted_text += row_text + "\n"
+            except ImportError:
+                return jsonify({"detail": "DOCX parsing not available. Install python-docx."}), 500
+            except Exception as e:
+                return jsonify({"detail": f"Error parsing DOCX: {str(e)}"}), 400
+                
+        elif filename.endswith('.doc'):
+            return jsonify({"detail": "Legacy .doc files not supported. Please convert to .docx"}), 400
+            
+        elif filename.endswith('.csv'):
+            # CSV parsing - convert to descriptive text
+            try:
+                import csv
+                content = file.read().decode('utf-8', errors='ignore')
+                reader = csv.reader(io.StringIO(content))
+                rows = list(reader)
+                if rows:
+                    headers = rows[0] if rows else []
+                    for row in rows[1:]:
+                        if row:
+                            row_desc = ", ".join(f"{headers[i] if i < len(headers) else 'col'+str(i)}: {val}" for i, val in enumerate(row) if val)
+                            extracted_text += row_desc + "\n"
+            except Exception as e:
+                return jsonify({"detail": f"Error parsing CSV: {str(e)}"}), 400
+                
+        elif filename.endswith(('.xls', '.xlsx')):
+            # Excel parsing
+            try:
+                import openpyxl
+                wb = openpyxl.load_workbook(io.BytesIO(file.read()), data_only=True)
+                for sheet in wb.worksheets:
+                    extracted_text += f"Sheet: {sheet.title}\n"
+                    for row in sheet.iter_rows(values_only=True):
+                        if any(cell is not None for cell in row):
+                            row_text = " | ".join(str(cell) if cell is not None else "" for cell in row)
+                            extracted_text += row_text + "\n"
+            except Exception as e:
+                return jsonify({"detail": f"Error parsing Excel: {str(e)}"}), 400
+        else:
+            return jsonify({"detail": "Unsupported file type. Use PDF, DOCX, TXT, CSV, or XLSX."}), 400
+        
+        # Clean up extracted text
+        extracted_text = extracted_text.strip()
+        
+        if not extracted_text:
+            return jsonify({"detail": "No text could be extracted from the document"}), 400
+        
+        # Optionally parse with NLP if requested
+        use_ai = request.form.get('use_ai', 'true').lower() == 'true'
+        auto_parse = request.form.get('auto_parse', 'false').lower() == 'true'
+        
+        result = {
+            "success": True,
+            "extracted_text": extracted_text,
+            "filename": file.filename,
+            "char_count": len(extracted_text),
+            "word_count": len(extracted_text.split())
+        }
+        
+        # Auto-parse if requested
+        if auto_parse:
+            if use_ai and groq_client:
+                parsed = parse_nlp_with_groq(extracted_text)
+            else:
+                parsed = parse_nlp_input(extracted_text)
+                parsed['parsing_method'] = 'regex_fallback'
+            result['parsed'] = parsed
+        
+        return jsonify(result), 200
+        
+    except Exception as e:
+        print(f"Document Parse Error: {e}")
+        return jsonify({"detail": str(e)}), 500
+
+
 # =====================================================
 # CUSTOM DATASET UPLOAD & MANAGEMENT
 # =====================================================
@@ -3424,6 +4533,125 @@ def material_library():
     ]
     
     return jsonify(materials), 200
+
+
+@app.route('/api/v1/lcia-categories', methods=['GET', 'OPTIONS'])
+def get_lcia_categories():
+    """Get all LCIA impact categories with metadata"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    return jsonify({
+        'categories': LCIA_CATEGORIES,
+        'grid_factors': INDIAN_GRID_FACTORS,
+        'transport_factors': TRANSPORT_EMISSION_FACTORS,
+    }), 200
+
+
+@app.route('/api/v1/projects/<project_id>/calculate-lcia', methods=['POST', 'OPTIONS'])
+def calculate_project_lcia_endpoint(project_id):
+    """Calculate comprehensive LCIA for a project"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Get project
+        c.execute("""SELECT id, name, product_category FROM projects 
+                     WHERE id = ? AND user_id = ?""", (project_id, payload['user_id']))
+        project = c.fetchone()
+        
+        if not project:
+            conn.close()
+            return jsonify({"detail": "Project not found"}), 404
+        
+        # Get materials
+        c.execute("""SELECT material_name, material_type, quantity, unit, recycled_content, 
+                     transport_distance FROM project_materials WHERE project_id = ?""", (project_id,))
+        materials_rows = c.fetchall()
+        conn.close()
+        
+        if not materials_rows:
+            return jsonify({"detail": "No materials found in project"}), 400
+        
+        # Prepare materials list
+        materials = []
+        for row in materials_rows:
+            materials.append({
+                'name': row[0],
+                'type': row[1],
+                'quantity': row[2] or 0,
+                'unit': row[3],
+                'recycled_content': row[4] or 0,
+                'transport_distance': row[5] or 0,
+            })
+        
+        # Get grid region from request or use default
+        data = request.get_json() or {}
+        grid_region = data.get('grid_region', 'national_average')
+        
+        # Calculate LCIA
+        lcia_result = calculate_project_lcia(materials, grid_region)
+        
+        return jsonify({
+            'project_id': project_id,
+            'project_name': project[1],
+            'product_category': project[2],
+            **lcia_result
+        }), 200
+        
+    except jwt.ExpiredSignatureError:
+        return jsonify({"detail": "Token has expired"}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({"detail": "Invalid token"}), 401
+    except Exception as e:
+        print(f"LCIA calculation error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"detail": str(e)}), 500
+
+
+@app.route('/api/v1/lcia/calculate-material', methods=['POST', 'OPTIONS'])
+def calculate_material_lcia():
+    """Calculate LCIA for a single material (for real-time calculation)"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        data = request.get_json()
+        
+        material_type = data.get('material_type', 'unknown')
+        quantity = float(data.get('quantity', 1))
+        recycled_content = float(data.get('recycled_content', 0))
+        transport_distance = float(data.get('transport_distance', 0))
+        transport_mode = data.get('transport_mode', 'road_truck')
+        grid_region = data.get('grid_region', 'national_average')
+        
+        impacts = calculate_lcia_impacts(
+            material_type, quantity, recycled_content, 
+            transport_distance, transport_mode, grid_region
+        )
+        
+        return jsonify({
+            'material_type': material_type,
+            'quantity': quantity,
+            'unit': 'kg',
+            'recycled_content': recycled_content,
+            'impacts': impacts,
+            'categories_metadata': LCIA_CATEGORIES,
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"detail": str(e)}), 500
 
 
 @app.route('/api/v1/industry-benchmarks', methods=['GET', 'OPTIONS'])

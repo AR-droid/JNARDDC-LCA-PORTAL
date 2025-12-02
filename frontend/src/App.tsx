@@ -12,6 +12,7 @@ import CreateProjectPage from './pages/CreateProjectPage'
 import RecommendationsPage from './pages/RecommendationsPage'
 import ProjectAnalyticsPage from './pages/ProjectAnalyticsPage'
 import CBAMExportPage from './pages/CBAMExportPage'
+import LCIAPage from './pages/LCIAPage'
 import PricingPage from './pages/PricingPage'
 import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
@@ -96,6 +97,14 @@ function App() {
           element={
             <ProtectedRoute>
               <CBAMExportPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projects/:projectId/lcia"
+          element={
+            <ProtectedRoute>
+              <LCIAPage />
             </ProtectedRoute>
           }
         />

@@ -2,7 +2,7 @@ import { useState, FormEvent, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { projectsApi, parseNLPDescription, uploadDataset, NLPParseResult, NLPAssumption, NLPParsedMaterial, DatasetMaterial } from '../api/projects';
 import { useAuthStore } from '../stores/authStore';
-import { Mic, MicOff, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Loader2, Upload, FileText, X } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 
@@ -77,6 +77,11 @@ export default function CreateProjectPage() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  
+  // Document Upload State
+  const [isUploadingDocument, setIsUploadingDocument] = useState(false);
+  const [uploadedDocument, setUploadedDocument] = useState<{name: string, wordCount: number} | null>(null);
+  const documentInputRef = useRef<HTMLInputElement>(null);
   
   // Manual State
   const [manualForm, setManualForm] = useState({
@@ -165,6 +170,70 @@ export default function CreateProjectPage() {
     } else {
       startRecording();
     }
+  };
+
+  // Document Upload Handler
+  const handleDocumentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file type
+    const allowedTypes = ['.pdf', '.docx', '.txt', '.csv', '.xlsx'];
+    const fileExt = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!allowedTypes.includes(fileExt)) {
+      setError('Unsupported file type. Please upload PDF, DOCX, TXT, CSV, or XLSX files.');
+      return;
+    }
+
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setError('File too large. Maximum size is 10MB.');
+      return;
+    }
+
+    setIsUploadingDocument(true);
+    setError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('auto_parse', 'false');
+
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${API_BASE}/parse-document`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.extracted_text) {
+        setNlpInput(data.extracted_text);
+        setUploadedDocument({
+          name: file.name,
+          wordCount: data.word_count
+        });
+      } else {
+        setError(data.detail || 'Failed to parse document');
+      }
+    } catch (error) {
+      console.error('Document upload error:', error);
+      setError('Failed to upload document. Please try again.');
+    } finally {
+      setIsUploadingDocument(false);
+      // Reset input
+      if (documentInputRef.current) {
+        documentInputRef.current.value = '';
+      }
+    }
+  };
+
+  const clearUploadedDocument = () => {
+    setUploadedDocument(null);
+    setNlpInput('');
   };
 
   // Parse NLP description
@@ -383,22 +452,66 @@ export default function CreateProjectPage() {
 
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Product Description
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Product Description
+                    </label>
+                    {/* Document Upload Button */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        ref={documentInputRef}
+                        onChange={handleDocumentUpload}
+                        accept=".pdf,.docx,.txt,.csv,.xlsx"
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => documentInputRef.current?.click()}
+                        disabled={isUploadingDocument || isParsingNLP}
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition disabled:opacity-50"
+                        title="Upload document (PDF, DOCX, TXT, CSV, XLSX)"
+                      >
+                        {isUploadingDocument ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Upload className="w-4 h-4" />
+                        )}
+                        {isUploadingDocument ? 'Parsing...' : 'Upload Doc'}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Uploaded Document Badge */}
+                  {uploadedDocument && (
+                    <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+                      <FileText className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm text-blue-700 flex-1">
+                        {uploadedDocument.name} ({uploadedDocument.wordCount} words)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={clearUploadedDocument}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                  
                   <div className="relative">
                     <textarea
                       value={nlpInput}
                       onChange={(e) => setNlpInput(e.target.value)}
                       rows={5}
                       className="w-full px-4 py-3 pr-14 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      placeholder={isTranscribing ? "Transcribing..." : "Example: 10kg copper wire, PVC coated, used in an electric motor for 10 years. Contains 30% recycled content."}
-                      disabled={isParsingNLP || isTranscribing}
+                      placeholder={isTranscribing ? "Transcribing..." : isUploadingDocument ? "Extracting text from document..." : "Example: 10kg copper wire, PVC coated, used in an electric motor for 10 years. Contains 30% recycled content.\n\nOr upload a document (PDF, DOCX, TXT) with product specifications."}
+                      disabled={isParsingNLP || isTranscribing || isUploadingDocument}
                     />
                     <button
                       type="button"
                       onClick={handleVoiceButton}
-                      disabled={isParsingNLP || isTranscribing}
+                      disabled={isParsingNLP || isTranscribing || isUploadingDocument}
                       className={`absolute right-3 top-3 p-2 rounded-lg transition flex items-center justify-center ${
                         isRecording 
                           ? 'bg-red-500 text-white animate-pulse hover:bg-red-600' 

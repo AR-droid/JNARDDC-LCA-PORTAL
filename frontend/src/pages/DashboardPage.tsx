@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { projectsApi, getDashboardAnalytics, DashboardAnalytics } from '../api/projects';
 import { GWPBreakdownChart, MCIGauge } from '../components/charts';
 import { PlusIcon } from '../components/Icons';
+import { Rocket, Package, Users } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user, checkAuth } = useAuthStore();
@@ -211,7 +212,7 @@ export default function DashboardPage() {
                 className="flex items-center p-4 border-2 border-blue-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition"
               >
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
-                  <span className="text-2xl">🚀</span>
+                  <Rocket className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">Create New Project</h3>
@@ -223,7 +224,7 @@ export default function DashboardPage() {
                 className="flex items-center p-4 border-2 border-green-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition"
               >
                 <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
-                  <span className="text-2xl">📦</span>
+                  <Package className="w-6 h-6 text-green-600" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">View All Projects</h3>
@@ -235,7 +236,7 @@ export default function DashboardPage() {
                 className="flex items-center p-4 border-2 border-purple-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition"
               >
                 <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
-                  <span className="text-2xl">👥</span>
+                  <Users className="w-6 h-6 text-purple-600" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">Team Management</h3>

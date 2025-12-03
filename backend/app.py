@@ -5649,7 +5649,432 @@ def material_library():
     return jsonify(materials), 200
 
 
-@app.route('/api/v1/lcia-categories', methods=['GET', 'OPTIONS'])
+# =============================================================================
+# SUPPLY CHAIN TRACKING - Make in India
+# =============================================================================
+
+# Indian States and Major Cities with Geo-coordinates
+INDIA_GEO_DATA = {
+    # States with capitals
+    'states': {
+        'Andhra Pradesh': {'lat': 15.9129, 'lng': 79.7400, 'capital': 'Amaravati'},
+        'Arunachal Pradesh': {'lat': 27.1004, 'lng': 93.6167, 'capital': 'Itanagar'},
+        'Assam': {'lat': 26.1445, 'lng': 91.7362, 'capital': 'Dispur'},
+        'Bihar': {'lat': 25.6093, 'lng': 85.1376, 'capital': 'Patna'},
+        'Chhattisgarh': {'lat': 21.2787, 'lng': 81.8661, 'capital': 'Raipur'},
+        'Goa': {'lat': 15.4909, 'lng': 73.8278, 'capital': 'Panaji'},
+        'Gujarat': {'lat': 23.0225, 'lng': 72.5714, 'capital': 'Gandhinagar'},
+        'Haryana': {'lat': 28.6692, 'lng': 77.4538, 'capital': 'Chandigarh'},
+        'Himachal Pradesh': {'lat': 31.1048, 'lng': 77.1734, 'capital': 'Shimla'},
+        'Jharkhand': {'lat': 23.3441, 'lng': 85.3096, 'capital': 'Ranchi'},
+        'Karnataka': {'lat': 12.9716, 'lng': 77.5946, 'capital': 'Bengaluru'},
+        'Kerala': {'lat': 8.5241, 'lng': 76.9366, 'capital': 'Thiruvananthapuram'},
+        'Madhya Pradesh': {'lat': 23.2599, 'lng': 77.4126, 'capital': 'Bhopal'},
+        'Maharashtra': {'lat': 19.0760, 'lng': 72.8777, 'capital': 'Mumbai'},
+        'Manipur': {'lat': 24.8170, 'lng': 93.9368, 'capital': 'Imphal'},
+        'Meghalaya': {'lat': 25.5788, 'lng': 91.8933, 'capital': 'Shillong'},
+        'Mizoram': {'lat': 23.7271, 'lng': 92.7176, 'capital': 'Aizawl'},
+        'Nagaland': {'lat': 25.6747, 'lng': 94.1086, 'capital': 'Kohima'},
+        'Odisha': {'lat': 20.2961, 'lng': 85.8245, 'capital': 'Bhubaneswar'},
+        'Punjab': {'lat': 30.7333, 'lng': 76.7794, 'capital': 'Chandigarh'},
+        'Rajasthan': {'lat': 26.9124, 'lng': 75.7873, 'capital': 'Jaipur'},
+        'Sikkim': {'lat': 27.3389, 'lng': 88.6065, 'capital': 'Gangtok'},
+        'Tamil Nadu': {'lat': 13.0827, 'lng': 80.2707, 'capital': 'Chennai'},
+        'Telangana': {'lat': 17.3850, 'lng': 78.4867, 'capital': 'Hyderabad'},
+        'Tripura': {'lat': 23.8315, 'lng': 91.2868, 'capital': 'Agartala'},
+        'Uttar Pradesh': {'lat': 26.8467, 'lng': 80.9462, 'capital': 'Lucknow'},
+        'Uttarakhand': {'lat': 30.3165, 'lng': 78.0322, 'capital': 'Dehradun'},
+        'West Bengal': {'lat': 22.5726, 'lng': 88.3639, 'capital': 'Kolkata'},
+        # Union Territories
+        'Delhi': {'lat': 28.6139, 'lng': 77.2090, 'capital': 'New Delhi'},
+        'Jammu and Kashmir': {'lat': 33.7782, 'lng': 76.5762, 'capital': 'Srinagar'},
+        'Ladakh': {'lat': 34.1526, 'lng': 77.5771, 'capital': 'Leh'},
+        'Puducherry': {'lat': 11.9416, 'lng': 79.8083, 'capital': 'Puducherry'},
+    },
+    # Major Industrial Cities
+    'cities': {
+        # Aluminium/Metal Hubs
+        'Jharsuguda': {'lat': 21.8554, 'lng': 84.0062, 'state': 'Odisha', 'industries': ['aluminium', 'power']},
+        'Korba': {'lat': 22.3595, 'lng': 82.7501, 'state': 'Chhattisgarh', 'industries': ['aluminium', 'coal']},
+        'Angul': {'lat': 20.8402, 'lng': 85.1017, 'state': 'Odisha', 'industries': ['aluminium', 'steel']},
+        'Hirakud': {'lat': 21.5251, 'lng': 83.8727, 'state': 'Odisha', 'industries': ['aluminium']},
+        'Renukoot': {'lat': 24.2192, 'lng': 83.0342, 'state': 'Uttar Pradesh', 'industries': ['aluminium']},
+        # Steel Hubs
+        'Jamshedpur': {'lat': 22.8046, 'lng': 86.2029, 'state': 'Jharkhand', 'industries': ['steel', 'automobiles']},
+        'Rourkela': {'lat': 22.2604, 'lng': 84.8536, 'state': 'Odisha', 'industries': ['steel']},
+        'Bhilai': {'lat': 21.2094, 'lng': 81.4285, 'state': 'Chhattisgarh', 'industries': ['steel']},
+        'Bokaro': {'lat': 23.6693, 'lng': 86.1511, 'state': 'Jharkhand', 'industries': ['steel']},
+        'Durgapur': {'lat': 23.5204, 'lng': 87.3119, 'state': 'West Bengal', 'industries': ['steel', 'alloys']},
+        'Visakhapatnam': {'lat': 17.6868, 'lng': 83.2185, 'state': 'Andhra Pradesh', 'industries': ['steel', 'port']},
+        'Salem': {'lat': 11.6643, 'lng': 78.1460, 'state': 'Tamil Nadu', 'industries': ['steel', 'foundry']},
+        # Copper Hubs
+        'Khetri': {'lat': 28.0167, 'lng': 75.7833, 'state': 'Rajasthan', 'industries': ['copper']},
+        'Ghatsila': {'lat': 22.5896, 'lng': 86.4750, 'state': 'Jharkhand', 'industries': ['copper']},
+        'Tuticorin': {'lat': 8.7642, 'lng': 78.1348, 'state': 'Tamil Nadu', 'industries': ['copper', 'port']},
+        'Dahej': {'lat': 21.6833, 'lng': 72.5333, 'state': 'Gujarat', 'industries': ['copper', 'chemicals']},
+        # Critical Minerals & Mining
+        'Bellary': {'lat': 15.1394, 'lng': 76.9214, 'state': 'Karnataka', 'industries': ['iron ore', 'mining']},
+        'Singhbhum': {'lat': 22.4000, 'lng': 86.2000, 'state': 'Jharkhand', 'industries': ['copper', 'uranium']},
+        'Sukinda': {'lat': 21.0667, 'lng': 85.9333, 'state': 'Odisha', 'industries': ['chromite']},
+        'Koraput': {'lat': 18.8107, 'lng': 82.7107, 'state': 'Odisha', 'industries': ['bauxite', 'aluminium']},
+        'Bailadila': {'lat': 18.5833, 'lng': 81.2500, 'state': 'Chhattisgarh', 'industries': ['iron ore']},
+        # Rare Earths & Strategic Minerals
+        'Chavara': {'lat': 8.9833, 'lng': 76.5333, 'state': 'Kerala', 'industries': ['rare_earth', 'monazite']},
+        'Manavalakurichi': {'lat': 8.1500, 'lng': 77.3000, 'state': 'Tamil Nadu', 'industries': ['rare_earth', 'ilmenite']},
+        'OSCOM': {'lat': 19.3167, 'lng': 84.9000, 'state': 'Odisha', 'industries': ['titanium', 'rare_earth']},
+        # Automobile/Manufacturing Hubs
+        'Pune': {'lat': 18.5204, 'lng': 73.8567, 'state': 'Maharashtra', 'industries': ['automobiles', 'manufacturing']},
+        'Chennai': {'lat': 13.0827, 'lng': 80.2707, 'state': 'Tamil Nadu', 'industries': ['automobiles', 'electronics']},
+        'Gurugram': {'lat': 28.4595, 'lng': 77.0266, 'state': 'Haryana', 'industries': ['automobiles', 'it']},
+        'Sanand': {'lat': 22.9833, 'lng': 72.3833, 'state': 'Gujarat', 'industries': ['automobiles', 'manufacturing']},
+        'Chakan': {'lat': 18.7607, 'lng': 73.8610, 'state': 'Maharashtra', 'industries': ['automobiles']},
+        'Manesar': {'lat': 28.3575, 'lng': 76.9360, 'state': 'Haryana', 'industries': ['automobiles', 'manufacturing']},
+        'Hosur': {'lat': 12.7409, 'lng': 77.8253, 'state': 'Tamil Nadu', 'industries': ['automobiles', 'electronics']},
+        # Major Ports
+        'Mumbai': {'lat': 19.0760, 'lng': 72.8777, 'state': 'Maharashtra', 'industries': ['port', 'finance', 'manufacturing']},
+        'Kandla': {'lat': 23.0333, 'lng': 70.2167, 'state': 'Gujarat', 'industries': ['port']},
+        'JNPT': {'lat': 18.9500, 'lng': 72.9500, 'state': 'Maharashtra', 'industries': ['port', 'container']},
+        'Mundra': {'lat': 22.8393, 'lng': 69.7231, 'state': 'Gujarat', 'industries': ['port', 'special_economic_zone']},
+        'Haldia': {'lat': 22.0667, 'lng': 88.0667, 'state': 'West Bengal', 'industries': ['port', 'petrochemical']},
+        'Paradip': {'lat': 20.2667, 'lng': 86.6167, 'state': 'Odisha', 'industries': ['port', 'steel']},
+        'Mangalore': {'lat': 12.9141, 'lng': 74.8560, 'state': 'Karnataka', 'industries': ['port', 'refinery']},
+        'Cochin': {'lat': 9.9312, 'lng': 76.2673, 'state': 'Kerala', 'industries': ['port', 'shipyard']},
+        # Battery/EV Hubs
+        'Sriperumbudur': {'lat': 12.9690, 'lng': 79.9446, 'state': 'Tamil Nadu', 'industries': ['electronics', 'battery']},
+        'Noida': {'lat': 28.5355, 'lng': 77.3910, 'state': 'Uttar Pradesh', 'industries': ['electronics', 'manufacturing']},
+        'Tirupati': {'lat': 13.6288, 'lng': 79.4192, 'state': 'Andhra Pradesh', 'industries': ['electronics', 'battery']},
+    },
+    # International Sources (for imports)
+    'international': {
+        'China': {'lat': 35.8617, 'lng': 104.1954, 'materials': ['rare_earth', 'lithium', 'graphite']},
+        'Australia': {'lat': -25.2744, 'lng': 133.7751, 'materials': ['lithium', 'bauxite', 'iron_ore']},
+        'Chile': {'lat': -35.6751, 'lng': -71.5430, 'materials': ['copper', 'lithium']},
+        'Congo': {'lat': -4.0383, 'lng': 21.7587, 'materials': ['cobalt']},
+        'Indonesia': {'lat': -0.7893, 'lng': 113.9213, 'materials': ['nickel', 'bauxite']},
+        'South Africa': {'lat': -30.5595, 'lng': 22.9375, 'materials': ['platinum', 'manganese', 'chromite']},
+        'Japan': {'lat': 36.2048, 'lng': 138.2529, 'materials': ['processed_materials', 'electronics']},
+        'South Korea': {'lat': 35.9078, 'lng': 127.7669, 'materials': ['battery_cells', 'electronics']},
+        'Germany': {'lat': 51.1657, 'lng': 10.4515, 'materials': ['machinery', 'processed_alloys']},
+        'USA': {'lat': 37.0902, 'lng': -95.7129, 'materials': ['scrap_metals', 'technology']},
+        'Russia': {'lat': 61.5240, 'lng': 105.3188, 'materials': ['nickel', 'aluminium', 'palladium']},
+        'Brazil': {'lat': -14.2350, 'lng': -51.9253, 'materials': ['iron_ore', 'niobium']},
+        'Philippines': {'lat': 12.8797, 'lng': 121.7740, 'materials': ['nickel']},
+        'UAE': {'lat': 23.4241, 'lng': 53.8478, 'materials': ['aluminium']},
+    }
+}
+
+# Default manufacturing destination (for supply chain routes)
+DEFAULT_DESTINATION = {
+    'lat': 19.0760,  # Mumbai - manufacturing hub
+    'lng': 72.8777,
+    'name': 'Mumbai (Default Manufacturing Hub)'
+}
+
+
+def get_location_coordinates(country: str, state: str = None, city: str = None) -> dict:
+    """Get lat/lng for a location, with fallback logic"""
+    
+    # If international
+    if country and country.lower() != 'india':
+        country_key = country.title()
+        if country_key in INDIA_GEO_DATA['international']:
+            return INDIA_GEO_DATA['international'][country_key]
+        # Default for unknown international
+        return {'lat': 0, 'lng': 0, 'note': 'Unknown location'}
+    
+    # Indian location - try city first
+    if city:
+        city_key = city.title()
+        if city_key in INDIA_GEO_DATA['cities']:
+            return INDIA_GEO_DATA['cities'][city_key]
+    
+    # Try state
+    if state:
+        state_key = state.title()
+        if state_key in INDIA_GEO_DATA['states']:
+            return INDIA_GEO_DATA['states'][state_key]
+    
+    # Default to Delhi
+    return {'lat': 28.6139, 'lng': 77.2090, 'note': 'Default (Delhi)'}
+
+
+@app.route('/api/v1/geo/india-locations', methods=['GET', 'OPTIONS'])
+def get_india_locations():
+    """Get all Indian states and cities for supply chain mapping"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    return jsonify({
+        'states': list(INDIA_GEO_DATA['states'].keys()),
+        'cities': list(INDIA_GEO_DATA['cities'].keys()),
+        'international_sources': list(INDIA_GEO_DATA['international'].keys()),
+        'geo_data': INDIA_GEO_DATA
+    }), 200
+
+
+@app.route('/api/v1/projects/<project_id>/supply-chain', methods=['GET', 'OPTIONS'])
+def get_supply_chain(project_id):
+    """Get supply chain entries for a project"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Verify project access
+        c.execute("SELECT id, name FROM projects WHERE id = ? AND user_id = ?", 
+                  (project_id, payload['user_id']))
+        project = c.fetchone()
+        if not project:
+            conn.close()
+            return jsonify({"detail": "Project not found"}), 404
+        
+        # Get supply chain entries
+        c.execute("""SELECT id, material_id, material_name, supplier_name, supplier_country,
+                     supplier_state, supplier_city, supplier_tier, transport_mode,
+                     transport_distance_km, lead_time_days, extraction_type, extraction_location,
+                     latitude, longitude, destination_lat, destination_lng, notes, created_at
+                     FROM supply_chain_entries WHERE project_id = ?""", (project_id,))
+        entries = c.fetchall()
+        conn.close()
+        
+        supply_chain = []
+        for entry in entries:
+            supply_chain.append({
+                'id': entry[0],
+                'material_id': entry[1],
+                'material_name': entry[2],
+                'supplier_name': entry[3],
+                'supplier_country': entry[4],
+                'supplier_state': entry[5],
+                'supplier_city': entry[6],
+                'supplier_tier': entry[7],
+                'transport_mode': entry[8],
+                'transport_distance_km': entry[9],
+                'lead_time_days': entry[10],
+                'extraction_type': entry[11],
+                'extraction_location': entry[12],
+                'latitude': entry[13],
+                'longitude': entry[14],
+                'destination_lat': entry[15],
+                'destination_lng': entry[16],
+                'notes': entry[17],
+                'created_at': entry[18]
+            })
+        
+        # Calculate summary statistics
+        total_distance = sum(e['transport_distance_km'] or 0 for e in supply_chain)
+        avg_lead_time = sum(e['lead_time_days'] or 0 for e in supply_chain) / len(supply_chain) if supply_chain else 0
+        domestic_count = sum(1 for e in supply_chain if e['supplier_country'] == 'India')
+        
+        return jsonify({
+            'entries': supply_chain,
+            'summary': {
+                'total_suppliers': len(supply_chain),
+                'domestic_suppliers': domestic_count,
+                'import_suppliers': len(supply_chain) - domestic_count,
+                'total_transport_km': total_distance,
+                'avg_lead_time_days': round(avg_lead_time, 1),
+                'make_in_india_percentage': round(domestic_count / len(supply_chain) * 100, 1) if supply_chain else 0
+            },
+            'geo_data': INDIA_GEO_DATA
+        }), 200
+        
+    except jwt.ExpiredSignatureError:
+        return jsonify({"detail": "Token expired"}), 401
+    except Exception as e:
+        print(f"Supply Chain Get Error: {e}")
+        return jsonify({"detail": str(e)}), 500
+
+
+@app.route('/api/v1/projects/<project_id>/supply-chain', methods=['POST'])
+def add_supply_chain_entry(project_id):
+    """Add a single supply chain entry"""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        
+        data = request.get_json()
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Verify project access
+        c.execute("SELECT id FROM projects WHERE id = ? AND user_id = ?", 
+                  (project_id, payload['user_id']))
+        if not c.fetchone():
+            conn.close()
+            return jsonify({"detail": "Project not found"}), 404
+        
+        # Get coordinates
+        coords = get_location_coordinates(
+            data.get('supplier_country', 'India'),
+            data.get('supplier_state'),
+            data.get('supplier_city')
+        )
+        
+        entry_id = str(uuid.uuid4())
+        c.execute("""INSERT INTO supply_chain_entries 
+                     (id, project_id, material_id, material_name, supplier_name, supplier_country,
+                      supplier_state, supplier_city, supplier_tier, transport_mode,
+                      transport_distance_km, lead_time_days, extraction_type, extraction_location,
+                      latitude, longitude, destination_lat, destination_lng, notes, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                  (entry_id, project_id, data.get('material_id'), data.get('material_name'),
+                   data.get('supplier_name'), data.get('supplier_country', 'India'),
+                   data.get('supplier_state'), data.get('supplier_city'),
+                   data.get('supplier_tier', 1), data.get('transport_mode', 'road'),
+                   data.get('transport_distance_km', 0), data.get('lead_time_days', 0),
+                   data.get('extraction_type'), data.get('extraction_location'),
+                   coords.get('lat'), coords.get('lng'),
+                   data.get('destination_lat', DEFAULT_DESTINATION['lat']),
+                   data.get('destination_lng', DEFAULT_DESTINATION['lng']),
+                   data.get('notes'), datetime.utcnow().isoformat()))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'id': entry_id,
+            'message': 'Supply chain entry added successfully',
+            'coordinates': coords
+        }), 201
+        
+    except jwt.ExpiredSignatureError:
+        return jsonify({"detail": "Token expired"}), 401
+    except Exception as e:
+        print(f"Supply Chain Add Error: {e}")
+        return jsonify({"detail": str(e)}), 500
+
+
+@app.route('/api/v1/projects/<project_id>/supply-chain/batch', methods=['POST'])
+def add_supply_chain_batch(project_id):
+    """Add multiple supply chain entries (from CSV upload)"""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        if not token or token.count('.') != 2:
+            return jsonify({"detail": "Invalid token format"}), 401
+            
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        
+        data = request.get_json()
+        entries = data.get('entries', [])
+        destination = data.get('destination', DEFAULT_DESTINATION)
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Verify project access
+        c.execute("SELECT id FROM projects WHERE id = ? AND user_id = ?", 
+                  (project_id, payload['user_id']))
+        if not c.fetchone():
+            conn.close()
+            return jsonify({"detail": "Project not found"}), 404
+        
+        added = 0
+        failed = 0
+        results = []
+        
+        for entry in entries:
+            try:
+                # Get coordinates
+                coords = get_location_coordinates(
+                    entry.get('supplier_country', 'India'),
+                    entry.get('supplier_state'),
+                    entry.get('supplier_city')
+                )
+                
+                entry_id = str(uuid.uuid4())
+                c.execute("""INSERT INTO supply_chain_entries 
+                             (id, project_id, material_id, material_name, supplier_name, supplier_country,
+                              supplier_state, supplier_city, supplier_tier, transport_mode,
+                              transport_distance_km, lead_time_days, extraction_type, extraction_location,
+                              latitude, longitude, destination_lat, destination_lng, notes, created_at)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                          (entry_id, project_id, entry.get('material_id'), entry.get('material_name'),
+                           entry.get('supplier_name'), entry.get('supplier_country', 'India'),
+                           entry.get('supplier_state'), entry.get('supplier_city'),
+                           entry.get('supplier_tier', 1), entry.get('transport_mode', 'road'),
+                           entry.get('transport_distance_km', 0), entry.get('lead_time_days', 0),
+                           entry.get('extraction_type'), entry.get('extraction_location'),
+                           coords.get('lat'), coords.get('lng'),
+                           destination.get('lat', DEFAULT_DESTINATION['lat']),
+                           destination.get('lng', DEFAULT_DESTINATION['lng']),
+                           entry.get('notes'), datetime.utcnow().isoformat()))
+                
+                added += 1
+                results.append({'material_name': entry.get('material_name'), 'status': 'added', 'id': entry_id})
+            except Exception as e:
+                failed += 1
+                results.append({'material_name': entry.get('material_name'), 'status': 'failed', 'error': str(e)})
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'added': added,
+            'failed': failed,
+            'total': len(entries),
+            'results': results
+        }), 201
+        
+    except jwt.ExpiredSignatureError:
+        return jsonify({"detail": "Token expired"}), 401
+    except jwt.DecodeError as e:
+        return jsonify({"detail": f"Invalid token: {str(e)}"}), 401
+    except Exception as e:
+        print(f"Supply Chain Batch Error: {e}")
+        return jsonify({"detail": str(e)}), 500
+
+
+@app.route('/api/v1/projects/<project_id>/supply-chain/<entry_id>', methods=['DELETE'])
+def delete_supply_chain_entry(project_id, entry_id):
+    """Delete a supply chain entry"""
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Verify project access
+        c.execute("SELECT id FROM projects WHERE id = ? AND user_id = ?", 
+                  (project_id, payload['user_id']))
+        if not c.fetchone():
+            conn.close()
+            return jsonify({"detail": "Project not found"}), 404
+        
+        c.execute("DELETE FROM supply_chain_entries WHERE id = ? AND project_id = ?", 
+                  (entry_id, project_id))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Entry deleted"}), 200
+        
+    except jwt.ExpiredSignatureError:
+        return jsonify({"detail": "Token expired"}), 401
+    except Exception as e:
+        return jsonify({"detail": str(e)}), 500
 def get_lcia_categories():
     """Get all LCIA impact categories with metadata"""
     if request.method == 'OPTIONS':
@@ -8411,6 +8836,31 @@ if __name__ == '__main__':
                   FOREIGN KEY(project_id) REFERENCES projects(id),
                   FOREIGN KEY(team_id) REFERENCES teams(id),
                   FOREIGN KEY(user_id) REFERENCES users(id))''')
+    
+    # Supply Chain Tracking Tables
+    c.execute('''CREATE TABLE IF NOT EXISTS supply_chain_entries
+                 (id TEXT PRIMARY KEY,
+                  project_id TEXT NOT NULL,
+                  material_id TEXT,
+                  material_name TEXT NOT NULL,
+                  supplier_name TEXT NOT NULL,
+                  supplier_country TEXT DEFAULT 'India',
+                  supplier_state TEXT,
+                  supplier_city TEXT,
+                  supplier_tier INTEGER DEFAULT 1,
+                  transport_mode TEXT DEFAULT 'road',
+                  transport_distance_km REAL DEFAULT 0,
+                  lead_time_days INTEGER DEFAULT 0,
+                  extraction_type TEXT,
+                  extraction_location TEXT,
+                  latitude REAL,
+                  longitude REAL,
+                  destination_lat REAL,
+                  destination_lng REAL,
+                  notes TEXT,
+                  created_at TEXT,
+                  FOREIGN KEY(project_id) REFERENCES projects(id),
+                  FOREIGN KEY(material_id) REFERENCES project_materials(id))''')
     
     conn.commit()
     conn.close()

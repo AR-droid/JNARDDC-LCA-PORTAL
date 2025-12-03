@@ -1,0 +1,16 @@
+material_name,supplier_name,supplier_country,supplier_state,supplier_city,supplier_tier,transport_mode,transport_distance_km,lead_time_days,extraction_type,extraction_location,notes
+Steel Coils,Tata Steel Ltd,India,Jharkhand,Jamshedpur,1,rail,850,5,manufacturing,Jamshedpur Works,Primary steel supplier - Make in India
+Aluminum Sheets,Hindalco Industries,India,Maharashtra,Mumbai,1,road,120,3,refining,Hirakud Smelter,Domestic aluminum supplier
+Copper Wire,Sterlite Copper,India,Tamil Nadu,Tuticorin,2,road,1450,7,refining,Tuticorin Plant,Secondary copper supplier
+Lithium Carbonate,Tianqi Lithium,China,Sichuan,Chengdu,2,sea,5200,21,mining,Greenbushes Mine,Imported lithium for batteries
+Cobalt Hydroxide,Glencore,Australia,Queensland,Brisbane,3,sea,8500,30,mining,Murrin Murrin,Critical mineral import
+Graphite Powder,HEG Limited,India,Madhya Pradesh,Bhopal,1,road,780,4,processing,Mandideep Unit,Domestic graphite supplier
+Manganese Ore,MOIL Limited,India,Maharashtra,Nagpur,1,rail,650,4,mining,Balaghat Mines,Make in India - manganese
+Nickel Sulfate,Norilsk Nickel,Russia,Krasnoyarsk,Norilsk,3,sea,7200,28,mining,Polar Division,Imported nickel compound
+Rare Earth Elements,Indian Rare Earths,India,Kerala,Kollam,1,road,1800,6,mining,Chavara Beach,Domestic REE supplier
+Silicon Wafers,Adani Solar,India,Gujarat,Mundra,1,road,950,5,manufacturing,Mundra SEZ,Solar-grade silicon
+Electrolyte Solution,SoulBrain Co,South Korea,Gyeonggi,Suwon,2,air,4800,10,manufacturing,Suwon Plant,High-purity electrolyte
+Separator Film,Celgard LLC,USA,North Carolina,Charlotte,2,air,14000,14,manufacturing,Charlotte Facility,Battery separator membrane
+Battery Casing,Amara Raja,India,Andhra Pradesh,Tirupati,1,road,450,3,manufacturing,Tirupati Plant,Domestic battery components
+Thermal Insulation,Lloyd Insulations,India,Haryana,Gurugram,1,road,25,2,manufacturing,Gurugram Factory,Local thermal materials
+Wiring Harness,Motherson Sumi,India,Uttar Pradesh,Noida,1,road,35,2,manufacturing,Noida SEZ,Domestic wiring supplier

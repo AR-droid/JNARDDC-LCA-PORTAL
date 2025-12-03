@@ -4,6 +4,31 @@ import { Mic, MicOff, Loader2 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
 
+// Simple Markdown renderer for chat messages
+const renderMarkdown = (text: string): string => {
+  return text
+    // Bold: **text** or __text__
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    // Italic: *text* or _text_
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/_([^_]+)_/g, '<em>$1</em>')
+    // Code: `code`
+    .replace(/`([^`]+)`/g, '<code class="bg-gray-200 px-1 rounded text-sm">$1</code>')
+    // Links: [text](url)
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="text-blue-600 underline">$1</a>')
+    // Numbered lists: 1. item
+    .replace(/^(\d+)\.\s+(.+)$/gm, '<li class="ml-4 list-decimal">$2</li>')
+    // Bullet lists: - item or * item
+    .replace(/^[-*]\s+(.+)$/gm, '<li class="ml-4 list-disc">$1</li>')
+    // Headers: ## Header
+    .replace(/^###\s+(.+)$/gm, '<h4 class="font-semibold text-base mt-2">$1</h4>')
+    .replace(/^##\s+(.+)$/gm, '<h3 class="font-semibold text-lg mt-2">$1</h3>')
+    .replace(/^#\s+(.+)$/gm, '<h2 class="font-bold text-xl mt-2">$1</h2>')
+    // Line breaks
+    .replace(/\n/g, '<br/>')
+}
+
 interface Message {
   role: 'user' | 'assistant'
   content: string
@@ -183,7 +208,14 @@ export default function AIChatPanel({ projectId, initialContext, isOpen, onClose
                   : 'bg-gray-100 text-gray-800 rounded-bl-none'
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+              {msg.role === 'user' ? (
+                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+              ) : (
+                <div 
+                  className="text-sm prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
+                />
+              )}
               {msg.source && (
                 <p className="text-xs mt-1 opacity-60">
                   {msg.source === 'groq_ai' ? '✨ AI Response' : '📚 Knowledge Base'}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { projectsApi, Project, aiGapFill, AIGapFillResult } from '../api/projects'
+import { projectsApi, Project, aiGapFill, AIGapFillResult, VerificationStatus } from '../api/projects'
 import { materialsApi, Material } from '../api/materials'
 import MaterialAddModal from '../components/MaterialAddModal'
 import ProjectEditModal from '../components/ProjectEditModal'
@@ -8,13 +8,6 @@ import BOMUploadModal from '../components/BOMUploadModal'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon, UploadIcon, PlusIcon, PackageIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
 import { FileSpreadsheet, Sparkles } from 'lucide-react'
-
-interface VerificationStatus {
-  verification_status: 'not_submitted' | 'pending' | 'approved' | 'rejected'
-  verification_submitted_at?: string
-  verification_reviewed_at?: string
-  verification_notes?: string
-}
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -68,7 +61,7 @@ export default function ProjectDetailPage() {
     
     try {
       const status = await projectsApi.checkVerificationStatus(id)
-      setVerificationStatus(status)
+      setVerificationStatus(status as VerificationStatus)
     } catch (error) {
       console.error('Error loading verification status:', error)
       // Default to not submitted if error
@@ -347,18 +340,18 @@ export default function ProjectDetailPage() {
           </div>
         </div>
 
-        {/* JNARRDC Verification Section */}
+        {/* JNARDDC Verification Section */}
         <div className="bg-white rounded-lg shadow p-5 mb-5">
           <div className="flex justify-between items-start mb-4">
             <div>
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                🏛️ JNARRDC Verification
+                🏛️ JNARDDC Verification
                 {!hasVerificationAccess && (
                   <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">Enterprise</span>
                 )}
               </h2>
               <p className="text-sm text-gray-500 mt-1">
-                Get your LCA assessment verified by JNARRDC (Joint National Action for Rare Earths & Defense Compliance)
+                Get your LCA assessment verified by JNARDDC (Joint National Action for Rare Earths & Defense Compliance)
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -409,7 +402,7 @@ export default function ProjectDetailPage() {
             {verificationStatus?.verification_status === 'not_submitted' && (
               <div className="space-y-3">
                 <p className="text-sm text-gray-700">
-                  <strong>Why get verified?</strong> JNARRDC verification certifies that your LCA assessment meets Indian regulatory standards and is compliant with:
+                  <strong>Why get verified?</strong> JNARDDC verification certifies that your LCA assessment meets Indian regulatory standards and is compliant with:
                 </p>
                 <ul className="text-sm text-gray-600 list-disc list-inside space-y-1 ml-2">
                   <li>Critical Minerals Mission Guidelines</li>
@@ -428,7 +421,7 @@ export default function ProjectDetailPage() {
             {verificationStatus?.verification_status === 'pending' && (
               <div className="space-y-3">
                 <p className="text-sm text-gray-700">
-                  Your LCA assessment has been submitted for JNARRDC verification. Our team will review your submission and provide feedback.
+                  Your LCA assessment has been submitted for JNARDDC verification. Our team will review your submission and provide feedback.
                 </p>
                 <div className="flex items-center gap-6 text-sm">
                   <div>
@@ -458,9 +451,9 @@ export default function ProjectDetailPage() {
                 <div className="flex items-start gap-3">
                   <div className="text-3xl">🏆</div>
                   <div>
-                    <p className="text-sm font-semibold text-green-800">JNARRDC Verified Assessment</p>
+                    <p className="text-sm font-semibold text-green-800">JNARDDC Verified Assessment</p>
                     <p className="text-sm text-gray-700 mt-1">
-                      This LCA assessment has been verified by JNARRDC and meets all Indian regulatory compliance standards.
+                      This LCA assessment has been verified by JNARDDC and meets all Indian regulatory compliance standards.
                     </p>
                   </div>
                 </div>
@@ -821,9 +814,9 @@ export default function ProjectDetailPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {aiGapFillResult.ai_models_used.map((model, idx) => (
                       <div key={idx} className="bg-gradient-to-br from-violet-50 to-pink-50 rounded-lg p-3 border border-violet-100">
-                        <h5 className="font-medium text-violet-800">{model.name || model.model}</h5>
+                        <h5 className="font-medium text-violet-800">{model.name || (model as any).model}</h5>
                         <p className="text-sm text-gray-600 mt-1">{model.purpose}</p>
-                        <p className="text-xs text-gray-500 mt-2 italic">{model.method || model.technique}</p>
+                        <p className="text-xs text-gray-500 mt-2 italic">{model.method || (model as any).technique}</p>
                       </div>
                     ))}
                   </div>

@@ -28,7 +28,7 @@ This document outlines the detailed implementation plan for completing the Metal
 - LCI database seeding
 - File upload functionality
 - Real-time calculation triggers
-- JNARRDC verification workflow UI
+- JNARDDC verification workflow UI
 
 ---
 
@@ -300,7 +300,7 @@ frontend/src/
 
 ---
 
-## 🎯 **PHASE 4: JNARRDC Verification (Week 6)**
+## 🎯 **PHASE 4: JNARDDC Verification (Week 6)**
 
 ### 4.1 Verification Request Flow
 **Goal**: Enable users to submit projects for official verification
@@ -332,7 +332,7 @@ frontend/src/
 ---
 
 ### 4.2 Admin Verification Portal
-**Goal**: JNARRDC admins can review and approve projects
+**Goal**: JNARDDC admins can review and approve projects
 
 #### Tasks:
 - [ ] **Admin Dashboard** (2 days)
@@ -380,7 +380,7 @@ frontend/src/
 #### Tasks:
 - [ ] **Data Collection** (2 days)
   - Source Ecoinvent data (license required)
-  - JNARRDC primary data
+  - JNARDDC primary data
   - Indian grid emission factors
   - Transport emission factors
 
@@ -468,7 +468,7 @@ python scripts/seed_lci_data.py
 ### 6.3 Documentation
 - [ ] **API Documentation** (Swagger/OpenAPI)
 - [ ] **User Guide** (How to use platform)
-- [ ] **Admin Guide** (JNARRDC operations)
+- [ ] **Admin Guide** (JNARDDC operations)
 - [ ] **Developer Docs** (Setup & contribution)
 
 ---
@@ -619,7 +619,7 @@ Create these files first:
 
 ### Data Sources
 - Ecoinvent Database v3.9
-- JNARRDC Reports
+- JNARDDC Reports
 - Indian Grid Emission Factors (CEA)
 
 ---
@@ -638,7 +638,7 @@ Create these files first:
 ## Contact & Support
 
 - **Technical Lead**: [Your Name]
-- **Client**: JNARRDC
+- **Client**: JNARDDC
 - **Timeline**: 10 weeks from Nov 30, 2025
 - **Target Launch**: Feb 7, 2026
 

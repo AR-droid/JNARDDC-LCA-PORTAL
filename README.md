@@ -59,4 +59,4 @@ Create `.env` files in both frontend and backend directories. See `.env.example`
 
 ## License
 
-Copyright © 2025 JNARRDC - MetalLCA Project
+Copyright © 2025 JNARDDC - MetalLCA Project

@@ -11,7 +11,7 @@ interface ProjectCreateModalProps {
 }
 
 type InputMode = 'manual' | 'nlp';
-type DatasetSource = 'global' | 'india_jnarrdc';
+type DatasetSource = 'global' | 'india_JNARDDC';
 
 export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: ProjectCreateModalProps) {
   const [inputMode, setInputMode] = useState<InputMode>('manual');
@@ -36,7 +36,7 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
     product_category: '',
     target_lifespan: '',
     is_designed_for_disassembly: false,
-    dataset_source: 'india_jnarrdc' as DatasetSource,
+    dataset_source: 'india_JNARDDC' as DatasetSource,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -265,7 +265,7 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
       product_category: '',
       target_lifespan: '',
       is_designed_for_disassembly: false,
-      dataset_source: 'india_jnarrdc',
+      dataset_source: 'india_JNARDDC',
     });
     setNlpInput('');
     setNlpResult(null);
@@ -520,13 +520,13 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
                 <input
                   type="radio"
                   name="dataset_source"
-                  value="india_jnarrdc"
-                  checked={formData.dataset_source === 'india_jnarrdc'}
+                  value="india_JNARDDC"
+                  checked={formData.dataset_source === 'india_JNARDDC'}
                   onChange={(e) => setFormData({ ...formData, dataset_source: e.target.value as DatasetSource })}
                   className="mr-2 text-blue-600"
                 />
                 <div>
-                  <span className="font-medium text-gray-700">🇮🇳 India (JNARRDC)</span>
+                  <span className="font-medium text-gray-700">🇮🇳 India (JNARDDC)</span>
                   <p className="text-xs text-gray-500">Indian National LCI Database</p>
                 </div>
               </label>

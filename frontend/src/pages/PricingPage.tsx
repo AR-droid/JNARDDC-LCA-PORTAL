@@ -151,7 +151,7 @@ export default function PricingPage() {
               <PricingFeature included light>AI Design Advisor</PricingFeature>
               <PricingFeature included light>Premium Indian datasets</PricingFeature>
               <PricingFeature included light>Priority email support</PricingFeature>
-              <PricingFeature light>JNARRDC verification</PricingFeature>
+              <PricingFeature light>JNARDDC verification</PricingFeature>
             </ul>
             {user?.tier === 'pro' ? (
               <button disabled className="block w-full text-center py-2.5 px-4 bg-white/30 text-white rounded-lg text-sm font-medium cursor-not-allowed">
@@ -192,7 +192,7 @@ export default function PricingPage() {
             </div>
             <ul className="space-y-3 mb-6 text-sm">
               <PricingFeature included>Everything in Pro</PricingFeature>
-              <PricingFeature included>JNARRDC verification badge</PricingFeature>
+              <PricingFeature included>JNARDDC verification badge</PricingFeature>
               <PricingFeature included>Team management (unlimited)</PricingFeature>
               <PricingFeature included>API access & integrations</PricingFeature>
               <PricingFeature included>Private dataset uploads</PricingFeature>
@@ -214,7 +214,7 @@ export default function PricingPage() {
               </button>
             ) : (
               <a 
-                href="mailto:enterprise@jnarrdc.gov.in" 
+                href="mailto:enterprise@JNARDDC.gov.in" 
                 className="block w-full text-center py-2.5 px-4 bg-gray-900 dark:bg-gray-700 text-white rounded-lg text-sm font-bold hover:bg-gray-800 dark:hover:bg-gray-600 transition"
               >
                 Contact Sales
@@ -232,7 +232,7 @@ export default function PricingPage() {
                 <p className="text-gray-600 dark:text-gray-300 text-sm">Multi-client management • Verified consultant badge • ₹25,000/month</p>
               </div>
               <a 
-                href="mailto:consultants@jnarrdc.gov.in" 
+                href="mailto:consultants@JNARDDC.gov.in" 
                 className="px-5 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition whitespace-nowrap"
               >
                 Apply Now
@@ -265,7 +265,7 @@ export default function PricingPage() {
               <CompareRow feature="ISO 14040 Reports" free={false} pro={true} enterprise={true} />
               <CompareRow feature="Scenario Comparison" free={false} pro={true} enterprise={true} />
               <CompareRow feature="AI Design Advisor" free={false} pro={true} enterprise={true} />
-              <CompareRow feature="JNARRDC Verification" free={false} pro={false} enterprise={true} />
+              <CompareRow feature="JNARDDC Verification" free={false} pro={false} enterprise={true} />
               <CompareRow feature="Team Management" free={false} pro={false} enterprise={true} />
               <CompareRow feature="API Access" free={false} pro={false} enterprise={true} />
               <CompareRow feature="Support" free="Community" pro="Email" enterprise="24/7 Phone" />
@@ -291,8 +291,8 @@ export default function PricingPage() {
             answer="Yes, we offer a 14-day free trial of Pro plan. No credit card required to start."
           />
           <FAQ 
-            question="What is JNARRDC Verification?"
-            answer="JNARRDC verification is an official certification from Joint National Action for Rare Earths & Defense Compliance that validates your LCA assessment for regulatory compliance and export documentation."
+            question="What is JNARDDC Verification?"
+            answer="JNARDDC verification is an official certification from Joint National Action for Rare Earths & Defense Compliance that validates your LCA assessment for regulatory compliance and export documentation."
           />
         </div>
       </section>
@@ -302,7 +302,7 @@ export default function PricingPage() {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-2xl font-bold text-white mb-3">Ready to get started?</h2>
           <p className="text-blue-100 mb-6 max-w-2xl mx-auto text-sm">
-            Join thousands of Indian manufacturers already using JNARRDC LCA Portal for their environmental compliance needs.
+            Join thousands of Indian manufacturers already using JNARDDC LCA Portal for their environmental compliance needs.
           </p>
           <Link 
             to={isAuthenticated ? "/dashboard" : "/register"}

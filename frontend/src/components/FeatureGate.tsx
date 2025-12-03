@@ -14,7 +14,7 @@ const featureNames: Record<FeatureKey, string> = {
   brsr_export: 'BRSR Export',
   scenario_compare: 'Scenario Comparison',
   ai_advisor: 'AI Design Advisor',
-  verification: 'JNARRDC Verification',
+  verification: 'JNARDDC Verification',
 };
 
 const featureTiers: Record<FeatureKey, 'pro' | 'enterprise'> = {

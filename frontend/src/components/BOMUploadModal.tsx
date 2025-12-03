@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { materialsApi, MaterialLibraryItem, AddMaterialData } from '../api/materials'
+import { Plus } from 'lucide-react'
 
 interface Props {
   projectId: string
@@ -212,7 +213,7 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
       
       const updated = { ...item, [field]: value }
       
-      // If material type changed, update GWP factor
+      // If material type changed, update GWP factor and recalculate
       if (field === 'material_type') {
         const matched = library.find(m => m.type === value)
         if (matched) {
@@ -222,12 +223,38 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
         }
       }
       
+      // Recalculate effective GWP when recycled_content changes
+      // Primary materials have higher GWP, recycled content reduces it
+      if (field === 'recycled_content' || field === 'material_type') {
+        const baseGWP = library.find(m => m.type === updated.material_type)?.gwp_factor || updated.gwp_factor
+        // Recycled content typically reduces GWP by 60-95% depending on material
+        // Using average 80% reduction for recycled portion
+        const recycledFraction = (updated.recycled_content || 0) / 100
+        const effectiveGWP = baseGWP * (1 - recycledFraction * 0.8)
+        updated.gwp_factor = Math.round(effectiveGWP * 100) / 100
+      }
+      
       return updated
     }))
   }
 
   const removeItem = (index: number) => {
     setParsedItems(items => items.filter((_, i) => i !== index))
+  }
+
+  const addNewItem = () => {
+    const newItem: ParsedBOMItem = {
+      material_name: `New Material ${parsedItems.length + 1}`,
+      material_type: '',
+      quantity: 0,
+      unit: 'kg',
+      recycled_content: 0,
+      transport_distance: 500,
+      gwp_factor: 0,
+      matched: false,
+      error: 'Please select a material type'
+    }
+    setParsedItems([...parsedItems, newItem])
   }
 
   const handleImportAll = async () => {
@@ -374,12 +401,20 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
                     <span className="text-orange-600">{parsedItems.filter(i => !i.matched).length} need attention</span>
                   </p>
                 </div>
-                <button
-                  onClick={() => { setStep('upload'); setParsedItems([]) }}
-                  className="text-sm text-gray-500 hover:text-gray-700"
-                >
-                  ← Upload different file
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={addNewItem}
+                    className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 px-3 py-1 border border-blue-300 rounded-lg hover:bg-blue-50"
+                  >
+                    <Plus size={14} /> Add Material
+                  </button>
+                  <button
+                    onClick={() => { setStep('upload'); setParsedItems([]) }}
+                    className="text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    ← Upload different file
+                  </button>
+                </div>
               </div>
 
               {/* Materials Table */}
@@ -392,6 +427,7 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
                       <th className="text-right py-2 px-3">Qty</th>
                       <th className="text-right py-2 px-3">Recycled %</th>
                       <th className="text-right py-2 px-3">GWP Factor</th>
+                      <th className="text-right py-2 px-3">Est. GWP</th>
                       <th className="text-center py-2 px-3">Status</th>
                       <th className="text-center py-2 px-3"></th>
                     </tr>
@@ -423,8 +459,10 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
                           <input
                             type="number"
                             value={item.quantity}
-                            onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value))}
+                            onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 0)}
                             className="w-20 px-2 py-1 border rounded text-sm text-right"
+                            min="0"
+                            step="0.1"
                           />
                         </td>
                         <td className="py-2 px-3">
@@ -433,12 +471,17 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
                             min="0"
                             max="100"
                             value={item.recycled_content}
-                            onChange={(e) => updateItem(index, 'recycled_content', parseFloat(e.target.value))}
+                            onChange={(e) => updateItem(index, 'recycled_content', parseFloat(e.target.value) || 0)}
                             className="w-16 px-2 py-1 border rounded text-sm text-right"
                           />
                         </td>
                         <td className="py-2 px-3 text-right text-gray-600">
-                          {item.gwp_factor > 0 ? `${item.gwp_factor} kg CO₂` : '-'}
+                          {item.gwp_factor > 0 ? `${item.gwp_factor}` : '-'}
+                        </td>
+                        <td className="py-2 px-3 text-right font-medium text-blue-600">
+                          {item.gwp_factor > 0 && item.quantity > 0 
+                            ? `${(item.gwp_factor * item.quantity).toFixed(1)} kg`
+                            : '-'}
                         </td>
                         <td className="py-2 px-3 text-center">
                           {item.matched ? (
@@ -458,6 +501,25 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
                       </tr>
                     ))}
                   </tbody>
+                  {/* Table Footer with Totals */}
+                  <tfoot className="bg-gray-100 border-t-2">
+                    <tr>
+                      <td colSpan={2} className="py-2 px-3 font-semibold text-gray-700">Total</td>
+                      <td className="py-2 px-3 text-right font-semibold">
+                        {parsedItems.reduce((sum, i) => sum + (i.quantity || 0), 0).toFixed(1)} kg
+                      </td>
+                      <td className="py-2 px-3 text-right text-gray-500 text-xs">
+                        Avg: {parsedItems.length > 0 
+                          ? (parsedItems.reduce((sum, i) => sum + (i.recycled_content || 0), 0) / parsedItems.length).toFixed(0)
+                          : 0}%
+                      </td>
+                      <td className="py-2 px-3"></td>
+                      <td className="py-2 px-3 text-right font-bold text-blue-700">
+                        {parsedItems.reduce((sum, i) => sum + (i.gwp_factor * i.quantity || 0), 0).toFixed(1)} kg CO₂
+                      </td>
+                      <td colSpan={2}></td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
 

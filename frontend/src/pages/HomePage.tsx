@@ -8,8 +8,8 @@ export default function HomePage() {
       <header className="border-b bg-white/90 backdrop-blur-sm sticky top-0 z-20">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <img src="/images/logo.png" alt="JNARRDC" className="w-10 h-10 object-contain" />
-            <h1 className="text-2xl font-bold text-gray-900">JNARRDC LCA Portal</h1>
+            <img src="/images/logo.png" alt="JNARDDC" className="w-10 h-10 object-contain" />
+            <h1 className="text-2xl font-bold text-gray-900">JNARDDC LCA Portal</h1>
           </div>
           <div className="flex items-center space-x-4">
             <Link to="/login" className="text-gray-600 hover:text-blue-600">Login</Link>
@@ -125,7 +125,7 @@ export default function HomePage() {
             <Step number={2} title="Input Materials" description="Use natural language or upload your Bill of Materials (BOM)" />
             <Step number={3} title="AI Analysis" description="Our engines calculate GWP, water usage, and circularity metrics" />
             <Step number={4} title="Get Insights" description="View interactive dashboards and optimization recommendations" />
-            <Step number={5} title="Verify & Export" description="Submit for JNARRDC verification and export compliance reports" />
+            <Step number={5} title="Verify & Export" description="Submit for JNARDDC verification and export compliance reports" />
           </div>
         </div>
       </section>
@@ -267,7 +267,7 @@ export default function HomePage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-green-500 mt-0.5">✓</span>
-                <span className="text-gray-600">JNARRDC verification</span>
+                <span className="text-gray-600">JNARDDC verification</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-green-500 mt-0.5">✓</span>
@@ -279,7 +279,7 @@ export default function HomePage() {
               </li>
             </ul>
             <a 
-              href="mailto:contact@jnarrdc.gov.in" 
+              href="mailto:contact@JNARDDC.gov.in" 
               className="block w-full text-center py-3 px-4 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition"
             >
               Contact Sales
@@ -299,7 +299,7 @@ export default function HomePage() {
                 </div>
               </div>
               <a 
-                href="mailto:consultants@jnarrdc.gov.in" 
+                href="mailto:consultants@JNARDDC.gov.in" 
                 className="px-6 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition whitespace-nowrap"
               >
                 Apply Now
@@ -330,7 +330,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <p className="text-center text-gray-500 text-sm uppercase tracking-wider mb-6">A Government of India Initiative</p>
           <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
-            <img src="/images/logo.png" alt="JNARRDC" className="h-16 md:h-20 object-contain grayscale hover:grayscale-0 transition" />
+            <img src="/images/logo.png" alt="JNARDDC" className="h-16 md:h-20 object-contain grayscale hover:grayscale-0 transition" />
             <img src="/images/make-in-india.png" alt="Make in India" className="h-16 md:h-20 object-contain grayscale hover:grayscale-0 transition" />
           </div>
           <p className="text-center text-gray-400 text-xs mt-6">Supporting India's vision for sustainable manufacturing and circular economy</p>
@@ -343,10 +343,10 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-3 mb-4">
-                <img src="/images/logo.png" alt="JNARRDC" className="w-8 h-8 object-contain" />
-                <span className="text-xl font-bold text-white">JNARRDC LCA Portal</span>
+                <img src="/images/logo.png" alt="JNARDDC" className="w-8 h-8 object-contain" />
+                <span className="text-xl font-bold text-white">JNARDDC LCA Portal</span>
               </div>
-              <p className="text-sm">National Circularity Platform for JNARRDC</p>
+              <p className="text-sm">National Circularity Platform for JNARDDC</p>
             </div>
             <div>
               <h4 className="font-semibold text-white mb-4">Product</h4>
@@ -361,7 +361,7 @@ export default function HomePage() {
               <ul className="space-y-2 text-sm">
                 <li><a href="#about">About</a></li>
                 <li><a href="#contact">Contact</a></li>
-                <li><a href="#jnarrdc">JNARRDC Partnership</a></li>
+                <li><a href="#JNARDDC">JNARDDC Partnership</a></li>
               </ul>
             </div>
             <div>
@@ -373,7 +373,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
-            © 2025 JNARRDC LCA Portal. All rights reserved.
+            © 2025 JNARDDC LCA Portal. All rights reserved.
           </div>
         </div>
       </footer>

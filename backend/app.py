@@ -1401,7 +1401,7 @@ def delete_project(project_id):
 
 
 # =====================================================
-# JNARRDC VERIFICATION WORKFLOW
+# JNARDDC VERIFICATION WORKFLOW
 # =====================================================
 
 # In-memory storage for verification requests (would be database in production)
@@ -1440,7 +1440,7 @@ def get_verification_status(project_id):
 
 @app.route('/api/v1/projects/<project_id>/verification/submit', methods=['POST', 'OPTIONS'])
 def submit_for_verification(project_id):
-    """Submit project for JNARRDC verification"""
+    """Submit project for JNARDDC verification"""
     if request.method == 'OPTIONS':
         return '', 200
     
@@ -1512,7 +1512,7 @@ def submit_for_verification(project_id):
         VERIFICATION_REQUESTS[project_id]['flags'] = flags
         
         return jsonify({
-            "message": "Project submitted for JNARRDC verification",
+            "message": "Project submitted for JNARDDC verification",
             "request_id": request_id,
             "status": "pending",
             "estimated_review_time": "3-5 business days"
@@ -1545,8 +1545,8 @@ def get_verification_certificate(project_id):
             'gwp_total': verification['gwp_total'],
             'mci_score': verification['mci_score'],
             'validity': '1 year from verification date',
-            'issuer': 'JNARRDC - Ministry of Mines, Government of India',
-            'qr_code_data': f"https://jnarrdc.gov.in/verify/{verification['certificate_id']}"
+            'issuer': 'JNARDDC - Ministry of Mines, Government of India',
+            'qr_code_data': f"https://JNARDDC.gov.in/verify/{verification['certificate_id']}"
         }
         
         return jsonify(certificate), 200
@@ -1571,11 +1571,11 @@ def admin_verify_project(project_id):
             return jsonify({"detail": "No verification request found"}), 404
         
         if action == 'verify':
-            cert_id = f"JNARRDC-{datetime.now().year}-{uuid.uuid4().hex[:8].upper()}"
+            cert_id = f"JNARDDC-{datetime.now().year}-{uuid.uuid4().hex[:8].upper()}"
             VERIFICATION_REQUESTS[project_id].update({
                 'status': 'verified',
                 'verified_at': datetime.now().isoformat(),
-                'verifier_name': 'JNARRDC Verification Team',
+                'verifier_name': 'JNARDDC Verification Team',
                 'verifier_notes': notes or 'LCA data verified and approved.',
                 'certificate_id': cert_id
             })
@@ -1584,7 +1584,7 @@ def admin_verify_project(project_id):
             VERIFICATION_REQUESTS[project_id].update({
                 'status': 'rejected',
                 'verified_at': datetime.now().isoformat(),
-                'verifier_name': 'JNARRDC Verification Team',
+                'verifier_name': 'JNARDDC Verification Team',
                 'verifier_notes': notes or 'Verification rejected. Please review and resubmit.'
             })
             return jsonify({"message": "Project verification rejected"}), 200
@@ -5562,14 +5562,14 @@ def combined_material_library():
             {"id": "flux", "name": "Brazing/Soldering Flux", "type": "flux", "unit": "kg", "gwp_factor": 3.0, "source": "system", "region": "Global", "category": "joining_material", "scarcity_score": 5},
         ]
         
-        # India-specific materials (JNARRDC baseline)
+        # India-specific materials (JNARDDC baseline)
         india_materials = [
-            {"id": "al_india_primary", "name": "Primary Aluminium (India)", "type": "aluminium_primary", "unit": "kg", "gwp_factor": 16.5, "source": "jnarrdc", "region": "India", "category": "base_metal"},
-            {"id": "al_india_secondary", "name": "Secondary Aluminium (India)", "type": "aluminium_secondary", "unit": "kg", "gwp_factor": 0.8, "source": "jnarrdc", "region": "India", "category": "base_metal"},
-            {"id": "cu_india_primary", "name": "Primary Copper (India)", "type": "copper_primary", "unit": "kg", "gwp_factor": 4.2, "source": "jnarrdc", "region": "India", "category": "base_metal"},
-            {"id": "cu_india_secondary", "name": "Secondary Copper (India)", "type": "copper_secondary", "unit": "kg", "gwp_factor": 0.6, "source": "jnarrdc", "region": "India", "category": "base_metal"},
-            {"id": "steel_india_primary", "name": "Virgin Steel (India)", "type": "steel_primary", "unit": "kg", "gwp_factor": 2.8, "source": "jnarrdc", "region": "India", "category": "base_metal"},
-            {"id": "steel_india_secondary", "name": "Recycled Steel (India)", "type": "steel_secondary", "unit": "kg", "gwp_factor": 0.5, "source": "jnarrdc", "region": "India", "category": "base_metal"},
+            {"id": "al_india_primary", "name": "Primary Aluminium (India)", "type": "aluminium_primary", "unit": "kg", "gwp_factor": 16.5, "source": "JNARDDC", "region": "India", "category": "base_metal"},
+            {"id": "al_india_secondary", "name": "Secondary Aluminium (India)", "type": "aluminium_secondary", "unit": "kg", "gwp_factor": 0.8, "source": "JNARDDC", "region": "India", "category": "base_metal"},
+            {"id": "cu_india_primary", "name": "Primary Copper (India)", "type": "copper_primary", "unit": "kg", "gwp_factor": 4.2, "source": "JNARDDC", "region": "India", "category": "base_metal"},
+            {"id": "cu_india_secondary", "name": "Secondary Copper (India)", "type": "copper_secondary", "unit": "kg", "gwp_factor": 0.6, "source": "JNARDDC", "region": "India", "category": "base_metal"},
+            {"id": "steel_india_primary", "name": "Virgin Steel (India)", "type": "steel_primary", "unit": "kg", "gwp_factor": 2.8, "source": "JNARDDC", "region": "India", "category": "base_metal"},
+            {"id": "steel_india_secondary", "name": "Recycled Steel (India)", "type": "steel_secondary", "unit": "kg", "gwp_factor": 0.5, "source": "JNARDDC", "region": "India", "category": "base_metal"},
         ]
         
         # User custom materials
@@ -7080,7 +7080,7 @@ def get_ai_response(prompt, context=""):
     
     if groq_client:
         try:
-            system_prompt = """You are JNARRDC LCA Portal AI Assistant, an expert in Life Cycle Assessment (LCA) 
+            system_prompt = """You are JNARDDC LCA Portal AI Assistant, an expert in Life Cycle Assessment (LCA) 
 for metals and materials. You help users understand:
 - Environmental impacts (GWP, carbon footprint)
 - Material Circularity Indicator (MCI) and circular economy principles
@@ -7148,7 +7148,7 @@ Key points for Indian exporters:
 1. Applies to: Iron, steel, aluminum, cement, fertilizers, electricity, hydrogen
 2. Effective: October 2023 (reporting), January 2026 (full charges)
 3. Requires: Accurate GWP data per product
-4. JNARRDC LCA Portal helps: Generate CBAM-compliant reports with verified emission data
+4. JNARDDC LCA Portal helps: Generate CBAM-compliant reports with verified emission data
 
 To prepare:
 - Track emissions at product level
@@ -7156,7 +7156,7 @@ To prepare:
 - Maintain supply chain transparency"""
     
     else:
-        response = """I'm the JNARRDC LCA Portal AI Assistant. I can help you with:
+        response = """I'm the JNARDDC LCA Portal AI Assistant. I can help you with:
 
 🌱 **Environmental Impact** - Understanding GWP and carbon footprint
 📊 **Circularity Metrics** - MCI calculations and improvement strategies  
@@ -7439,7 +7439,7 @@ def export_cbam_report(project_id):
                 'reporting_period': reporting_period,
                 'regulation_reference': 'EU Regulation 2023/956 (CBAM)',
                 'report_type': 'Quarterly CBAM Declaration',
-                'software_version': 'JNARRDC LCA Portal v1.0'
+                'software_version': 'JNARDDC LCA Portal v1.0'
             },
             'declarant_information': {
                 'company_name': user[1] if user else 'Not specified',
@@ -7514,7 +7514,7 @@ def export_cbam_csv(project_id):
         
         # Build CSV content
         csv_lines = [
-            "CBAM Quarterly Report - JNARRDC LCA Portal Export",
+            "CBAM Quarterly Report - JNARDDC LCA Portal Export",
             f"Project: {project[1]}",
             f"Report Date: {datetime.now().isoformat()}",
             "",
@@ -7613,7 +7613,7 @@ def export_cbam_excel(project_id):
         
         # ===== LETTERHEAD =====
         ws.merge_cells('B1:G1')
-        ws['B1'] = 'JNARRDC LCA PORTAL'
+        ws['B1'] = 'JNARDDC LCA PORTAL'
         ws['B1'].font = header_font
         ws['B1'].alignment = Alignment(horizontal='center', vertical='center')
         ws.row_dimensions[1].height = 30
@@ -7844,7 +7844,7 @@ def export_cbam_excel(project_id):
         
         row += 1
         ws.merge_cells(f'B{row}:G{row}')
-        ws[f'B{row}'] = f'Generated by JNARRDC LCA Portal v1.0 | Data Sources: IPCC AR6, Ecoinvent 3.9 | {datetime.now().strftime("%d/%m/%Y %H:%M")}'
+        ws[f'B{row}'] = f'Generated by JNARDDC LCA Portal v1.0 | Data Sources: IPCC AR6, Ecoinvent 3.9 | {datetime.now().strftime("%d/%m/%Y %H:%M")}'
         ws[f'B{row}'].font = Font(name='Arial', size=8, italic=True, color='999999')
         ws[f'B{row}'].alignment = Alignment(horizontal='center')
         
@@ -7945,7 +7945,7 @@ def brsr_export(project_id):
                 'regulation_reference': 'SEBI Circular SEBI/HO/CFD/CMD-2/P/CIR/2021/562',
                 'financial_year': f"FY {datetime.now().year}-{(datetime.now().year + 1) % 100:02d}",
                 'generation_date': datetime.now().isoformat(),
-                'software': 'JNARRDC LCA Portal v1.0'
+                'software': 'JNARDDC LCA Portal v1.0'
             },
             'entity_details': {
                 'name_of_listed_entity': user[1] if user else 'Not specified',
@@ -7975,7 +7975,7 @@ def brsr_export(project_id):
                     'scope_3_emissions_mtco2e': round(total_gwp / 1000 * 0.1, 4),  # Estimate for transport
                     'total_ghg_emissions_mtco2e': round(total_gwp / 1000, 4),
                     'ghg_intensity_per_rupee_turnover': 'To be calculated',
-                    'methodology': 'IPCC AR6 emission factors via JNARRDC LCA Portal',
+                    'methodology': 'IPCC AR6 emission factors via JNARDDC LCA Portal',
                     'breakdown_by_material': [
                         {
                             'material': m[0],
@@ -8115,7 +8115,7 @@ def brsr_export_excel(project_id):
         
         row = 2
         ws.merge_cells('B2:E2')
-        ws['B2'] = 'PRINCIPLE 6: ENVIRONMENT - JNARRDC LCA Portal'
+        ws['B2'] = 'PRINCIPLE 6: ENVIRONMENT - JNARDDC LCA Portal'
         ws['B2'].font = Font(name='Arial', size=12, italic=True, color='666666')
         ws['B2'].alignment = Alignment(horizontal='center')
         
@@ -8264,7 +8264,7 @@ def brsr_export_excel(project_id):
         # Footer
         row += 2
         ws.merge_cells(f'B{row}:E{row}')
-        ws[f'B{row}'] = f'Report generated by JNARRDC LCA Portal | {datetime.now().strftime("%d/%m/%Y")} | SEBI BRSR Format'
+        ws[f'B{row}'] = f'Report generated by JNARDDC LCA Portal | {datetime.now().strftime("%d/%m/%Y")} | SEBI BRSR Format'
         ws[f'B{row}'].font = small_font
         ws[f'B{row}'].alignment = Alignment(horizontal='center')
         

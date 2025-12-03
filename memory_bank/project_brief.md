@@ -1,8 +1,8 @@
 # PRODUCT REQUIREMENT DOCUMENT (PRD)
 
-**Project Name:** MetalLCA – National Circularity Platform (JNARRDC Edition)  
+**Project Name:** MetalLCA – National Circularity Platform (JNARDDC Edition)  
 **Version:** 2.0 (Final)  
-**Client:** JNARRDC (Ministry of Mines, Govt. of India)
+**Client:** JNARDDC (Ministry of Mines, Govt. of India)
 
 ---
 
@@ -14,7 +14,7 @@ MetalLCA is an AI-powered Digital Infrastructure designed to democratize Life Cy
 
 - **For MSMEs:** Removes the technical barrier of LCA via Natural Language Processing (NLP).
 - **For Exporters:** Provides CBAM & ISO 14040 compliant reporting.
-- **For JNARRDC:** Acts as a sovereign data-gathering engine to build the "Indian National LCI Database."
+- **For JNARDDC:** Acts as a sovereign data-gathering engine to build the "Indian National LCI Database."
 
 ---
 
@@ -52,7 +52,7 @@ The database will be segmented into three categories to cover the full scope:
 User inputs are strictly segregated:
 
 - **Tier 1 (Public):** Anonymized and aggregated to improve National Averages.
-- **Tier 2 (Private):** Encrypted, accessible only by the specific Org and JNARRDC Auditors.
+- **Tier 2 (Private):** Encrypted, accessible only by the specific Org and JNARDDC Auditors.
 
 ---
 
@@ -76,9 +76,9 @@ Total GWP = (Virgin_Mass × EF_Virgin) + (Recycled_Mass × EF_Recycled) + Proces
 
 # PRODUCT REQUIREMENT DOCUMENT (PRD)
 
-**Project Name:** MetalLCA – National Circularity Platform (JNARRDC Edition)  
+**Project Name:** MetalLCA – National Circularity Platform (JNARDDC Edition)  
 **Version:** 2.0 (Final)  
-**Client:** JNARRDC (Ministry of Mines, Govt. of India)
+**Client:** JNARDDC (Ministry of Mines, Govt. of India)
 
 ---
 
@@ -90,7 +90,7 @@ MetalLCA is an AI-powered Digital Infrastructure designed to democratize Life Cy
 
 - **For MSMEs:** Removes the technical barrier of LCA via Natural Language Processing (NLP).
 - **For Exporters:** Provides CBAM & ISO 14040 compliant reporting.
-- **For JNARRDC:** Acts as a sovereign data-gathering engine to build the "Indian National LCI Database."
+- **For JNARDDC:** Acts as a sovereign data-gathering engine to build the "Indian National LCI Database."
 
 ---
 
@@ -128,7 +128,7 @@ The database will be segmented into three categories to cover the full scope:
 User inputs are strictly segregated:
 
 - **Tier 1 (Public):** Anonymized and aggregated to improve National Averages.
-- **Tier 2 (Private):** Encrypted, accessible only by the specific Org and JNARRDC Auditors.
+- **Tier 2 (Private):** Encrypted, accessible only by the specific Org and JNARDDC Auditors.
 
 ---
 
@@ -182,7 +182,7 @@ Total GWP = (Virgin_Mass × EF_Virgin) + (Recycled_Mass × EF_Recycled) + Proces
 
 ### Module A: Authentication & Onboarding
 
-- **User Types:** Manufacturer, Recycler, Auditor, JNARRDC Admin.
+- **User Types:** Manufacturer, Recycler, Auditor, JNARDDC Admin.
 - **Context Setup:** User selects "Sector" (e.g., EV Battery, Construction, Power Transmission). This loads the relevant Critical Mineral datasets.
 
 ---
@@ -212,22 +212,22 @@ Total GWP = (Virgin_Mass × EF_Virgin) + (Recycled_Mass × EF_Recycled) + Proces
 
 ---
 
-## 6. JNARRDC Specific Workflow (The "Verification Loop")
+## 6. JNARDDC Specific Workflow (The "Verification Loop")
 
-1. **Submission:** Manufacturer completes the LCA and clicks "Request JNARRDC Verification."
-2. **Audit Interface:** JNARRDC Expert gets a notification. They view a "red-flagged" report where the AI highlights aggressive assumptions (e.g., "User claims 100% recycled Lithium - Highly Unlikely").
+1. **Submission:** Manufacturer completes the LCA and clicks "Request JNARDDC Verification."
+2. **Audit Interface:** JNARDDC Expert gets a notification. They view a "red-flagged" report where the AI highlights aggressive assumptions (e.g., "User claims 100% recycled Lithium - Highly Unlikely").
 3. **Validation:** Expert adjusts data or approves.
-4. **Issuance:** System generates a QR-Coded PDF Certificate hosted on jnarrdc.gov.in (hypothetical domain) ensuring authenticity for buyers.
+4. **Issuance:** System generates a QR-Coded PDF Certificate hosted on JNARDDC.gov.in (hypothetical domain) ensuring authenticity for buyers.
 
 ---
 
 ## 7. User Roles & Access Control (RBAC)
 
-We will use a 3-Tier Hierarchy to support the JNARRDC "Hub & Spoke" model.
+We will use a 3-Tier Hierarchy to support the JNARDDC "Hub & Spoke" model.
 
 ### A. The Governance Tier (Super Admin)
 
-**Role:** JNARRDC Administrators.
+**Role:** JNARDDC Administrators.
 
 **Capabilities:**
 - Manage the "Golden Dataset" (Background Data).
@@ -301,7 +301,7 @@ We will use a 3-Tier Hierarchy to support the JNARRDC "Hub & Spoke" model.
 - `emission_factor`: Float
 - `scarcity_score`: Float (for Critical Minerals)
 - `region`: String
-- `source`: (Ecoinvent, JNARRDC_Primary)
+- `source`: (Ecoinvent, JNARDDC_Primary)
 - `is_premium`: Boolean (Logic for Freemium lock)
 
 ---
@@ -338,7 +338,7 @@ We will use a 3-Tier Hierarchy to support the JNARRDC "Hub & Spoke" model.
 
 ### Phase 3 (The National Platform - 16 Weeks):
 - CBAM & BRSR Reporting.
-- JNARRDC Verification Portal.
+- JNARDDC Verification Portal.
 - Auditor Role Access.
 - Team/Admin Management.
 - Payment Gateway Integration (Razorpay/Stripe).
@@ -347,10 +347,10 @@ We will use a 3-Tier Hierarchy to support the JNARRDC "Hub & Spoke" model.
 
 ---
 
-### Phase 4 (The JNARRDC Integration - 20+ Weeks):
+### Phase 4 (The JNARDDC Integration - 20+ Weeks):
 - Deploy on Government Cloud.
 - Set up Super Admin dashboards for Industry Monitoring.
-- Launch "Verified by JNARRDC" pilot with QR-Coded Certificates.
+- Launch "Verified by JNARDDC" pilot with QR-Coded Certificates.
 - API Access for third-party integration.
 
 **Deliverable:** National Digital Infrastructure.
@@ -359,13 +359,13 @@ We will use a 3-Tier Hierarchy to support the JNARRDC "Hub & Spoke" model.
 
 ## 10. Development Checklist (Immediate Next Steps)
 
-1. **Data Procurement:** Secure API access or license for Ecoinvent (Global) and compile JNARRDC's internal data (Local) for Al/Cu/Critical Minerals.
+1. **Data Procurement:** Secure API access or license for Ecoinvent (Global) and compile JNARDDC's internal data (Local) for Al/Cu/Critical Minerals.
 
 2. **Algorithm Definition:** Define the exact max-scrap tolerance percentages for the top 20 Copper and Aluminium alloys to power the "Predictive Engine."
 
 3. **Industry Benchmark Database:** Compile average product lifespans for key product categories (motors, cables, structural components, battery packs) from ISO standards and industry associations.
 
-4. **UX Prototype:** Design the "Verification Request" modal for the JNARRDC workflow.
+4. **UX Prototype:** Design the "Verification Request" modal for the JNARDDC workflow.
 
 5. **NLP Model Training:** Fine-tune language model on metal industry terminology (alloy codes, processes, coating types) for accurate material mapping.
 
@@ -378,7 +378,7 @@ We will use a 3-Tier Hierarchy to support the JNARRDC "Hub & Spoke" model.
 ### For Platform Success:
 - **User Adoption:** 500+ MSMEs onboarded in Year 1.
 - **Data Quality:** 80%+ accuracy in NLP material mapping.
-- **JNARRDC Value:** 10,000+ verified LCA reports contributing to National LCI Database.
+- **JNARDDC Value:** 10,000+ verified LCA reports contributing to National LCI Database.
 
 ### For Circularity Impact:
 - **Average MCI Score Improvement:** 15-point increase after using Design Optimization recommendations.
@@ -398,7 +398,7 @@ We will use a 3-Tier Hierarchy to support the JNARRDC "Hub & Spoke" model.
 - HTTPS/TLS for all API communications.
 
 ### Audit Trail:
-- Complete logging of all data modifications for JNARRDC auditors.
+- Complete logging of all data modifications for JNARDDC auditors.
 - Tamper-proof verification certificates with blockchain-backed QR codes (Phase 4).
 
 ---
@@ -422,7 +422,7 @@ We will use a 3-Tier Hierarchy to support the JNARRDC "Hub & Spoke" model.
 - Team management (unlimited users)
 - API access
 - Private dataset uploads
-- JNARRDC verification requests
+- JNARDDC verification requests
 - Dedicated account manager
 - White-label options
 
@@ -457,11 +457,11 @@ We will use a 3-Tier Hierarchy to support the JNARRDC "Hub & Spoke" model.
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Data Quality (LCI Database gaps) | High | Partner with Ecoinvent, supplement with JNARRDC primary research, flag data uncertainty |
+| Data Quality (LCI Database gaps) | High | Partner with Ecoinvent, supplement with JNARDDC primary research, flag data uncertainty |
 | NLP Accuracy (Misclassification) | Medium | Implement human verification step, continuous model retraining, user feedback loop |
 | User Adoption (Complexity) | High | Invest in UX, provide video tutorials, offer free onboarding sessions for first 100 users |
 | Regulatory Changes (CBAM rules) | Medium | Modular reporting architecture, quarterly compliance review |
-| Competition (International tools) | Medium | Differentiate via Indian data sovereignty, regional factors, JNARRDC partnership |
+| Competition (International tools) | Medium | Differentiate via Indian data sovereignty, regional factors, JNARDDC partnership |
 
 ---
 
@@ -473,7 +473,7 @@ We will use a 3-Tier Hierarchy to support the JNARRDC "Hub & Spoke" model.
 - **BRSR:** Business Responsibility and Sustainability Reporting - SEBI ESG disclosure framework
 - **GWP:** Global Warming Potential - measure of greenhouse gas impact (kg CO₂e)
 - **LCI:** Life Cycle Inventory - database of emission factors and resource use
-- **JNARRDC:** Jawaharlal Nehru Aluminium Research Development and Design Centre
+- **JNARDDC:** Jawaharlal Nehru Aluminium Research Development and Design Centre
 - **NLP:** Natural Language Processing - AI technique for understanding human language
 - **ETP:** Electrolytic Tough Pitch - high purity copper grade (C11000)
 
@@ -495,10 +495,10 @@ We will use a 3-Tier Hierarchy to support the JNARRDC "Hub & Spoke" model.
 3. System calculates embedded emissions with transport
 4. Uses Scenario Studio to test 3 recycled content levels
 5. Downloads CBAM-compliant XML file
-6. Submits to JNARRDC for verification
+6. Submits to JNARDDC for verification
 7. Receives QR-coded certificate within 48 hours
 
-### Journey 3: JNARRDC Admin (Governance)
+### Journey 3: JNARDDC Admin (Governance)
 1. Logs into Super Admin portal
 2. Reviews 15 pending verification requests
 3. System flags one: "Claimed 95% recycled lithium - needs evidence"

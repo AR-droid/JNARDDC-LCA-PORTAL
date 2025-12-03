@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import AIChatPanel from './AIChatPanel';
-import { MessageCircle } from 'lucide-react';
 
 interface NavbarProps {
   children: React.ReactNode;
@@ -63,8 +62,8 @@ export default function Layout({ children }: NavbarProps) {
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <Link to="/" className="flex items-center space-x-2 text-xl font-bold text-blue-600">
-                <img src="/images/logo.png" alt="JNARRDC" className="w-8 h-8 object-contain" />
-                <span>JNARRDC LCA Portal</span>
+                <img src="/images/logo.png" alt="JNARDDC" className="w-8 h-8 object-contain" />
+                <span>JNARDDC LCA Portal</span>
               </Link>
               {isAuthenticated && (
                 <div className="ml-10 flex space-x-4">

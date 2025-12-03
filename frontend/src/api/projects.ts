@@ -115,7 +115,7 @@ export const projectsApi = {
   },
 
   /**
-   * Submit project for JNARRDC verification
+   * Submit project for JNARDDC verification
    */
   submitForVerification: async (projectId: string): Promise<{ message: string; request_id: string; status: string }> => {
     const response = await api.post(`/projects/${projectId}/verification/submit`)
@@ -134,11 +134,15 @@ export const projectsApi = {
 export interface VerificationStatus {
   request_id?: string
   project_id?: string
-  status: 'not_submitted' | 'pending' | 'under_review' | 'verified' | 'rejected'
+  status?: 'not_submitted' | 'pending' | 'under_review' | 'verified' | 'rejected'
+  verification_status?: 'not_submitted' | 'pending' | 'approved' | 'rejected' | 'verified'
   submitted_at?: string
+  verification_submitted_at?: string
   verified_at?: string
+  verification_reviewed_at?: string
   verifier_name?: string
   verifier_notes?: string
+  verification_notes?: string
   certificate_id?: string
   flags?: { type: string; message: string }[]
 }

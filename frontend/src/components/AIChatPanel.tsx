@@ -21,7 +21,7 @@ export default function AIChatPanel({ projectId, initialContext, isOpen, onClose
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "Hello! I'm the JNARRDC LCA Assistant. I can help you understand environmental impacts, MCI scores, CBAM compliance, and provide recommendations for reducing your carbon footprint. What would you like to know?"
+      content: "Hello! I'm the JNARDDC LCA Assistant. I can help you understand environmental impacts, MCI scores, CBAM compliance, and provide recommendations for reducing your carbon footprint. What would you like to know?"
     }
   ])
   const [input, setInput] = useState('')
@@ -155,7 +155,7 @@ export default function AIChatPanel({ projectId, initialContext, isOpen, onClose
             <img src="/images/chatbot.png" alt="AI" className="w-9 h-9 object-contain" />
           </div>
           <div>
-            <h3 className="font-semibold text-white">JNARRDC AI Assistant</h3>
+            <h3 className="font-semibold text-white">JNARDDC AI Assistant</h3>
             <p className="text-xs text-blue-100">Powered by Groq</p>
           </div>
         </div>

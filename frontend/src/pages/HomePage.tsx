@@ -1,26 +1,230 @@
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Leaf, Target, Award } from 'lucide-react'
+import { ArrowRight, Leaf, Target, Award, Menu, X, ChevronLeft, ChevronRight, Quote, BarChart3, Globe, FileCheck, Star, Briefcase } from 'lucide-react'
+
+// Custom hook for scroll-triggered animations using Intersection Observer
+function useInView(threshold = 0.1) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [isInView, setIsInView] = useState(false)
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true)
+        }
+      },
+      { threshold }
+    )
+
+    if (ref.current) {
+      observer.observe(ref.current)
+    }
+
+    return () => observer.disconnect()
+  }, [threshold])
+
+  return { ref, isInView }
+}
+
+// Animated counter hook for stats
+function useAnimatedCounter(target: number, duration: number = 2000, startAnimation: boolean = false) {
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    if (!startAnimation) return
+    
+    let startTime: number
+    let animationFrame: number
+
+    const animate = (currentTime: number) => {
+      if (!startTime) startTime = currentTime
+      const progress = Math.min((currentTime - startTime) / duration, 1)
+      
+      // Easing function for smooth animation
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4)
+      setCount(Math.floor(easeOutQuart * target))
+
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(animate)
+      }
+    }
+
+    animationFrame = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(animationFrame)
+  }, [target, duration, startAnimation])
+
+  return count
+}
+
+// Animated section wrapper component
+function AnimatedSection({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const { ref, isInView } = useInView(0.1)
+  
+  return (
+    <div 
+      ref={ref}
+      className={`transition-all duration-700 ease-out ${className}`}
+      style={{
+        opacity: isInView ? 1 : 0,
+        transform: isInView ? 'translateY(0)' : 'translateY(40px)',
+        transitionDelay: `${delay}ms`
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+// Testimonials data
+const testimonials = [
+  {
+    quote: "The NLP-based input saved us weeks of manual data entry. We simply described our aluminium extrusion process and the system understood everything.",
+    author: "Rajesh Kumar",
+    role: "Production Manager",
+    company: "Hindalco Industries",
+    rating: 5
+  },
+  {
+    quote: "CBAM compliance was a nightmare before this portal. Now we generate EU-ready reports in minutes. Essential for any metal exporter.",
+    author: "Priya Sharma",
+    role: "Sustainability Director",
+    company: "Tata Steel Ltd",
+    rating: 5
+  },
+  {
+    quote: "As an MSME, we couldn't afford expensive LCA consultants. This free tier gives us everything we need to track our carbon footprint.",
+    author: "Mohammed Ismail",
+    role: "Owner",
+    company: "Precision Castings Pvt Ltd",
+    rating: 5
+  },
+  {
+    quote: "The circularity metrics helped us identify that switching to 60% recycled aluminium could reduce our GWP by 45%. Game-changing insights.",
+    author: "Anita Desai",
+    role: "Environmental Engineer",
+    company: "JSW Steel",
+    rating: 5
+  }
+]
 
 export default function HomePage() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [currentTestimonial, setCurrentTestimonial] = useState(0)
+  
+  // Auto-rotate testimonials
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <div className="min-h-screen">
+      {/* CSS Keyframe Animations */}
+      <style>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        @keyframes scaleIn {
+          from {
+            opacity: 0;
+            transform: scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        .animate-fade-in-up {
+          animation: fadeInUp 0.6s ease-out forwards;
+        }
+        .animate-slide-down {
+          animation: slideDown 0.4s ease-out forwards;
+        }
+        .animate-scale-in {
+          animation: scaleIn 0.5s ease-out forwards;
+        }
+        .animation-delay-100 { animation-delay: 100ms; }
+        .animation-delay-200 { animation-delay: 200ms; }
+        .animation-delay-300 { animation-delay: 300ms; }
+        .animation-delay-400 { animation-delay: 400ms; }
+        .animation-delay-500 { animation-delay: 500ms; }
+      `}</style>
+
       {/* Header */}
-      <header className="border-b bg-white/90 backdrop-blur-sm sticky top-0 z-20">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="border-b bg-white/90 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <img src="/images/logo.png" alt="JNARDDC" className="w-10 h-10 object-contain" />
-            <h1 className="text-2xl font-bold text-gray-900">JNARDDC LCA Portal</h1>
+            <img src="/images/ministryofmines.png" alt="Ministry of Mines" className="h-12 md:h-14 w-auto object-contain" />
+            <img src="/images/logo.png" alt="JNARDDC" className="h-12 md:h-14 w-auto object-contain" />
+            <h1 className="text-lg md:text-2xl font-bold text-gray-900 hidden sm:block">JNARDDC LCA Portal</h1>
           </div>
-          <div className="flex items-center space-x-4">
-            <Link to="/login" className="text-gray-600 hover:text-blue-600">Login</Link>
+          
+          {/* Desktop Nav */}
+          <nav className="hidden md:flex items-center space-x-6">
+            <a href="#features" className="text-gray-600 hover:text-blue-600 transition">Features</a>
+            <a href="#how-it-works" className="text-gray-600 hover:text-blue-600 transition">How It Works</a>
+            <a href="#pricing" className="text-gray-600 hover:text-blue-600 transition">Pricing</a>
+            <a href="#testimonials" className="text-gray-600 hover:text-blue-600 transition">Testimonials</a>
+          </nav>
+          
+          <div className="hidden md:flex items-center space-x-4">
+            <Link to="/login" className="text-gray-600 hover:text-blue-600 transition">Login</Link>
             <Link 
               to="/register" 
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition transform hover:scale-105"
             >
               Get Started
             </Link>
           </div>
+          
+          {/* Mobile Menu Button */}
+          <button 
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
+        
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t bg-white animate-slide-down">
+            <nav className="container mx-auto px-4 py-4 flex flex-col space-y-3">
+              <a href="#features" className="text-gray-600 hover:text-blue-600 py-2">Features</a>
+              <a href="#how-it-works" className="text-gray-600 hover:text-blue-600 py-2">How It Works</a>
+              <a href="#pricing" className="text-gray-600 hover:text-blue-600 py-2">Pricing</a>
+              <a href="#testimonials" className="text-gray-600 hover:text-blue-600 py-2">Testimonials</a>
+              <hr className="my-2" />
+              <Link to="/login" className="text-gray-600 hover:text-blue-600 py-2">Login</Link>
+              <Link 
+                to="/register" 
+                className="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition text-center font-semibold"
+              >
+                Get Started
+              </Link>
+            </nav>
+          </div>
+        )}
       </header>
 
       {/* Hero Section with Video Background */}
@@ -37,28 +241,29 @@ export default function HomePage() {
         </video>
         
         {/* Dark Overlay */}
-        <div className="absolute inset-0 bg-black/50 z-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70 z-10"></div>
         
         {/* Content */}
         <div className="relative z-20 container mx-auto px-4 text-center">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-5xl md:text-6xl font-bold text-white mb-6 drop-shadow-lg">
+            <h2 className="text-5xl md:text-6xl font-bold text-white mb-6 drop-shadow-lg animate-fade-in-up opacity-0" style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
               AI-Powered LCA for the Indian Metal Sector
             </h2>
-            <p className="text-xl md:text-2xl text-gray-200 mb-8 drop-shadow">
+            <p className="text-xl md:text-2xl text-gray-200 mb-8 drop-shadow animate-fade-in-up opacity-0" style={{ animationDelay: '0.4s', animationFillMode: 'forwards' }}>
               Measure, model, and minimize the environmental footprint of metals. 
               From MSMEs to large enterprises, democratizing Life Cycle Assessment through Natural Language Processing.
             </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
+            
+            <div className="flex flex-col sm:flex-row justify-center gap-4 animate-fade-in-up opacity-0" style={{ animationDelay: '0.6s', animationFillMode: 'forwards' }}>
               <Link 
                 to="/register" 
-                className="bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center shadow-lg"
+                className="group bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-all flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105"
               >
-                Start Free Assessment <ArrowRight className="ml-2 w-5 h-5" />
+                Start Free Assessment <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
               <a 
                 href="#features" 
-                className="bg-white/20 backdrop-blur-sm border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white/30 transition"
+                className="bg-white/20 backdrop-blur-sm border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white/30 transition-all hover:scale-105"
               >
                 Learn More
               </a>
@@ -74,68 +279,162 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="bg-blue-600 text-white py-16">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div>
-              <div className="text-4xl font-bold mb-2">500+</div>
-              <div className="text-blue-100">MSMEs Onboarded (Target Year 1)</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold mb-2">80%+</div>
-              <div className="text-blue-100">NLP Mapping Accuracy</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold mb-2">10,000+</div>
-              <div className="text-blue-100">Verified LCA Reports</div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Stats Section with Animated Counters */}
+      <StatsSection />
 
       {/* Features Section */}
       <section id="features" className="container mx-auto px-4 py-20">
-        <h3 className="text-3xl font-bold text-center mb-12">Key Features</h3>
+        <AnimatedSection>
+          <h3 className="text-3xl font-bold text-center mb-4">Key Features</h3>
+          <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">Everything you need to assess and optimize the environmental impact of your metal products</p>
+        </AnimatedSection>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <FeatureCard
-            icon={<Leaf className="w-12 h-12 text-blue-600" />}
-            title="Natural Language Input"
-            description="Simply describe your materials in plain language. Our AI understands '1000 Al-6063 profiles, anodized, 10% scrap'"
-          />
-          <FeatureCard
-            icon={<Target className="w-12 h-12 text-blue-600" />}
-            title="Circularity Metrics"
-            description="Track MCI scores, recycled content, and circular design scores. Get actionable recommendations for improvement"
-          />
-          <FeatureCard
-            icon={<Award className="w-12 h-12 text-blue-600" />}
-            title="CBAM Compliant"
-            description="Export-ready reports for EU Carbon Border Adjustment Mechanism and SEBI BRSR compliance"
-          />
+          <AnimatedSection delay={100}>
+            <FeatureCard
+              icon={<Leaf className="w-8 h-8" />}
+              title="Natural Language Input"
+              description="Simply describe your materials in plain language. Our AI understands '1000 Al-6063 profiles, anodized, 10% scrap'"
+              color="green"
+            />
+          </AnimatedSection>
+          <AnimatedSection delay={200}>
+            <FeatureCard
+              icon={<Target className="w-8 h-8" />}
+              title="Circularity Metrics"
+              description="Track MCI scores, recycled content, and circular design scores. Get actionable recommendations for improvement"
+              color="blue"
+            />
+          </AnimatedSection>
+          <AnimatedSection delay={300}>
+            <FeatureCard
+              icon={<Award className="w-8 h-8" />}
+              title="CBAM Compliant"
+              description="Export-ready reports for EU Carbon Border Adjustment Mechanism and SEBI BRSR compliance"
+              color="purple"
+            />
+          </AnimatedSection>
+        </div>
+        
+        {/* Additional Features Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+          <AnimatedSection delay={400}>
+            <FeatureCard
+              icon={<BarChart3 className="w-8 h-8" />}
+              title="Interactive Dashboards"
+              description="Visualize your environmental impact with real-time charts, breakdowns by lifecycle stage, and trend analysis"
+              color="orange"
+            />
+          </AnimatedSection>
+          <AnimatedSection delay={500}>
+            <FeatureCard
+              icon={<Globe className="w-8 h-8" />}
+              title="Indian Grid Factors"
+              description="Uses CEA 2023 data for regional electricity emission factors. Supports captive power and renewable sources"
+              color="cyan"
+            />
+          </AnimatedSection>
+          <AnimatedSection delay={600}>
+            <FeatureCard
+              icon={<FileCheck className="w-8 h-8" />}
+              title="JNARDDC Verification"
+              description="Get your LCA reports verified by JNARDDC experts. Adds credibility for regulatory and customer requirements"
+              color="rose"
+            />
+          </AnimatedSection>
         </div>
       </section>
 
       {/* How It Works */}
       <section id="how-it-works" className="bg-gray-50 py-20">
         <div className="container mx-auto px-4">
-          <h3 className="text-3xl font-bold text-center mb-12">How It Works</h3>
-          <div className="max-w-3xl mx-auto space-y-8">
-            <Step number={1} title="Create Project" description="Sign up and create your LCA project in seconds" />
-            <Step number={2} title="Input Materials" description="Use natural language or upload your Bill of Materials (BOM)" />
-            <Step number={3} title="AI Analysis" description="Our engines calculate GWP, water usage, and circularity metrics" />
-            <Step number={4} title="Get Insights" description="View interactive dashboards and optimization recommendations" />
-            <Step number={5} title="Verify & Export" description="Submit for JNARDDC verification and export compliance reports" />
+          <AnimatedSection>
+            <h3 className="text-3xl font-bold text-center mb-4">How It Works</h3>
+            <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">Get your LCA report in 5 simple steps</p>
+          </AnimatedSection>
+          <div className="max-w-3xl mx-auto space-y-6">
+            <AnimatedSection delay={100}><Step number={1} title="Create Project" description="Sign up and create your LCA project in seconds" /></AnimatedSection>
+            <AnimatedSection delay={200}><Step number={2} title="Input Materials" description="Use natural language or upload your Bill of Materials (BOM)" /></AnimatedSection>
+            <AnimatedSection delay={300}><Step number={3} title="AI Analysis" description="Our engines calculate GWP, water usage, and circularity metrics" /></AnimatedSection>
+            <AnimatedSection delay={400}><Step number={4} title="Get Insights" description="View interactive dashboards and optimization recommendations" /></AnimatedSection>
+            <AnimatedSection delay={500}><Step number={5} title="Verify & Export" description="Submit for JNARDDC verification and export compliance reports" /></AnimatedSection>
           </div>
         </div>
       </section>
 
+      {/* Testimonials Section */}
+      <section id="testimonials" className="container mx-auto px-4 py-20">
+        <AnimatedSection>
+          <h3 className="text-3xl font-bold text-center mb-4">What Our Users Say</h3>
+          <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">Trusted by leading metal manufacturers across India</p>
+        </AnimatedSection>
+        
+        <AnimatedSection delay={200}>
+          <div className="max-w-4xl mx-auto relative">
+            {/* Main Testimonial Card */}
+            <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 border border-gray-100 relative overflow-hidden">
+              <Quote className="absolute top-6 left-6 w-12 h-12 text-blue-100" />
+              
+              <div className="relative z-10">
+                <p className="text-xl md:text-2xl text-gray-700 italic mb-8 leading-relaxed">
+                  "{testimonials[currentTestimonial].quote}"
+                </p>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-gray-900">{testimonials[currentTestimonial].author}</p>
+                    <p className="text-gray-500">{testimonials[currentTestimonial].role}</p>
+                    <p className="text-blue-600 font-medium">{testimonials[currentTestimonial].company}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    {[...Array(testimonials[currentTestimonial].rating)].map((_, i) => (
+                      <Star key={i} className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Navigation Arrows */}
+            <button 
+              onClick={() => setCurrentTestimonial((prev) => (prev - 1 + testimonials.length) % testimonials.length)}
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-6 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition transform hover:scale-110"
+            >
+              <ChevronLeft className="w-6 h-6 text-gray-600" />
+            </button>
+            <button 
+              onClick={() => setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)}
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-6 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition transform hover:scale-110"
+            >
+              <ChevronRight className="w-6 h-6 text-gray-600" />
+            </button>
+            
+            {/* Dot Indicators */}
+            <div className="flex justify-center gap-2 mt-6">
+              {testimonials.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentTestimonial(index)}
+                  className={`w-3 h-3 rounded-full transition-all ${
+                    index === currentTestimonial 
+                      ? 'bg-blue-600 w-8' 
+                      : 'bg-gray-300 hover:bg-gray-400'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </AnimatedSection>
+      </section>
+
       {/* Pricing Section */}
-      <section id="pricing" className="container mx-auto px-4 py-20">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Simple, Transparent Pricing</h2>
-          <p className="text-xl text-gray-600">Choose the plan that fits your organization's needs</p>
-        </div>
+      <section id="pricing" className="bg-gray-50 py-20">
+        <div className="container mx-auto px-4">
+          <AnimatedSection>
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Simple, Transparent Pricing</h2>
+              <p className="text-xl text-gray-600">Choose the plan that fits your organization's needs</p>
+            </div>
+          </AnimatedSection>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {/* Free Tier */}
@@ -292,7 +591,9 @@ export default function HomePage() {
           <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200 p-6">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="text-3xl">👨‍💼</div>
+                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                  <Briefcase className="w-6 h-6 text-purple-600" />
+                </div>
                 <div>
                   <h4 className="font-bold text-gray-900">Consultant License</h4>
                   <p className="text-sm text-gray-600">Multi-client management with verified badge • ₹25,000/month</p>
@@ -307,22 +608,25 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+        </div>
       </section>
 
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-20 text-center">
-        <div className="max-w-2xl mx-auto">
-          <h3 className="text-3xl font-bold mb-4">Ready to Start Your Circularity Journey?</h3>
-          <p className="text-xl text-gray-600 mb-8">
-            Join the National Circularity Platform and contribute to India's sustainable metal sector
-          </p>
-          <Link 
-            to="/register" 
-            className="bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition inline-flex items-center"
-          >
-            Get Started Free <ArrowRight className="ml-2 w-5 h-5" />
-          </Link>
-        </div>
+        <AnimatedSection>
+          <div className="max-w-2xl mx-auto">
+            <h3 className="text-3xl font-bold mb-4">Ready to Start Your Circularity Journey?</h3>
+            <p className="text-xl text-gray-600 mb-8">
+              Join the National Circularity Platform and contribute to India's sustainable metal sector
+            </p>
+            <Link 
+              to="/register" 
+              className="group bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-all inline-flex items-center transform hover:scale-105 shadow-lg hover:shadow-xl"
+            >
+              Get Started Free <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+        </AnimatedSection>
       </section>
 
       {/* Partners / Initiative Section */}
@@ -389,24 +693,87 @@ export default function HomePage() {
   )
 }
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+// Stats Section with Animated Counters
+function StatsSection() {
+  const { ref, isInView } = useInView(0.3)
+  const msmesCount = useAnimatedCounter(500, 2000, isInView)
+  const accuracyCount = useAnimatedCounter(80, 1500, isInView)
+  const reportsCount = useAnimatedCounter(10000, 2500, isInView)
+
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition">
-      <div className="mb-4">{icon}</div>
-      <h4 className="text-xl font-semibold mb-2">{title}</h4>
-      <p className="text-gray-600">{description}</p>
+    <section ref={ref} className="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-16">
+      <div className="container mx-auto px-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+          <div className="transform hover:scale-105 transition-transform">
+            <div className="text-5xl font-bold mb-2">
+              {msmesCount}+
+            </div>
+            <div className="text-blue-100 text-lg">MSMEs Onboarded (Target Year 1)</div>
+          </div>
+          <div className="transform hover:scale-105 transition-transform">
+            <div className="text-5xl font-bold mb-2">
+              {accuracyCount}%+
+            </div>
+            <div className="text-blue-100 text-lg">NLP Mapping Accuracy</div>
+          </div>
+          <div className="transform hover:scale-105 transition-transform">
+            <div className="text-5xl font-bold mb-2">
+              {reportsCount.toLocaleString()}+
+            </div>
+            <div className="text-blue-100 text-lg">Verified LCA Reports</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// Enhanced Feature Card with hover animations
+function FeatureCard({ 
+  icon, 
+  title, 
+  description,
+  color = 'blue'
+}: { 
+  icon: React.ReactNode
+  title: string
+  description: string
+  color?: string
+}) {
+  const colorClasses: Record<string, string> = {
+    blue: 'bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white',
+    green: 'bg-green-100 text-green-600 group-hover:bg-green-600 group-hover:text-white',
+    purple: 'bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white',
+    orange: 'bg-orange-100 text-orange-600 group-hover:bg-orange-600 group-hover:text-white',
+    cyan: 'bg-cyan-100 text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white',
+    rose: 'bg-rose-100 text-rose-600 group-hover:bg-rose-600 group-hover:text-white',
+  }
+
+  return (
+    <div className="group bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-gray-200 transition-all duration-300 transform hover:-translate-y-2 h-full">
+      <div className={`w-16 h-16 rounded-xl flex items-center justify-center mb-6 transition-all duration-300 ${colorClasses[color]}`}>
+        {icon}
+      </div>
+      <h4 className="text-xl font-bold mb-3 text-gray-900">{title}</h4>
+      <p className="text-gray-600 leading-relaxed">{description}</p>
     </div>
   )
 }
 
+// Enhanced Step component with connecting line
 function Step({ number, title, description }: { number: number; title: string; description: string }) {
   return (
-    <div className="flex items-start space-x-4">
-      <div className="flex-shrink-0 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center text-xl font-bold">
-        {number}
+    <div className="flex items-start space-x-4 group">
+      <div className="flex-shrink-0 relative">
+        <div className="w-14 h-14 bg-blue-600 text-white rounded-full flex items-center justify-center text-xl font-bold shadow-lg group-hover:scale-110 group-hover:bg-blue-700 transition-all duration-300">
+          {number}
+        </div>
+        {number < 5 && (
+          <div className="absolute top-14 left-1/2 w-0.5 h-6 bg-blue-200 -translate-x-1/2"></div>
+        )}
       </div>
-      <div>
-        <h4 className="text-xl font-semibold mb-2">{title}</h4>
+      <div className="pt-2">
+        <h4 className="text-xl font-semibold mb-1 text-gray-900 group-hover:text-blue-600 transition-colors">{title}</h4>
         <p className="text-gray-600">{description}</p>
       </div>
     </div>

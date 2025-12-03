@@ -99,6 +99,14 @@ export const projectsApi = {
   },
 
   /**
+   * Get action hotspots (Stuck to Address) for a project
+   */
+  getActionHotspots: async (projectId: string): Promise<ActionHotspotsResult> => {
+    const response = await api.get(`/projects/${projectId}/action-hotspots`)
+    return response.data
+  },
+
+  /**
    * Get verification status
    */
   getVerificationStatus: async (projectId: string): Promise<VerificationStatus> => {
@@ -269,6 +277,49 @@ export interface AIDesignInsight {
   category: 'technology' | 'supply_chain' | 'regulatory' | 'cost_benefit' | 'circular_economy'
   impact_potential: 'high' | 'medium' | 'low'
   implementation_timeframe: 'short_term' | 'medium_term' | 'long_term'
+}
+
+// Action Hotspots (Stuck to Address) Types
+export interface ActionHotspot {
+  id: string
+  rank: number
+  type: 'high_impact_material' | 'recycled_content' | 'transport_optimization' | 'circularity' | 'design_for_disassembly' | 'scrap_recovery'
+  priority: 'critical' | 'high' | 'medium' | 'low'
+  title: string
+  description: string
+  material_name?: string
+  material_type?: string
+  current_value?: number
+  recommended_value?: number
+  contribution_percent: number
+  impact: {
+    gwp_savings_kg?: number
+    gwp_savings_percent?: number
+    mci_improvement?: number
+    recycled_output_improvement?: number
+    cost_impact?: string
+  }
+  confidence: number
+  suggestions?: string[]
+  suppliers?: {
+    name: string
+    location: string
+    recycled_content: number
+  }[]
+}
+
+export interface ActionHotspotsResult {
+  hotspots: ActionHotspot[]
+  total_hotspots: number
+  total_gwp: number
+  mci_score: number
+  project_name: string
+  ai_insights?: {
+    text: string
+    model: string
+    generated_at: string
+  }
+  message?: string
 }
 
 // NLP Parsing Types

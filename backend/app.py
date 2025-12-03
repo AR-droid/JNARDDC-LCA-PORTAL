@@ -8714,6 +8714,353 @@ def brsr_export_excel(project_id):
         return jsonify({"detail": str(e)}), 500
 
 
+# =====================================================
+# STUCK TO ADDRESS - ACTION HOTSPOTS API
+# =====================================================
+
+@app.route('/api/v1/projects/<project_id>/action-hotspots', methods=['GET', 'OPTIONS'])
+def get_action_hotspots(project_id):
+    """
+    Get prioritized action hotspots for a project.
+    This is the "Stuck to Address" module - transforms LCA data into a ranked 
+    list of actionable improvement opportunities.
+    """
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Get project
+        c.execute("""SELECT id, name, description, status, product_category, 
+                     target_lifespan, is_designed_for_disassembly, user_id, 
+                     COALESCE(gwp_total, 0), COALESCE(mci_score, 0), 
+                     COALESCE(circular_design_score, 0), created_at 
+                     FROM projects WHERE id = ? AND user_id = ?""", (project_id, payload['user_id']))
+        project = c.fetchone()
+        
+        if not project:
+            conn.close()
+            return jsonify({"detail": "Project not found"}), 404
+        
+        # Get materials
+        c.execute("""SELECT id, project_id, material_name, material_type, quantity, 
+                     unit, recycled_content, gwp, transport_distance, created_at 
+                     FROM project_materials WHERE project_id = ?""", (project_id,))
+        materials = c.fetchall()
+        conn.close()
+        
+        if not materials:
+            return jsonify({
+                "hotspots": [],
+                "total_hotspots": 0,
+                "message": "Add materials to get action hotspots"
+            }), 200
+        
+        # Calculate total GWP
+        total_gwp = sum(m[7] or 0 for m in materials)
+        
+        # Generate hotspots
+        hotspots = []
+        rank = 1
+        
+        # Analyze materials by GWP contribution
+        material_analysis = []
+        for mat in materials:
+            mat_id, proj_id, mat_name, mat_type, quantity, unit, recycled_content, gwp, transport_dist, created = mat
+            gwp_contribution = (gwp / total_gwp * 100) if total_gwp > 0 else 0
+            
+            material_analysis.append({
+                'id': mat_id,
+                'name': mat_name,
+                'type': mat_type,
+                'quantity': quantity,
+                'recycled_content': recycled_content or 0,
+                'gwp': gwp or 0,
+                'gwp_contribution': gwp_contribution,
+                'transport_distance': transport_dist or 0
+            })
+        
+        # Sort by GWP contribution (highest first)
+        material_analysis.sort(key=lambda x: x['gwp_contribution'], reverse=True)
+        
+        # Max recycled content limits by material type
+        max_recycled_limits = {
+            'aluminium_primary': 75, 'aluminium_secondary': 95,
+            'steel_primary': 85, 'steel_secondary': 100,
+            'copper_primary': 60, 'copper_secondary': 90,
+            'lithium': 25, 'cobalt': 40, 'nickel': 60,
+        }
+        
+        # Hotspot 1: Highest GWP contributor
+        if material_analysis and material_analysis[0]['gwp_contribution'] > 15:
+            top = material_analysis[0]
+            max_recycled = max_recycled_limits.get(top['type'], 50)
+            current_recycled = top['recycled_content']
+            potential_savings = (max_recycled - current_recycled) * 0.9 if current_recycled < max_recycled else 0
+            
+            # Build description based on recycled content potential
+            if current_recycled < max_recycled:
+                savings_text = f"Switching to {max_recycled}% recycled content could reduce GWP by {potential_savings:.0f}%."
+            else:
+                savings_text = "Already using good recycled content."
+            
+            hotspots.append({
+                'id': f'hotspot-{rank}',
+                'rank': rank,
+                'type': 'high_impact_material',
+                'priority': 'critical' if top['gwp_contribution'] > 40 else 'high',
+                'title': f"{top['name'] or top['type']}",
+                'description': f"Contributes {top['gwp_contribution']:.0f}% of your total carbon footprint. {savings_text}",
+                'material_name': top['name'],
+                'material_type': top['type'],
+                'current_value': current_recycled,
+                'recommended_value': max_recycled,
+                'contribution_percent': top['gwp_contribution'],
+                'impact': {
+                    'gwp_savings_kg': top['gwp'] * (potential_savings / 100) if potential_savings > 0 else 0,
+                    'gwp_savings_percent': potential_savings,
+                    'cost_impact': 'neutral_to_positive'
+                },
+                'confidence': 0.92,
+                'suggestions': [
+                    'Source from certified recycled metal suppliers',
+                    'Request material certificates from suppliers',
+                    'Consider Make in India alternatives'
+                ],
+                'suppliers': get_indian_suppliers(top['type'])
+            })
+            rank += 1
+        
+        # Hotspot 2: Low recycled content opportunity
+        low_recycled = [m for m in material_analysis if m['recycled_content'] < 30 and m['gwp_contribution'] > 10]
+        if low_recycled:
+            mat = low_recycled[0]
+            max_recycled = max_recycled_limits.get(mat['type'], 50)
+            
+            hotspots.append({
+                'id': f'hotspot-{rank}',
+                'rank': rank,
+                'type': 'recycled_content',
+                'priority': 'high',
+                'title': f"Low Recycled Content: {mat['name'] or mat['type']}",
+                'description': f"Currently using only {mat['recycled_content']}% recycled content. "
+                              f"Industry best practice for {mat['type']} allows up to {max_recycled}% without quality compromise.",
+                'material_name': mat['name'],
+                'material_type': mat['type'],
+                'current_value': mat['recycled_content'],
+                'recommended_value': max_recycled,
+                'contribution_percent': mat['gwp_contribution'],
+                'impact': {
+                    'gwp_savings_percent': (max_recycled - mat['recycled_content']) * 0.9,
+                    'cost_impact': 'positive'
+                },
+                'confidence': 0.88,
+                'suggestions': [
+                    f"Increase recycled content to {max_recycled}%",
+                    'Verify supplier can meet quality specs',
+                    'Request test samples before full commitment'
+                ],
+                'suppliers': get_indian_suppliers(mat['type'])
+            })
+            rank += 1
+        
+        # Hotspot 3: High transport distance
+        high_transport = [m for m in material_analysis if m['transport_distance'] > 500]
+        if high_transport:
+            high_transport.sort(key=lambda x: x['transport_distance'], reverse=True)
+            mat = high_transport[0]
+            transport_gwp = (mat['quantity'] / 1000) * mat['transport_distance'] * 0.062
+            local_gwp = (mat['quantity'] / 1000) * 100 * 0.062
+            savings = transport_gwp - local_gwp
+            
+            hotspots.append({
+                'id': f'hotspot-{rank}',
+                'rank': rank,
+                'type': 'transport_optimization',
+                'priority': 'medium',
+                'title': f"Long Supply Chain: {mat['name'] or mat['type']}",
+                'description': f"Material transported {mat['transport_distance']}km. "
+                              f"Local sourcing (within 100km) could reduce transport emissions by {(savings / mat['gwp'] * 100):.0f}% if available.",
+                'material_name': mat['name'],
+                'material_type': mat['type'],
+                'current_value': mat['transport_distance'],
+                'recommended_value': 100,
+                'contribution_percent': mat['gwp_contribution'],
+                'impact': {
+                    'gwp_savings_kg': savings,
+                    'gwp_savings_percent': (savings / mat['gwp'] * 100) if mat['gwp'] > 0 else 0
+                },
+                'confidence': 0.75,
+                'suggestions': [
+                    'Explore Make in India alternatives',
+                    'Consolidate shipments to reduce trips',
+                    'Consider rail over road for long distances'
+                ]
+            })
+            rank += 1
+        
+        # Hotspot 4: MCI improvement
+        mci_score = project[9]
+        if mci_score < 0.6:
+            hotspots.append({
+                'id': f'hotspot-{rank}',
+                'rank': rank,
+                'type': 'circularity',
+                'priority': 'high' if mci_score < 0.3 else 'medium',
+                'title': 'Low Circularity Score',
+                'description': f"Your MCI score is {(mci_score * 100):.0f}/100. "
+                              f"Industry leaders achieve 60-80. Focus on design for disassembly and end-of-life recovery.",
+                'contribution_percent': 0,
+                'impact': {
+                    'mci_improvement': 20,
+                    'recycled_output_improvement': 25
+                },
+                'confidence': 0.85,
+                'suggestions': [
+                    'Design for easy disassembly',
+                    'Mark materials with recycling codes',
+                    'Create take-back program',
+                    'Use modular design principles'
+                ]
+            })
+            rank += 1
+        
+        # Hotspot 5: Design for Disassembly
+        if not project[6]:  # is_designed_for_disassembly is False
+            hotspots.append({
+                'id': f'hotspot-{rank}',
+                'rank': rank,
+                'type': 'design_for_disassembly',
+                'priority': 'medium',
+                'title': 'Enable Design for Disassembly',
+                'description': 'Designing for easy disassembly improves end-of-life material recovery and MCI score by 10-15 points.',
+                'contribution_percent': 0,
+                'impact': {
+                    'mci_improvement': 12,
+                    'recycled_output_improvement': 20
+                },
+                'confidence': 0.85,
+                'suggestions': [
+                    'Use mechanical fasteners instead of adhesives',
+                    'Mark materials with recycling codes',
+                    'Create disassembly instructions',
+                    'Use modular component design'
+                ]
+            })
+            rank += 1
+        
+        # Add AI insights if Groq is available
+        ai_insights = None
+        if groq_client and hotspots:
+            ai_insights = generate_groq_hotspot_insights(project, material_analysis, hotspots[:3])
+        
+        return jsonify({
+            'hotspots': hotspots[:5],  # Top 5 hotspots
+            'total_hotspots': len(hotspots),
+            'total_gwp': total_gwp,
+            'mci_score': mci_score,
+            'ai_insights': ai_insights,
+            'project_name': project[1]
+        }), 200
+        
+    except Exception as e:
+        print(f"Action Hotspots Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"detail": str(e)}), 500
+
+
+def get_indian_suppliers(material_type):
+    """Get list of Indian suppliers for a material type"""
+    suppliers = {
+        'aluminium_primary': [
+            {'name': 'Hindalco Industries', 'location': 'Mumbai, Maharashtra', 'recycled_content': 75},
+            {'name': 'Vedanta Aluminium', 'location': 'Jharsuguda, Odisha', 'recycled_content': 60},
+            {'name': 'NALCO', 'location': 'Bhubaneswar, Odisha', 'recycled_content': 50},
+        ],
+        'aluminium_secondary': [
+            {'name': 'Hindalco Industries', 'location': 'Mumbai, Maharashtra', 'recycled_content': 95},
+            {'name': 'Vedanta Aluminium', 'location': 'Jharsuguda, Odisha', 'recycled_content': 90},
+        ],
+        'steel_primary': [
+            {'name': 'JSW Steel', 'location': 'Vijayanagar, Karnataka', 'recycled_content': 85},
+            {'name': 'Tata Steel', 'location': 'Jamshedpur, Jharkhand', 'recycled_content': 80},
+            {'name': 'SAIL', 'location': 'Bokaro, Jharkhand', 'recycled_content': 70},
+        ],
+        'copper_primary': [
+            {'name': 'Hindustan Copper Ltd', 'location': 'Khetri, Rajasthan', 'recycled_content': 60},
+            {'name': 'Sterlite Copper', 'location': 'Tuticorin, Tamil Nadu', 'recycled_content': 55},
+        ],
+    }
+    
+    # Check for partial matches
+    for key, value in suppliers.items():
+        if material_type and key.startswith(material_type.split('_')[0]):
+            return value
+    
+    return suppliers.get(material_type, [])
+
+
+def generate_groq_hotspot_insights(project, materials, top_hotspots):
+    """Generate AI insights for action hotspots using Groq LLM"""
+    if not groq_client:
+        return None
+    
+    try:
+        # Build context for AI
+        material_summary = "\n".join([
+            f"- {m['name'] or m['type']}: {m['quantity']}kg, {m['recycled_content']}% recycled, {m['gwp']:.1f} kg CO2-eq ({m['gwp_contribution']:.1f}% of total)"
+            for m in materials[:5]
+        ])
+        
+        hotspot_summary = "\n".join([
+            f"- #{h['rank']} {h['title']}: {h['description'][:100]}..."
+            for h in top_hotspots
+        ])
+        
+        prompt = f"""You are an expert LCA consultant for the Indian metals industry. Analyze these improvement opportunities for project "{project[1]}":
+
+MATERIALS:
+{material_summary}
+
+TOP HOTSPOTS:
+{hotspot_summary}
+
+Provide 2-3 specific, actionable insights that are:
+1. Relevant to Indian manufacturing context (Make in India perspective)
+2. Focused on practical steps the manufacturer can take THIS MONTH
+3. Include specific Indian regulations or standards where applicable
+
+Format: Brief bullet points, no more than 3 insights, each 1-2 sentences."""
+
+        response = groq_client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=300
+        )
+        
+        insights = response.choices[0].message.content.strip()
+        return {
+            'text': insights,
+            'model': GROQ_MODEL,
+            'generated_at': datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        print(f"Groq Hotspot Insights Error: {e}")
+        return None
+
+
 if __name__ == '__main__':
     # Initialize databases
     conn = sqlite3.connect(DATABASE)

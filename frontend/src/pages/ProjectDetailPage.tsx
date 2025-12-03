@@ -7,6 +7,7 @@ import ProjectEditModal from '../components/ProjectEditModal'
 import BOMUploadModal from '../components/BOMUploadModal'
 import SupplyChainUploadModal from '../components/SupplyChainUploadModal'
 import SupplyChainMap from '../components/SupplyChainMap'
+import ActionHotspots from '../components/ActionHotspots'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon, UploadIcon, PlusIcon, PackageIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
 import { FileSpreadsheet, Sparkles, MapPin, Truck, Train, Ship, Plane } from 'lucide-react'
@@ -401,6 +402,28 @@ export default function ProjectDetailPage() {
             )}
           </div>
         </div>
+
+        {/* Action Hotspots - Stuck to Address Module */}
+        {materials.length > 0 && (
+          <div className="mb-5">
+            <ActionHotspots
+              projectId={id || ''}
+              projectName={project.name}
+              totalGWP={totalGWP}
+              mciScore={project.mci_score || 0}
+              materials={materials}
+              onActionClick={(action, hotspot) => {
+                console.log('Action clicked:', action, hotspot)
+                // Handle custom actions like navigating to specific pages
+                if (action === 'mci_calc') {
+                  navigate(`/projects/${id}/analytics`)
+                } else if (action === 'calculate_roi') {
+                  navigate(`/projects/${id}/scenario`)
+                }
+              }}
+            />
+          </div>
+        )}
 
         {/* JNARDDC Verification Section */}
         <div className="bg-white rounded-lg shadow p-5 mb-5">

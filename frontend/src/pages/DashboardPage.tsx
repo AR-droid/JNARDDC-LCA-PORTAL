@@ -5,6 +5,7 @@ import { projectsApi, getDashboardAnalytics, DashboardAnalytics } from '../api/p
 import { GWPBreakdownChart, MCIGauge } from '../components/charts';
 import { PlusIcon } from '../components/Icons';
 import { Rocket, Package, Users } from 'lucide-react';
+import OnboardingWizard from '../components/OnboardingWizard';
 
 export default function DashboardPage() {
   const { user, checkAuth } = useAuthStore();
@@ -16,12 +17,23 @@ export default function DashboardPage() {
     avgGwp: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     // Refresh user data to get latest project_count
     checkAuth();
     loadDashboardData();
   }, []);
+
+  // Check if we should show onboarding
+  useEffect(() => {
+    if (!isLoading && projects.length === 0) {
+      const onboardingCompleted = localStorage.getItem('onboarding_completed');
+      if (!onboardingCompleted) {
+        setShowOnboarding(true);
+      }
+    }
+  }, [isLoading, projects]);
 
   const loadDashboardData = async () => {
     try {
@@ -52,25 +64,50 @@ export default function DashboardPage() {
     }
   };
 
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+    loadDashboardData(); // Reload to show the new project
+  };
+
+  const handleOnboardingSkip = () => {
+    setShowOnboarding(false);
+    localStorage.setItem('onboarding_completed', 'true');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Onboarding Wizard Modal */}
+      {showOnboarding && (
+        <OnboardingWizard
+          onComplete={handleOnboardingComplete}
+          onSkip={handleOnboardingSkip}
+        />
+      )}
+
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">
-              Welcome back, {user?.full_name || user?.email?.split('@')[0] || 'User'}!
-            </h1>
-            <p className="text-gray-600">
-              {user?.organization_name && `${user.organization_name} • `}
-              Track your environmental impact and circularity metrics
-            </p>
+        {/* Welcome Banner with Background */}
+        <div 
+          className="relative mb-8 rounded-xl overflow-hidden bg-cover bg-center"
+          style={{ backgroundImage: "url('/images/banner.jpg')" }}
+        >
+          <div className="absolute inset-0 bg-black/50"></div>
+          <div className="relative z-10 flex items-center justify-between p-6">
+            <div>
+              <h1 className="text-3xl font-bold mb-2 text-white">
+                Welcome back, {user?.full_name || user?.email?.split('@')[0] || 'User'}!
+              </h1>
+              <p className="text-gray-200">
+                {user?.organization_name && `${user.organization_name} • `}
+                Track your environmental impact and circularity metrics
+              </p>
+            </div>
+            <Link
+              to="/projects/new"
+              className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition font-medium shadow-sm"
+            >
+              <PlusIcon size={18} /> New Project
+            </Link>
           </div>
-          <Link
-            to="/projects/new"
-            className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition font-medium shadow-sm"
-          >
-            <PlusIcon size={18} /> New Project
-          </Link>
         </div>
 
         {/* Subscription Status Card */}
@@ -155,24 +192,45 @@ export default function DashboardPage() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-2 text-gray-700">Total Projects</h3>
-            <p className="text-4xl font-bold text-blue-600">{stats.total}</p>
-            <p className="text-sm text-gray-500 mt-2">
-              {stats.total === 0 ? 'Get started by creating a project' : `${stats.calculated} calculated`}
-            </p>
+          <div 
+            className="relative p-6 rounded-lg shadow overflow-hidden bg-cover bg-center"
+            style={{ backgroundImage: "url('/images/project.jpg')" }}
+          >
+            {/* Dark overlay for readability */}
+            <div className="absolute inset-0 bg-black/50"></div>
+            <div className="relative z-10">
+              <h3 className="text-lg font-semibold mb-2 text-white">Total Projects</h3>
+              <p className="text-4xl font-bold text-blue-400">{stats.total}</p>
+              <p className="text-sm text-gray-200 mt-2">
+                {stats.total === 0 ? 'Get started by creating a project' : `${stats.calculated} calculated`}
+              </p>
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-2 text-gray-700">Total Carbon Footprint</h3>
-            <p className="text-4xl font-bold text-green-600">{analytics?.summary?.total_gwp?.toFixed(1) || stats.avgGwp.toFixed(1)}</p>
-            <p className="text-sm text-gray-500 mt-1">kg CO₂-eq across all projects</p>
-            <p className="text-2xs text-gray-400 italic mt-1">Source: IPCC AR6, Ecoinvent 3.9</p>
+          <div 
+            className="relative p-6 rounded-lg shadow overflow-hidden bg-cover bg-center"
+            style={{ backgroundImage: "url('/images/co2.jpg')" }}
+          >
+            {/* Dark overlay for readability */}
+            <div className="absolute inset-0 bg-black/50"></div>
+            <div className="relative z-10">
+              <h3 className="text-lg font-semibold mb-2 text-white">Total Carbon Footprint</h3>
+              <p className="text-4xl font-bold text-green-400">{analytics?.summary?.total_gwp?.toFixed(1) || stats.avgGwp.toFixed(1)}</p>
+              <p className="text-sm text-gray-200 mt-1">kg CO₂-eq across all projects</p>
+              <p className="text-2xs text-gray-300 italic mt-1">Source: IPCC AR6, Ecoinvent 3.9</p>
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-2 text-gray-700">Avg Circularity (MCI)</h3>
-            <p className="text-4xl font-bold text-purple-600">{((analytics?.summary?.avg_mci || 0) * 100).toFixed(0)}%</p>
-            <p className="text-sm text-gray-500 mt-1">Material Circularity Index</p>
-            <p className="text-2xs text-gray-400 italic mt-1">Ellen MacArthur Foundation</p>
+          <div 
+            className="relative p-6 rounded-lg shadow overflow-hidden bg-cover bg-center"
+            style={{ backgroundImage: "url('/images/recycle.jpg')" }}
+          >
+            {/* Dark overlay for readability */}
+            <div className="absolute inset-0 bg-black/50"></div>
+            <div className="relative z-10">
+              <h3 className="text-lg font-semibold mb-2 text-white">Avg Circularity (MCI)</h3>
+              <p className="text-4xl font-bold text-purple-400">{((analytics?.summary?.avg_mci || 0) * 100).toFixed(0)}%</p>
+              <p className="text-sm text-gray-200 mt-1">Material Circularity Index</p>
+              <p className="text-2xs text-gray-300 italic mt-1">Ellen MacArthur Foundation</p>
+            </div>
           </div>
         </div>
 

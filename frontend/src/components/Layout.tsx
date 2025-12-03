@@ -61,9 +61,9 @@ export default function Layout({ children }: NavbarProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <Link to="/" className="flex items-center space-x-2 text-xl font-bold text-blue-600">
+              <Link to="/" className="flex items-center space-x-2 text-xl font-bold">
                 <img src="/images/logo.png" alt="JNARDDC" className="w-8 h-8 object-contain" />
-                <span>JNARDDC LCA Portal</span>
+                <span className="text-blue-900">JNARDDC LCA Portal</span>
               </Link>
               {isAuthenticated && (
                 <div className="ml-10 flex space-x-4">

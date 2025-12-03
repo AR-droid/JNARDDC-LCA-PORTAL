@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { 
   calculateProjectLCIA, 
@@ -35,6 +35,70 @@ const categoryIcons: Record<string, JSX.Element> = {
   adp_fossil: <Factory className="w-5 h-5" />,
   water_use: <Droplets className="w-5 h-5" />,
   land_use: <Mountain className="w-5 h-5" />,
+}
+
+// Definitions for each impact category
+const categoryDefinitions: Record<string, { definition: string; relevance: string; example: string }> = {
+  gwp: {
+    definition: "Global Warming Potential (GWP) measures the heat trapped by greenhouse gases relative to CO₂ over 100 years.",
+    relevance: "Key indicator for climate change contribution. Critical for CBAM compliance and carbon footprint reporting.",
+    example: "1 kg of methane = 28 kg CO₂-eq"
+  },
+  ap: {
+    definition: "Acidification Potential (AP) measures emissions that cause acid rain, primarily SO₂ and NOₓ.",
+    relevance: "Impacts soil quality, freshwater ecosystems, and building materials. Important for regional air quality.",
+    example: "Coal power plants and metal smelting are major contributors"
+  },
+  ep: {
+    definition: "Eutrophication Potential (EP) measures nutrient enrichment in water bodies causing algal blooms.",
+    relevance: "Affects aquatic ecosystems and drinking water quality. Linked to fertilizer runoff and wastewater.",
+    example: "Excess nitrogen and phosphorus deplete oxygen in lakes"
+  },
+  odp: {
+    definition: "Ozone Depletion Potential (ODP) measures damage to the stratospheric ozone layer.",
+    relevance: "Regulated under Montreal Protocol. Most CFCs are banned; some industrial chemicals still contribute.",
+    example: "CFC-11 has ODP of 1.0 (reference substance)"
+  },
+  pocp: {
+    definition: "Photochemical Ozone Creation Potential (POCP) measures ground-level smog formation.",
+    relevance: "Causes respiratory issues and crop damage. VOCs and NOₓ from industrial processes are key sources.",
+    example: "Common in industrial zones and high-traffic areas"
+  },
+  htp: {
+    definition: "Human Toxicity Potential (HTP) measures toxic substances harmful to human health.",
+    relevance: "Includes heavy metals, pesticides, and industrial chemicals. Critical for worker safety and community health.",
+    example: "Lead, mercury, and cadmium are high contributors"
+  },
+  faetp: {
+    definition: "Freshwater Aquatic Ecotoxicity Potential measures toxic effects on freshwater organisms.",
+    relevance: "Protects fish, invertebrates, and aquatic plants. Mining effluents are major contributors.",
+    example: "Heavy metals in mine tailings contaminate rivers"
+  },
+  tetp: {
+    definition: "Terrestrial Ecotoxicity Potential measures toxic effects on land-based ecosystems.",
+    relevance: "Impacts soil organisms, plants, and wildlife. Related to pesticides and industrial emissions.",
+    example: "Zinc and copper from mining affect soil biodiversity"
+  },
+  adp_elements: {
+    definition: "Abiotic Depletion Potential (Elements) measures consumption of non-renewable mineral resources.",
+    relevance: "Critical for rare earths, lithium, and critical minerals. Key metric for circular economy and resource security.",
+    example: "Antimony is the reference element (ADP = 1)"
+  },
+  adp_fossil: {
+    definition: "Abiotic Depletion Potential (Fossil) measures consumption of fossil fuel resources.",
+    relevance: "Indicates dependency on coal, oil, and natural gas. Important for energy transition planning.",
+    example: "Measured in MJ of primary energy consumed"
+  },
+  water_use: {
+    definition: "Water Use measures freshwater consumption throughout the product lifecycle.",
+    relevance: "Critical in water-stressed regions like parts of India. Includes direct use and embedded water in materials.",
+    example: "Aluminium production requires ~15,000 liters per ton"
+  },
+  land_use: {
+    definition: "Land Use measures the area of land occupied or transformed for production.",
+    relevance: "Impacts biodiversity, habitat loss, and carbon sequestration. Mining has significant land footprint.",
+    example: "Open-pit mines can occupy thousands of hectares"
+  },
 }
 
 // Color mapping for LCIA categories
@@ -78,6 +142,25 @@ export default function LCIAPage() {
   const [error, setError] = useState<string | null>(null)
   const [gridRegion, setGridRegion] = useState('national_average')
   const [expandedMaterials, setExpandedMaterials] = useState<Set<number>>(new Set())
+  const [showTooltip, setShowTooltip] = useState<string | null>(null)
+  const tooltipRef = useRef<HTMLDivElement>(null)
+
+  // Close tooltip when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node)) {
+        setShowTooltip(null)
+      }
+    }
+
+    if (showTooltip) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showTooltip])
 
   useEffect(() => {
     if (projectId) {
@@ -290,12 +373,31 @@ export default function LCIAPage() {
               return (
                 <div
                   key={key}
-                  className={`rounded-lg border-2 p-4 ${categoryColors[key] || 'bg-gray-100 text-gray-700 border-gray-200'}`}
+                  className={`rounded-lg border-2 p-4 relative ${categoryColors[key] || 'bg-gray-100 text-gray-700 border-gray-200'}`}
                 >
                   <div className="flex items-center mb-2">
                     {categoryIcons[key] || <Gauge className="w-5 h-5" />}
                     <span className="ml-2 font-semibold text-sm">{meta.short_name}</span>
+                    <button
+                      onClick={() => setShowTooltip(showTooltip === key ? null : key)}
+                      className="ml-auto p-1 rounded-full hover:bg-white/30 transition-colors"
+                      title={`Learn about ${meta.short_name}`}
+                    >
+                      <Info className="w-4 h-4 opacity-60 hover:opacity-100" />
+                    </button>
                   </div>
+                  {/* Tooltip */}
+                  {showTooltip === key && categoryDefinitions[key] && (
+                    <div 
+                      ref={tooltipRef}
+                      className="absolute z-10 top-full left-0 right-0 mt-2 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg"
+                    >
+                      <div className="font-semibold mb-1">{meta.name}</div>
+                      <p className="leading-relaxed mb-2">{categoryDefinitions[key].definition}</p>
+                      <p className="text-gray-300 text-[10px] italic">{categoryDefinitions[key].relevance}</p>
+                      <div className="absolute -top-2 left-4 w-4 h-4 bg-gray-900 transform rotate-45"></div>
+                    </div>
+                  )}
                   <p className="text-2xl font-bold">{formatValue(value, meta.unit)}</p>
                   <p className="text-xs opacity-75">{meta.unit}</p>
                   <p className="text-xs mt-2 opacity-60">{meta.name}</p>

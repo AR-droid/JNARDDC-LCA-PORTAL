@@ -8,6 +8,7 @@ import ProjectDetailPage from './pages/ProjectDetailPage'
 import AnalysisPage from './pages/AnalysisPage'
 import ComparisonPage from './pages/ComparisonPage'
 import ScenarioPage from './pages/ScenarioPage'
+import ScenarioComparisonPage from './pages/ScenarioComparisonPage'
 import CreateProjectPage from './pages/CreateProjectPage'
 import RecommendationsPage from './pages/RecommendationsPage'
 import ProjectAnalyticsPage from './pages/ProjectAnalyticsPage'
@@ -78,6 +79,14 @@ function App() {
         />
         <Route
           path="/projects/:id/scenario"
+          element={
+            <ProtectedRoute>
+              <ScenarioComparisonPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projects/:id/scenario-old"
           element={
             <ProtectedRoute>
               <ScenarioPage />

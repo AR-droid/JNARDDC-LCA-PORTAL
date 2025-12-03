@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { projectsApi } from '../api/projects';
+import { Plus } from 'lucide-react';
 
 interface Project {
   id: string;
@@ -61,7 +62,7 @@ export default function ProjectsPage() {
             onClick={() => navigate('/projects/new')}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold shadow flex items-center gap-2"
           >
-            <span>🚀</span> New Project
+            <Plus className="w-5 h-5" /> New Project
           </button>
         </div>
 

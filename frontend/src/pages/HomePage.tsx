@@ -338,8 +338,16 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-gray-300 py-12">
-        <div className="container mx-auto px-4">
+      <footer className="bg-gray-900 text-gray-300">
+        {/* Footer Strip Image */}
+        <div className="w-full">
+          <img 
+            src="/images/footer.jpeg" 
+            alt="JNARDDC Footer Banner" 
+            className="w-full h-auto object-cover"
+          />
+        </div>
+        <div className="container mx-auto px-4 py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-3 mb-4">

@@ -56,7 +56,7 @@ export default function Layout({ children }: NavbarProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <nav className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
@@ -254,7 +254,16 @@ export default function Layout({ children }: NavbarProps) {
           </div>
         </div>
       </nav>
-      <main>{children}</main>
+      <main className="flex-1">{children}</main>
+      
+      {/* Footer Strip */}
+      <footer className="mt-auto">
+        <img 
+          src="/images/footer.jpeg" 
+          alt="JNARDDC Footer" 
+          className="w-full h-auto object-cover"
+        />
+      </footer>
       
       {/* Floating Chat Button - only for authenticated users */}
       {isAuthenticated && (

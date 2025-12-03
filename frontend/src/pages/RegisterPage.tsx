@@ -48,8 +48,14 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: "url('/images/reg-bg.jpg')" }}
+    >
+      {/* Dark overlay for better readability */}
+      <div className="absolute inset-0 bg-black/40"></div>
+      
+      <div className="relative z-10 max-w-md w-full bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 animate-fade-in-down">
         <div className="text-center mb-8">
           <img src="/images/logo.png" alt="JNARDDC" className="w-16 h-16 object-contain mx-auto mb-4" />
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>

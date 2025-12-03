@@ -177,6 +177,22 @@ body {
   line-height: 0.875rem;
 }
 
+/* Animation for login/register cards */
+@keyframes fade-in-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-down {
+  animation: fade-in-down 0.4s ease-out;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

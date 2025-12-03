@@ -23,8 +23,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: "url('/images/login-bg.jpg')" }}
+    >
+      {/* Dark overlay for better readability */}
+      <div className="absolute inset-0 bg-black/40"></div>
+      
+      <div className="relative z-10 max-w-md w-full bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 animate-fade-in-down">
+        {/* Logo inside card */}
         <div className="text-center mb-8">
           <img src="/images/logo.png" alt="JNARDDC" className="w-16 h-16 object-contain mx-auto mb-4" />
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
@@ -84,6 +91,12 @@ export default function LoginPage() {
               Sign up
             </Link>
           </p>
+        </div>
+        
+        <div className="mt-4 text-center">
+          <Link to="/" className="text-sm text-gray-500 hover:text-gray-700">
+            ← Back to Home
+          </Link>
         </div>
       </div>
     </div>

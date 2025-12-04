@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { aiChat } from '../api/projects'
-import { Mic, MicOff, Loader2 } from 'lucide-react'
+import { Mic, MicOff, Loader2, MessageSquarePlus } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
 
@@ -29,6 +29,88 @@ const renderMarkdown = (text: string): string => {
     .replace(/\n/g, '<br/>')
 }
 
+// Default quick questions
+const defaultQuickQuestions = [
+  "What is MCI?",
+  "How to reduce GWP?",
+  "Explain CBAM",
+  "Best materials for circularity"
+]
+
+// Generate contextual quick questions based on conversation
+const getContextualQuestions = (messages: Message[]): string[] => {
+  if (messages.length <= 1) return defaultQuickQuestions
+  
+  const lastMessages = messages.slice(-4)
+  const content = lastMessages.map(m => m.content.toLowerCase()).join(' ')
+  
+  // MCI/Circularity related
+  if (content.includes('mci') || content.includes('circularity') || content.includes('circular')) {
+    return [
+      "How to improve MCI score?",
+      "Recycled vs virgin materials",
+      "End-of-life recycling options",
+      "Circular design principles"
+    ]
+  }
+  // GWP/Carbon related
+  if (content.includes('gwp') || content.includes('carbon') || content.includes('emission') || content.includes('co2')) {
+    return [
+      "Top ways to reduce GWP",
+      "Low-carbon alternatives",
+      "Carbon offset strategies",
+      "Energy efficiency tips"
+    ]
+  }
+  // CBAM related
+  if (content.includes('cbam') || content.includes('eu') || content.includes('export') || content.includes('compliance')) {
+    return [
+      "CBAM reporting requirements",
+      "EU carbon pricing explained",
+      "Prepare for CBAM deadline",
+      "Required documentation"
+    ]
+  }
+  // Material related
+  if (content.includes('aluminium') || content.includes('steel') || content.includes('copper') || content.includes('metal')) {
+    return [
+      "Compare metal impacts",
+      "Recycled metal benefits",
+      "Sustainable sourcing",
+      "Material substitution options"
+    ]
+  }
+  // LCA related
+  if (content.includes('lca') || content.includes('lifecycle') || content.includes('assessment')) {
+    return [
+      "LCA methodology steps",
+      "Key impact categories",
+      "Interpret LCA results",
+      "System boundaries explained"
+    ]
+  }
+  // Manufacturing/Process related
+  if (content.includes('manufactur') || content.includes('process') || content.includes('production')) {
+    return [
+      "Energy-efficient processes",
+      "Reduce manufacturing waste",
+      "Green manufacturing tips",
+      "Process optimization"
+    ]
+  }
+  // Reduction/Improvement related
+  if (content.includes('reduce') || content.includes('improve') || content.includes('lower') || content.includes('decrease')) {
+    return [
+      "Quick wins for reduction",
+      "Long-term strategies",
+      "Cost-effective improvements",
+      "Benchmark against industry"
+    ]
+  }
+  
+  return defaultQuickQuestions
+}
+
 interface Message {
   role: 'user' | 'assistant'
   content: string
@@ -43,12 +125,12 @@ interface AIChatPanelProps {
 }
 
 export default function AIChatPanel({ projectId, initialContext, isOpen, onClose }: AIChatPanelProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: "Hello! I'm the JNARDDC LCA Assistant. I can help you understand environmental impacts, MCI scores, CBAM compliance, and provide recommendations for reducing your carbon footprint. What would you like to know?"
-    }
-  ])
+  const initialMessage: Message = {
+    role: 'assistant',
+    content: "Hello! I'm the JNARDDC LCA Assistant. I can help you understand environmental impacts, MCI scores, CBAM compliance, and provide recommendations for reducing your carbon footprint. What would you like to know?"
+  }
+  
+  const [messages, setMessages] = useState<Message[]>([initialMessage])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
@@ -57,9 +139,18 @@ export default function AIChatPanel({ projectId, initialContext, isOpen, onClose
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
 
+  // Contextual quick questions based on conversation
+  const quickQuestions = useMemo(() => getContextualQuestions(messages), [messages])
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Start a new chat
+  const handleNewChat = () => {
+    setMessages([initialMessage])
+    setInput('')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -162,17 +253,10 @@ export default function AIChatPanel({ projectId, initialContext, isOpen, onClose
     }
   }
 
-  const quickQuestions = [
-    "What is MCI?",
-    "How to reduce GWP?",
-    "Explain CBAM",
-    "Best materials for circularity"
-  ]
-
   if (!isOpen) return null
 
   return (
-    <div className="fixed bottom-4 right-4 w-96 h-[500px] bg-white rounded-xl shadow-2xl flex flex-col z-50 border border-gray-200">
+    <div className="fixed bottom-4 right-4 w-96 h-[550px] bg-white rounded-xl shadow-2xl flex flex-col z-50 border border-gray-200">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-600 to-purple-600 rounded-t-xl">
         <div className="flex items-center gap-2">
@@ -184,43 +268,52 @@ export default function AIChatPanel({ projectId, initialContext, isOpen, onClose
             <p className="text-xs text-blue-100">Powered by Groq</p>
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="text-white/80 hover:text-white transition"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* New Chat Button */}
+          <button
+            onClick={handleNewChat}
+            className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition"
+            title="New Chat"
+          >
+            <MessageSquarePlus className="w-5 h-5" />
+          </button>
+          <button
+            onClick={onClose}
+            className="text-white/80 hover:text-white transition"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-[80%] p-3 rounded-lg ${
-                msg.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-br-none'
-                  : 'bg-gray-100 text-gray-800 rounded-bl-none'
-              }`}
-            >
-              {msg.role === 'user' ? (
-                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-              ) : (
-                <div 
-                  className="text-sm prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
-                />
-              )}
-              {msg.source && (
-                <p className="text-xs mt-1 opacity-60">
-                  {msg.source === 'groq_ai' ? '✨ AI Response' : '📚 Knowledge Base'}
-                </p>
-              )}
+          <div key={index}>
+            <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div
+                className={`max-w-[85%] p-3 rounded-lg ${
+                  msg.role === 'user'
+                    ? 'bg-blue-600 text-white rounded-br-none'
+                    : 'bg-gray-100 text-gray-800 rounded-bl-none'
+                }`}
+              >
+                {msg.role === 'user' ? (
+                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                ) : (
+                  <div 
+                    className="text-sm prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
+                  />
+                )}
+                {msg.source && (
+                  <p className="text-xs mt-1 opacity-60">
+                    {msg.source === 'groq_ai' ? '✨ AI Response' : '📚 Knowledge Base'}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         ))}
@@ -238,23 +331,21 @@ export default function AIChatPanel({ projectId, initialContext, isOpen, onClose
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Quick Questions */}
-      {messages.length <= 2 && (
-        <div className="px-4 pb-2">
-          <p className="text-xs text-gray-500 mb-2">Quick questions:</p>
-          <div className="flex flex-wrap gap-2">
-            {quickQuestions.map((q, i) => (
-              <button
-                key={i}
-                onClick={() => setInput(q)}
-                className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
+      {/* Quick Questions - always show */}
+      <div className="px-4 pb-2 border-t pt-2">
+        <p className="text-xs text-gray-500 mb-2">Quick questions:</p>
+        <div className="flex flex-wrap gap-2">
+          {quickQuestions.map((q, i) => (
+            <button
+              key={i}
+              onClick={() => setInput(q)}
+              className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition"
+            >
+              {q}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
 
       {/* Input */}
       <form onSubmit={handleSubmit} className="p-4 border-t">

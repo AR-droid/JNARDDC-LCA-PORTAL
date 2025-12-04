@@ -155,41 +155,29 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-        ) : (
-          <div className={`rounded-xl p-5 mb-8 text-white ${
-            user?.tier === 'enterprise' ? 'bg-gradient-to-r from-purple-600 to-indigo-600' :
-            'bg-gradient-to-r from-blue-600 to-cyan-600'
-          }`}>
+        ) : user?.tier === 'pro' ? (
+          <div className="rounded-xl p-5 mb-8 text-white bg-gradient-to-r from-blue-600 to-cyan-600">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                  <span className="text-2xl">
-                    {user?.tier === 'enterprise' ? '🏢' : '⭐'}
-                  </span>
+                  <span className="text-2xl">⭐</span>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold mb-0.5">
-                    {user?.tier === 'enterprise' ? 'Enterprise' : 'Pro'} Plan
-                  </h3>
+                  <h3 className="text-lg font-bold mb-0.5">Pro Plan</h3>
                   <p className="text-white/80 text-sm">
-                    {user?.tier === 'pro'
-                      ? 'Unlimited projects • Pro features enabled'
-                      : 'Full access • Priority support • Custom integrations'
-                    }
+                    Unlimited projects • Pro features enabled
                   </p>
                 </div>
               </div>
-              {user?.tier === 'pro' && (
-                <Link
-                  to="/pricing"
-                  className="bg-white/20 text-white px-5 py-2 rounded-lg font-medium hover:bg-white/30 transition text-sm"
-                >
-                  View Enterprise
-                </Link>
-              )}
+              <Link
+                to="/pricing"
+                className="bg-white/20 text-white px-5 py-2 rounded-lg font-medium hover:bg-white/30 transition text-sm"
+              >
+                View Enterprise
+              </Link>
             </div>
           </div>
-        )}
+        ) : null}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div 

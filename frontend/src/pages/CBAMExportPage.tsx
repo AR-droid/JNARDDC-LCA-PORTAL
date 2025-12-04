@@ -139,7 +139,7 @@ export default function CBAMExportPage() {
   if (!hasAccess) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
             <Link to={`/projects/${id}`} className="text-blue-600 hover:text-blue-700">
               ← Back to Project
@@ -153,7 +153,7 @@ export default function CBAMExportPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">

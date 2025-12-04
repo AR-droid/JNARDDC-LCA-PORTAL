@@ -84,7 +84,7 @@ export default function DashboardPage() {
         />
       )}
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Banner with Background */}
         <div 
           className="relative mb-8 rounded-xl overflow-hidden bg-cover bg-center"

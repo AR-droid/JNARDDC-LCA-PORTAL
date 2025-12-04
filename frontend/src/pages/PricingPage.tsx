@@ -85,7 +85,7 @@ export default function PricingPage() {
       </section>
 
       {/* Pricing Cards */}
-      <section className="container mx-auto px-4 py-8">
+      <section className="w-full px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           
           {/* Free Tier */}

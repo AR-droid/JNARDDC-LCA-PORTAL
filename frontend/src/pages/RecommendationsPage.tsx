@@ -92,7 +92,7 @@ export default function RecommendationsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
         <button
           onClick={() => navigate(`/projects/${id}`)}
           className="text-purple-600 hover:text-purple-700 mb-4 flex items-center gap-2"

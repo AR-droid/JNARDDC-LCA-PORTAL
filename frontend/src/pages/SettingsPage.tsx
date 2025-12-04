@@ -82,7 +82,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
         <button
           onClick={() => navigate(-1)}
           className="text-blue-600 hover:text-blue-700 mb-6 flex items-center gap-2"

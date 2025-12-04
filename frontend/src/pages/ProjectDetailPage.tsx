@@ -286,7 +286,7 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-6">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
         <button
           onClick={() => navigate('/projects')}
           className="text-sm text-blue-600 hover:text-blue-700 mb-3 flex items-center gap-1"

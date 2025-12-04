@@ -253,7 +253,7 @@ export default function LCIAPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
           <Link to={`/projects/${projectId}`} className="flex items-center text-blue-600 hover:text-blue-700 mb-4">

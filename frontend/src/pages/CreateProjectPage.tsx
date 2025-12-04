@@ -22,6 +22,10 @@ import { PenLine } from "lucide-react";
 import { Recycle } from "lucide-react";
 import { Nut } from "lucide-react";
 import { AlertTriangle } from "lucide-react";
+import { Pencil } from "lucide-react";
+import { CheckCircle } from "lucide-react";
+import { Settings } from "lucide-react";
+
 
 
 
@@ -667,7 +671,11 @@ export default function CreateProjectPage() {
                         {/* Assumptions */}
                         {nlpResult.parsed.assumptions.length > 0 && (
                           <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                            <h4 className="font-medium text-yellow-800 mb-2">⚠️ AI Assumptions (Gap Filling)</h4>
+                           <h4 className="font-medium text-yellow-800 mb-2 flex items-center gap-2">
+  <AlertTriangle className="w-4 h-4 text-yellow-800" />
+  AI Assumptions (Gap Filling)
+</h4>
+
                             <ul className="space-y-1 text-sm text-yellow-700">
                               {nlpResult.parsed.assumptions.map((assumption: NLPAssumption, idx: number) => (
                                 <li key={idx} className="flex gap-2">
@@ -682,7 +690,11 @@ export default function CreateProjectPage() {
 
                         {/* Project Settings from NLP */}
                         <div className="bg-gray-50 p-4 rounded-lg">
-                          <h4 className="font-medium text-gray-700 mb-2">⚙️ Project Settings</h4>
+                          <h4 className="font-medium text-gray-700 mb-2 flex items-center gap-2">
+  <Settings className="w-4 h-4 text-gray-700" />
+  Project Settings
+</h4>
+
                           <div className="grid grid-cols-2 gap-3 text-sm">
                             <div className="bg-white p-2 rounded">
                               <span className="text-gray-500">Category:</span>
@@ -816,7 +828,8 @@ export default function CreateProjectPage() {
               <div className="mt-4 bg-green-50 p-4 rounded-lg border border-green-200">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-green-600">✅</span>
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+
                     <span className="font-medium text-green-800">{uploadedDataset.name}</span>
                     <span className="text-sm text-green-600">({uploadedDataset.records} records)</span>
                   </div>
@@ -845,7 +858,16 @@ export default function CreateProjectPage() {
               <div className="text-sm text-gray-600">
                 <span className="font-medium">Mode:</span>{' '}
                 <span className={`${activeMode === 'nlp' ? 'text-green-600' : 'text-blue-600'} inline-flex items-center gap-1`}>
-                  {activeMode === 'nlp' ? <><img src="/images/ai.png" alt="AI" className="w-4 h-4 inline" /> Smart Input (NLP)</> : '📝 Manual Entry'}
+                  {activeMode === 'nlp' ? (
+  <>
+    <img src="/images/ai.png" alt="AI" className="w-4 h-4 inline" /> Smart Input (NLP)
+  </>
+) : (
+  <span className="inline-flex items-center gap-1">
+    <Pencil className="w-4 h-4" /> Manual Entry
+  </span>
+)}
+
                 </span>
                {uploadedDataset && (
   <span className="ml-3 text-purple-600 flex items-center gap-1">

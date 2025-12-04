@@ -9,6 +9,9 @@ import os
 import io
 from dotenv import load_dotenv
 
+# Face++ API utilities
+from face_utils import detect_face, verify_face, get_face_quality_score
+
 # Excel generation
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
@@ -414,6 +417,301 @@ def delete_account():
     except Exception as e:
         print(f"Error deleting account: {e}")
         return jsonify({"detail": "Failed to delete account"}), 500
+
+
+# ==================== FACE AUTHENTICATION API ====================
+
+@app.route('/api/v1/auth/face/register', methods=['POST', 'OPTIONS'])
+def register_face():
+    """Register a face for biometric authentication"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        # Authenticate user
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        user_id = payload['user_id']
+        
+        # Get image from request
+        data = request.get_json()
+        image_base64 = data.get('image')
+        
+        if not image_base64:
+            return jsonify({"detail": "No image provided"}), 400
+        
+        # Detect face and get face_token from Face++
+        face_token, error = detect_face(image_base64)
+        
+        if error:
+            return jsonify({"detail": error}), 400
+        
+        # Store face_token in database
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        c.execute("""UPDATE users 
+                     SET face_token = ?, 
+                         face_registered_at = ?,
+                         face_auth_enabled = 1
+                     WHERE id = ?""", 
+                  (face_token, datetime.utcnow().isoformat(), user_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            "message": "Face registered successfully",
+            "face_auth_enabled": True,
+            "registered_at": datetime.utcnow().isoformat()
+        }), 200
+        
+    except jwt.ExpiredSignatureError:
+        return jsonify({"detail": "Token expired"}), 401
+    except Exception as e:
+        print(f"Error registering face: {e}")
+        return jsonify({"detail": f"Failed to register face: {str(e)}"}), 500
+
+
+@app.route('/api/v1/auth/face/verify', methods=['POST', 'OPTIONS'])
+def verify_face_login():
+    """Verify face for login (returns JWT token if successful)"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        image_base64 = data.get('image')
+        
+        if not email:
+            return jsonify({"detail": "Email is required"}), 400
+        
+        if not image_base64:
+            return jsonify({"detail": "No image provided"}), 400
+        
+        # Get user by email
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        c.execute("""SELECT id, email, full_name, organization_name, tier, 
+                            tier_expires_at, project_limit, face_token, face_auth_enabled
+                     FROM users WHERE email = ?""", (email.lower(),))
+        user = c.fetchone()
+        
+        if not user:
+            conn.close()
+            return jsonify({"detail": "User not found"}), 404
+        
+        user_id, user_email, full_name, org_name, tier, tier_expires, project_limit, face_token, face_auth_enabled = user
+        
+        # Check if face auth is enabled
+        if not face_auth_enabled or not face_token:
+            conn.close()
+            return jsonify({"detail": "Face authentication not enabled for this account"}), 400
+        
+        # Get project count
+        c.execute("SELECT COUNT(*) FROM projects WHERE user_id = ?", (user_id,))
+        project_count = c.fetchone()[0]
+        conn.close()
+        
+        # Verify face with Face++ API
+        is_verified, confidence, error = verify_face(face_token, image_base64, threshold=70.0)
+        
+        if error:
+            return jsonify({
+                "detail": error,
+                "confidence": confidence
+            }), 401
+        
+        if not is_verified:
+            return jsonify({
+                "detail": "Face verification failed. The face does not match.",
+                "confidence": confidence
+            }), 401
+        
+        # Generate JWT token
+        token_payload = {
+            'user_id': user_id,
+            'email': user_email,
+            'exp': datetime.utcnow() + timedelta(days=7)
+        }
+        access_token = jwt.encode(token_payload, SECRET_KEY, algorithm='HS256')
+        
+        # Determine features based on tier
+        features = {
+            'projects': -1 if tier in ['pro', 'enterprise'] else project_limit or 3,
+            'cbam_export': tier in ['pro', 'enterprise'],
+            'brsr_export': tier in ['pro', 'enterprise'],
+            'scenario_compare': tier in ['pro', 'enterprise'],
+            'ai_advisor': tier in ['pro', 'enterprise'],
+            'verification': tier == 'enterprise'
+        }
+        
+        return jsonify({
+            "access_token": access_token,
+            "token_type": "bearer",
+            "auth_method": "face",
+            "confidence": confidence,
+            "user": {
+                "id": user_id,
+                "email": user_email,
+                "full_name": full_name,
+                "organization_name": org_name,
+                "tier": tier or 'free',
+                "tier_expires_at": tier_expires,
+                "project_limit": project_limit or 3,
+                "project_count": project_count,
+                "features": features,
+                "face_auth_enabled": True
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Error verifying face: {e}")
+        return jsonify({"detail": f"Face verification failed: {str(e)}"}), 500
+
+
+@app.route('/api/v1/auth/face/status', methods=['GET', 'OPTIONS'])
+def face_auth_status():
+    """Get face authentication status for current user"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        c.execute("""SELECT face_token, face_registered_at, face_auth_enabled
+                     FROM users WHERE id = ?""", (payload['user_id'],))
+        result = c.fetchone()
+        conn.close()
+        
+        if not result:
+            return jsonify({"detail": "User not found"}), 404
+        
+        face_token, registered_at, enabled = result
+        
+        return jsonify({
+            "face_auth_enabled": bool(enabled),
+            "face_registered": bool(face_token),
+            "registered_at": registered_at
+        }), 200
+        
+    except jwt.ExpiredSignatureError:
+        return jsonify({"detail": "Token expired"}), 401
+    except Exception as e:
+        print(f"Error getting face status: {e}")
+        return jsonify({"detail": "Failed to get face status"}), 500
+
+
+@app.route('/api/v1/auth/face', methods=['DELETE', 'OPTIONS'])
+def remove_face():
+    """Remove face authentication for current user"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        c.execute("""UPDATE users 
+                     SET face_token = NULL, 
+                         face_registered_at = NULL,
+                         face_auth_enabled = 0
+                     WHERE id = ?""", (payload['user_id'],))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            "message": "Face authentication removed",
+            "face_auth_enabled": False
+        }), 200
+        
+    except jwt.ExpiredSignatureError:
+        return jsonify({"detail": "Token expired"}), 401
+    except Exception as e:
+        print(f"Error removing face: {e}")
+        return jsonify({"detail": "Failed to remove face authentication"}), 500
+
+
+@app.route('/api/v1/auth/face/check-quality', methods=['POST', 'OPTIONS'])
+def check_face_quality():
+    """Check face quality before registration"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        data = request.get_json()
+        image_base64 = data.get('image')
+        
+        if not image_base64:
+            return jsonify({"detail": "No image provided"}), 400
+        
+        quality_info, error = get_face_quality_score(image_base64)
+        
+        if error:
+            return jsonify({
+                "quality_ok": False,
+                "detail": error
+            }), 200
+        
+        # Evaluate quality
+        issues = []
+        
+        # Check head pose
+        headpose = quality_info.get('headpose', {})
+        if abs(headpose.get('pitch_angle', 0)) > 25:
+            issues.append("Please look straight at the camera (avoid tilting up/down)")
+        if abs(headpose.get('yaw_angle', 0)) > 25:
+            issues.append("Please face the camera directly (avoid turning left/right)")
+        
+        # Check blur
+        blur = quality_info.get('blur', {})
+        if blur.get('blurness', {}).get('value', 0) > 40:
+            issues.append("Image is blurry. Please hold still")
+        
+        # Check face quality
+        facequality = quality_info.get('facequality', {})
+        if facequality.get('value', 100) < 50:
+            issues.append("Face quality is low. Please ensure good lighting")
+        
+        return jsonify({
+            "quality_ok": len(issues) == 0,
+            "issues": issues,
+            "face_detected": True,
+            "details": {
+                "headpose": headpose,
+                "blur_score": blur.get('blurness', {}).get('value', 0),
+                "quality_score": facequality.get('value', 0)
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Error checking face quality: {e}")
+        return jsonify({
+            "quality_ok": False,
+            "detail": f"Error checking face quality: {str(e)}"
+        }), 500
 
 
 # ==================== TEAM MANAGEMENT API ====================
@@ -9129,6 +9427,28 @@ if __name__ == '__main__':
     except sqlite3.OperationalError:
         print("⚠️  Migrating users table: adding project_limit column")
         c.execute("ALTER TABLE users ADD COLUMN project_limit INTEGER DEFAULT 3")
+        conn.commit()
+    
+    # Migration: Add face authentication columns to users table
+    try:
+        c.execute("SELECT face_token FROM users LIMIT 1")
+    except sqlite3.OperationalError:
+        print("⚠️  Migrating users table: adding face_token column")
+        c.execute("ALTER TABLE users ADD COLUMN face_token TEXT")
+        conn.commit()
+    
+    try:
+        c.execute("SELECT face_registered_at FROM users LIMIT 1")
+    except sqlite3.OperationalError:
+        print("⚠️  Migrating users table: adding face_registered_at column")
+        c.execute("ALTER TABLE users ADD COLUMN face_registered_at TEXT")
+        conn.commit()
+    
+    try:
+        c.execute("SELECT face_auth_enabled FROM users LIMIT 1")
+    except sqlite3.OperationalError:
+        print("⚠️  Migrating users table: adding face_auth_enabled column")
+        c.execute("ALTER TABLE users ADD COLUMN face_auth_enabled INTEGER DEFAULT 0")
         conn.commit()
         
     c.execute('''CREATE TABLE IF NOT EXISTS project_materials

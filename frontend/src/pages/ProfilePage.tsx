@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import api from '../api/client'
 import { Building, Star } from 'lucide-react'
+import { FaceRegistration } from '../components/face-auth'
+import { faceAuthApi, FaceAuthStatus } from '../api/faceAuth'
 
 interface AccountStats {
   project_count: number
@@ -24,6 +26,7 @@ export default function ProfilePage() {
     analyses_run: 0,
     reports_generated: 0
   })
+  const [faceStatus, setFaceStatus] = useState<FaceAuthStatus | null>(null)
   
   const [formData, setFormData] = useState({
     full_name: '',
@@ -38,7 +41,17 @@ export default function ProfilePage() {
       })
     }
     loadAccountStats()
+    loadFaceStatus()
   }, [user])
+
+  const loadFaceStatus = async () => {
+    try {
+      const status = await faceAuthApi.getStatus()
+      setFaceStatus(status)
+    } catch (error) {
+      console.log('Could not load face auth status')
+    }
+  }
 
   const loadAccountStats = async () => {
     try {
@@ -237,6 +250,14 @@ export default function ProfilePage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Face Authentication */}
+        <div className="mt-6">
+          <FaceRegistration 
+            faceStatus={faceStatus} 
+            onStatusChange={loadFaceStatus} 
+          />
         </div>
 
         {/* Account Stats */}

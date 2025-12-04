@@ -26,6 +26,7 @@
     "react-hook-form": "^7.49.3",
     "react-leaflet": "^4.2.1",
     "react-router-dom": "^6.21.3",
+    "react-webcam": "^7.2.0",
     "recharts": "^2.10.3",
     "zod": "^3.22.4",
     "zustand": "^4.5.0"

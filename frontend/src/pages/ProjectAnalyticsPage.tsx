@@ -187,10 +187,10 @@ export default function AnalyticsPage() {
 
         {/* Process Tree */}
         <div className="mb-6">
-          <ProcessTree 
-            totalGWP={summary.total_gwp}
-            title="Manufacturing Process Tree"
-          />
+          <div className="bg-white rounded-lg shadow p-4">
+            <h3 className="text-base font-semibold mb-4">Manufacturing Process Tree</h3>
+            <ProcessTree />
+          </div>
         </div>
 
         {/* Process Flow */}

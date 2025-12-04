@@ -257,14 +257,16 @@ export default function Layout({ children }: NavbarProps) {
       </nav>
       <main className="flex-1">{children}</main>
       
-      {/* Footer Strip */}
-      <footer className="mt-auto">
-        <img 
-          src="/images/footer.jpeg" 
-          alt="JNARDDC Footer" 
-          className="w-full h-auto object-cover"
-        />
-      </footer>
+      {/* Footer Strip - hide on profile and settings pages */}
+      {location.pathname !== '/profile' && location.pathname !== '/settings' && (
+        <footer className="mt-auto">
+          <img 
+            src="/images/footer.jpeg" 
+            alt="JNARDDC Footer" 
+            className="w-full h-auto object-cover"
+          />
+        </footer>
+      )}
       
       {/* Floating Chat Button - only for authenticated users */}
       {isAuthenticated && (

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowRight, Leaf, Target, Award, Menu, X, ChevronLeft, ChevronRight, Quote, BarChart3, Globe, FileCheck, Star, Briefcase } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowRight, Leaf, Target, Award, Menu, X, ChevronLeft, ChevronRight, Quote, BarChart3, Globe, FileCheck, Star, Briefcase, User, LayoutDashboard, LogOut } from 'lucide-react'
+import { useAuthStore } from '../stores/authStore'
 
 // Custom hook for scroll-triggered animations using Intersection Observer
 function useInView(threshold = 0.1) {
@@ -111,6 +112,13 @@ const testimonials = [
 export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [currentTestimonial, setCurrentTestimonial] = useState(0)
+  const { isAuthenticated, user, logout } = useAuthStore()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/')
+  }
   
   // Auto-rotate testimonials
   useEffect(() => {
@@ -188,13 +196,43 @@ export default function HomePage() {
           </nav>
           
           <div className="hidden md:flex items-center space-x-4">
-            <Link to="/login" className="text-gray-600 hover:text-blue-600 transition">Login</Link>
-            <Link 
-              to="/register" 
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition transform hover:scale-105"
-            >
-              Get Started
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link 
+                  to="/dashboard" 
+                  className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>Dashboard</span>
+                </Link>
+                <Link 
+                  to="/profile" 
+                  className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition"
+                >
+                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-sm font-bold text-blue-600">
+                    {user?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+                  </div>
+                  <span>{user?.full_name?.split(' ')[0] || 'Profile'}</span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center space-x-2 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition transform hover:scale-105"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Logout</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="text-gray-600 hover:text-blue-600 transition">Login</Link>
+                <Link 
+                  to="/register" 
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition transform hover:scale-105"
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
           
           {/* Mobile Menu Button */}
@@ -215,13 +253,38 @@ export default function HomePage() {
               <a href="#pricing" className="text-gray-600 hover:text-blue-600 py-2">Pricing</a>
               <a href="#testimonials" className="text-gray-600 hover:text-blue-600 py-2">Testimonials</a>
               <hr className="my-2" />
-              <Link to="/login" className="text-gray-600 hover:text-blue-600 py-2">Login</Link>
-              <Link 
-                to="/register" 
-                className="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition text-center font-semibold"
-              >
-                Get Started
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <Link to="/dashboard" className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 py-2">
+                    <LayoutDashboard className="w-5 h-5" />
+                    <span>Dashboard</span>
+                  </Link>
+                  <Link 
+                    to="/profile" 
+                    className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 py-2"
+                  >
+                    <User className="w-5 h-5" />
+                    <span>{user?.full_name?.split(' ')[0] || 'Profile'}</span>
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center justify-center space-x-2 bg-red-500 text-white px-4 py-3 rounded-lg hover:bg-red-600 transition font-semibold"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    <span>Logout</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" className="text-gray-600 hover:text-blue-600 py-2">Login</Link>
+                  <Link 
+                    to="/register" 
+                    className="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition text-center font-semibold"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
             </nav>
           </div>
         )}
@@ -255,12 +318,21 @@ export default function HomePage() {
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center gap-4 animate-fade-in-up opacity-0" style={{ animationDelay: '0.6s', animationFillMode: 'forwards' }}>
-              <Link 
-                to="/register" 
-                className="group bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-all flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105"
-              >
-                Start Free Assessment <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Link>
+              {isAuthenticated ? (
+                <Link 
+                  to="/dashboard" 
+                  className="group bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-all flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <LayoutDashboard className="mr-2 w-5 h-5" /> Go to Dashboard <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              ) : (
+                <Link 
+                  to="/register" 
+                  className="group bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-all flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  Start Free Assessment <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              )}
               <a 
                 href="#features" 
                 className="bg-white/20 backdrop-blur-sm border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white/30 transition-all hover:scale-105"

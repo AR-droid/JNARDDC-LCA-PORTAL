@@ -8,6 +8,7 @@ import {
   MCIGauge,
   MCIBreakdownChart,
   ProcessFlowDiagram,
+  ProcessTree,
   RecycledContentChart
 } from '../components/charts'
 import { AIIcon, FlaskIcon, ArrowLeftIcon } from '../components/Icons'
@@ -181,6 +182,14 @@ export default function AnalyticsPage() {
             data={mci_breakdown} 
             overallMCI={summary.mci_score} 
             title="MCI Score by Material" 
+          />
+        </div>
+
+        {/* Process Tree */}
+        <div className="mb-6">
+          <ProcessTree 
+            totalGWP={summary.total_gwp}
+            title="Manufacturing Process Tree"
           />
         </div>
 

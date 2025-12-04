@@ -8,12 +8,14 @@ interface AuthState {
   isAuthenticated: boolean
   isLoading: boolean
   error: string | null
+  _hasHydrated: boolean
   
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string, fullName?: string, orgName?: string) => Promise<void>
   logout: () => void
   checkAuth: () => Promise<void>
   clearError: () => void
+  setHasHydrated: (state: boolean) => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -24,6 +26,11 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
       error: null,
+      _hasHydrated: false,
+
+      setHasHydrated: (state: boolean) => {
+        set({ _hasHydrated: state })
+      },
 
       login: async (email: string, password: string) => {
         set({ isLoading: true, error: null })
@@ -70,27 +77,31 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        authApi.logout()
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('auth-storage')
         set({
           user: null,
           token: null,
           isAuthenticated: false,
+          error: null,
         })
       },
 
       checkAuth: async () => {
         const token = localStorage.getItem('access_token')
         if (!token) {
-          set({ isAuthenticated: false, user: null })
+          set({ isAuthenticated: false, user: null, token: null, isLoading: false })
           return
         }
 
+        set({ isLoading: true })
         try {
           const user = await authApi.getCurrentUser()
           set({
             user,
             token,
             isAuthenticated: true,
+            isLoading: false,
           })
         } catch (error) {
           localStorage.removeItem('access_token')
@@ -98,6 +109,7 @@ export const useAuthStore = create<AuthState>()(
             user: null,
             token: null,
             isAuthenticated: false,
+            isLoading: false,
           })
         }
       },
@@ -111,6 +123,11 @@ export const useAuthStore = create<AuthState>()(
         token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.setHasHydrated(true)
+        }
+      },
     }
   )
 )

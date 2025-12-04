@@ -3,6 +3,9 @@ import { useAuthStore } from '../stores/authStore';
 import { Link } from 'react-router-dom';
 import { projectsApi, getDashboardAnalytics, DashboardAnalytics } from '../api/projects';
 import { GWPBreakdownChart, MCIGauge } from '../components/charts';
+import GWPBreakdownChart3D from '../components/charts/GWPBreakdownChart3D';
+import MCIGauge3D from '../components/charts/MCIGauge3D';
+
 import { PlusIcon } from '../components/Icons';
 import { Rocket, Package, Users } from 'lucide-react';
 import OnboardingWizard from '../components/OnboardingWizard';
@@ -225,18 +228,22 @@ export default function DashboardPage() {
         {/* Analytics Section */}
         {analytics && analytics.material_distribution && analytics.material_distribution.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <GWPBreakdownChart 
-              data={analytics.material_distribution} 
-              title="GWP Distribution by Material Type" 
-            />
-            <div className="bg-white rounded-lg shadow p-6">
+           <GWPBreakdownChart3D
+  data={analytics.material_distribution}
+  title="GWP Distribution by Material Type"
+/>
+
+            <div className="bg-white rounded-lg shadow p-2">
               <h3 className="text-lg font-semibold mb-4">Circularity Overview</h3>
               <div className="flex items-center justify-around">
-                <MCIGauge 
-                  score={analytics.summary?.avg_mci || 0} 
-                  size="lg" 
-                  label="Average MCI"
-                />
+              <div className="w-[300px] h-[200px]">
+  <MCIGauge3D 
+    score={analytics.summary?.avg_mci || 0} 
+    label="Average MCI"
+  />
+</div>
+
+
                 <div className="text-center">
                   <p className="text-sm text-gray-500 mb-2">Circular Score</p>
                   <p className="text-4xl font-bold text-orange-500">

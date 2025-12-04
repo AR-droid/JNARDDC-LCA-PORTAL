@@ -1,5 +1,6 @@
 import { useAuthStore } from '../stores/authStore';
 import { Link } from 'react-router-dom';
+import { Building, Star } from 'lucide-react';
 
 type FeatureKey = 'cbam_export' | 'brsr_export' | 'scenario_compare' | 'ai_advisor' | 'verification';
 
@@ -147,10 +148,10 @@ export function TierBadge({ tier, size = 'md' }: { tier?: string; size?: 'sm' | 
     lg: 'px-4 py-1.5 text-base',
   };
   
-  const tierConfig = {
+  const tierConfig: Record<string, { bg: string; text: string; label: React.ReactNode }> = {
     free: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Free' },
-    pro: { bg: 'bg-blue-100', text: 'text-blue-700', label: '⭐ Pro' },
-    enterprise: { bg: 'bg-purple-100', text: 'text-purple-700', label: '🏢 Enterprise' },
+    pro: { bg: 'bg-blue-100', text: 'text-blue-700', label: (<><Star className="w-4 h-4 inline-block mr-1" /> Pro</>) },
+    enterprise: { bg: 'bg-purple-100', text: 'text-purple-700', label: (<><Building className="w-4 h-4 inline-block mr-1" /> Enterprise</>) },
   };
   
   const config = tierConfig[tier as keyof typeof tierConfig] || tierConfig.free;

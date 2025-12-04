@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import AIChatPanel from './AIChatPanel';
+import { Building, Star } from 'lucide-react';
 
 interface NavbarProps {
   children: React.ReactNode;
@@ -125,13 +126,16 @@ export default function Layout({ children }: NavbarProps) {
                               <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                             </div>
                             {/* Tier Badge */}
-                            <span className={`px-2 py-1 text-xs font-bold rounded-full ${
+                            <span className={`px-2 py-1 text-xs font-bold rounded-full flex items-center gap-1 ${
                               user?.tier === 'enterprise' ? 'bg-purple-100 text-purple-700' :
                               user?.tier === 'pro' ? 'bg-blue-100 text-blue-700' :
                               'bg-gray-100 text-gray-600'
                             }`}>
-                              {user?.tier === 'enterprise' ? '🏢 Enterprise' :
-                               user?.tier === 'pro' ? '⭐ Pro' : 'Free'}
+                              {user?.tier === 'enterprise' ? (
+                                <><Building className="w-3 h-3" /> Enterprise</>
+                              ) : user?.tier === 'pro' ? (
+                                <><Star className="w-3 h-3" /> Pro</>
+                              ) : 'Free'}
                             </span>
                           </div>
                           {/* Project Usage */}

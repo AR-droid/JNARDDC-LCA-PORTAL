@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { Link } from 'react-router-dom';
 import { projectsApi, getDashboardAnalytics, DashboardAnalytics } from '../api/projects';
-import { GWPBreakdownChart, MCIGauge } from '../components/charts';
 import GWPBreakdownChart3D from '../components/charts/GWPBreakdownChart3D';
 import MCIGauge3D from '../components/charts/MCIGauge3D';
 

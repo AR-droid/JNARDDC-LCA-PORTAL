@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import api from '../api/client'
+import { Building, Star } from 'lucide-react'
 
 interface AccountStats {
   project_count: number
@@ -112,8 +113,8 @@ export default function ProfilePage() {
                     user?.tier === 'pro' ? 'bg-blue-100 text-blue-800' :
                     'bg-gray-100 text-gray-800'
                   }`}>
-                    {user?.tier === 'enterprise' ? '🏢 Enterprise' :
-                     user?.tier === 'pro' ? '⭐ Pro' : '🆓 Free Plan'}
+                    {user?.tier === 'enterprise' ? (<><Building className="w-4 h-4 inline-block mr-1"/> Enterprise</>) :
+                     user?.tier === 'pro' ? (<><Star className="w-4 h-4 inline-block mr-1"/> Pro</>) : 'Free Plan'}
                   </span>
                 </div>
               </div>

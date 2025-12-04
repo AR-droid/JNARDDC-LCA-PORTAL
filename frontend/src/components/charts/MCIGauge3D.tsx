@@ -47,7 +47,7 @@ export default function MCIGauge3D({ score, label }: MCIGauge3DProps) {
         min: 0,
         max: 100,
 
-        radius: "65%",                // 🔥 SMALLER gauge shape
+        radius: "75%",                // 🔥 SMALLER gauge shape
         center: ["50%", "60%"],       // move upward
 
         progress: {

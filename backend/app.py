@@ -7,10 +7,14 @@ import hashlib
 import uuid
 import os
 import io
+import sys
 from dotenv import load_dotenv
 
 # Face++ API utilities
 from face_utils import detect_face, verify_face, get_face_quality_score
+
+# Add Digi-Locker to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'Digi-Locker'))
 
 # Excel generation
 from openpyxl import Workbook
@@ -28,6 +32,15 @@ try:
 except ImportError:
     GROQ_AVAILABLE = False
     print("⚠️  Groq not installed. AI features will use rule-based fallback.")
+
+# Try to import DigiLocker module
+try:
+    from digilocker_api import digilocker_api
+    DIGILOCKER_AVAILABLE = True
+    print("✅ DigiLocker mock API loaded")
+except ImportError:
+    DIGILOCKER_AVAILABLE = False
+    print("⚠️  DigiLocker module not found. DigiLocker auth will be disabled.")
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -417,6 +430,250 @@ def delete_account():
     except Exception as e:
         print(f"Error deleting account: {e}")
         return jsonify({"detail": "Failed to delete account"}), 500
+
+
+# ==================== DIGILOCKER LOGIN CONVERSION ====================
+
+@app.route('/api/v1/auth/digilocker-login', methods=['POST', 'OPTIONS'])
+def digilocker_login():
+    """Convert DigiLocker authentication to app JWT token"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        data = request.get_json() or {}
+        digilocker_token = data.get('digilocker_token')
+        name = data.get('name', 'DigiLocker User')
+        aadhaar_masked = data.get('aadhaar_masked', 'XXXX XXXX XXXX')
+        
+        if not digilocker_token:
+            return jsonify({"detail": "DigiLocker token is required"}), 400
+        
+        # Verify DigiLocker token is valid
+        if DIGILOCKER_AVAILABLE:
+            success, profile = digilocker_api.get_user_profile(digilocker_token)
+            if not success:
+                return jsonify({"detail": "Invalid DigiLocker session"}), 401
+            # Use profile data if available
+            if profile.get('profile'):
+                name = profile['profile'].get('name', name)
+        
+        # Create a unique email based on Aadhaar (masked)
+        # Format: digilocker_xxxx3333@jnarddc.local
+        aadhaar_suffix = aadhaar_masked.replace(' ', '').replace('X', '')[-4:] if aadhaar_masked else '0000'
+        digilocker_email = f"digilocker_{aadhaar_suffix}@jnarddc.local"
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Check if user exists
+        c.execute("SELECT id, email, full_name FROM users WHERE email = ?", (digilocker_email,))
+        existing_user = c.fetchone()
+        
+        if existing_user:
+            # User exists, use their data
+            user_id = existing_user[0]
+            email = existing_user[1]
+            full_name = existing_user[2] or name
+        else:
+            # Create new user for DigiLocker login
+            user_id = str(uuid.uuid4())
+            email = digilocker_email
+            full_name = name
+            
+            c.execute("""
+                INSERT INTO users (id, email, password_hash, full_name, organization_name, created_at, digilocker_verified)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (user_id, email, 'DIGILOCKER_AUTH', full_name, 'DigiLocker Verified', datetime.utcnow().isoformat(), 1))
+            
+            conn.commit()
+        
+        conn.close()
+        
+        # Generate JWT token
+        token = jwt.encode({
+            'user_id': user_id,
+            'email': email,
+            'exp': datetime.utcnow() + timedelta(days=30),
+            'auth_method': 'digilocker'
+        }, SECRET_KEY, algorithm='HS256')
+        
+        return jsonify({
+            "access_token": token,
+            "token_type": "bearer",
+            "user": {
+                "id": user_id,
+                "email": email,
+                "full_name": full_name,
+                "organization_name": "DigiLocker Verified",
+                "digilocker_verified": True,
+                "aadhaar_masked": aadhaar_masked
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"DigiLocker login error: {e}")
+        return jsonify({"detail": f"DigiLocker login failed: {str(e)}"}), 500
+
+
+# ==================== DIGILOCKER AUTHENTICATION API ====================
+
+@app.route('/api/v1/digilocker/auth/initiate', methods=['POST', 'OPTIONS'])
+def digilocker_initiate():
+    """Initiate DigiLocker authentication with Aadhaar"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    if not DIGILOCKER_AVAILABLE:
+        return jsonify({"error": "UNAVAILABLE", "message": "DigiLocker service not available"}), 503
+    
+    data = request.get_json() or {}
+    aadhaar = data.get('aadhaar', '')
+    
+    if not aadhaar:
+        return jsonify({"error": "MISSING_AADHAAR", "message": "Aadhaar number is required"}), 400
+    
+    success, result = digilocker_api.initiate_auth(aadhaar)
+    return jsonify(result), 200 if success else 400
+
+
+@app.route('/api/v1/digilocker/auth/verify-otp', methods=['POST', 'OPTIONS'])
+def digilocker_verify_otp():
+    """Verify OTP and complete DigiLocker authentication"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    if not DIGILOCKER_AVAILABLE:
+        return jsonify({"error": "UNAVAILABLE", "message": "DigiLocker service not available"}), 503
+    
+    data = request.get_json() or {}
+    aadhaar = data.get('aadhaar', '')
+    otp = data.get('otp', '')
+    
+    if not aadhaar or not otp:
+        return jsonify({"error": "MISSING_DATA", "message": "Aadhaar and OTP are required"}), 400
+    
+    success, result = digilocker_api.verify_otp(aadhaar, otp)
+    return jsonify(result), 200 if success else 400
+
+
+@app.route('/api/v1/digilocker/auth/resend-otp', methods=['POST', 'OPTIONS'])
+def digilocker_resend_otp():
+    """Resend OTP for DigiLocker authentication"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    if not DIGILOCKER_AVAILABLE:
+        return jsonify({"error": "UNAVAILABLE", "message": "DigiLocker service not available"}), 503
+    
+    data = request.get_json() or {}
+    aadhaar = data.get('aadhaar', '')
+    
+    if not aadhaar:
+        return jsonify({"error": "MISSING_AADHAAR", "message": "Aadhaar number is required"}), 400
+    
+    success, result = digilocker_api.resend_otp(aadhaar)
+    return jsonify(result), 200 if success else 400
+
+
+@app.route('/api/v1/digilocker/profile', methods=['GET', 'OPTIONS'])
+def digilocker_profile():
+    """Get DigiLocker authenticated user's profile"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    if not DIGILOCKER_AVAILABLE:
+        return jsonify({"error": "UNAVAILABLE", "message": "DigiLocker service not available"}), 503
+    
+    token = request.headers.get('X-DigiLocker-Token', '')
+    
+    if not token:
+        return jsonify({"error": "MISSING_TOKEN", "message": "DigiLocker token is required"}), 401
+    
+    success, result = digilocker_api.get_user_profile(token)
+    return jsonify(result), 200 if success else 401
+
+
+@app.route('/api/v1/digilocker/documents', methods=['GET', 'OPTIONS'])
+def digilocker_documents():
+    """Get list of documents from DigiLocker"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    if not DIGILOCKER_AVAILABLE:
+        return jsonify({"error": "UNAVAILABLE", "message": "DigiLocker service not available"}), 503
+    
+    token = request.headers.get('X-DigiLocker-Token', '')
+    
+    if not token:
+        return jsonify({"error": "MISSING_TOKEN", "message": "DigiLocker token is required"}), 401
+    
+    success, result = digilocker_api.get_documents(token)
+    return jsonify(result), 200 if success else 401
+
+
+@app.route('/api/v1/digilocker/documents/<doc_id>', methods=['GET', 'OPTIONS'])
+def digilocker_document_details(doc_id):
+    """Get specific document details from DigiLocker"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    if not DIGILOCKER_AVAILABLE:
+        return jsonify({"error": "UNAVAILABLE", "message": "DigiLocker service not available"}), 503
+    
+    token = request.headers.get('X-DigiLocker-Token', '')
+    
+    if not token:
+        return jsonify({"error": "MISSING_TOKEN", "message": "DigiLocker token is required"}), 401
+    
+    success, result = digilocker_api.get_document_details(token, doc_id)
+    return jsonify(result), 200 if success else (401 if "TOKEN" in result.get("error", "") else 404)
+
+
+@app.route('/api/v1/digilocker/verify-identity', methods=['POST', 'OPTIONS'])
+def digilocker_verify_identity():
+    """Generate identity verification certificate (KYC)"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    if not DIGILOCKER_AVAILABLE:
+        return jsonify({"error": "UNAVAILABLE", "message": "DigiLocker service not available"}), 503
+    
+    token = request.headers.get('X-DigiLocker-Token', '')
+    
+    if not token:
+        return jsonify({"error": "MISSING_TOKEN", "message": "DigiLocker token is required"}), 401
+    
+    success, result = digilocker_api.verify_identity(token)
+    return jsonify(result), 200 if success else 401
+
+
+@app.route('/api/v1/digilocker/logout', methods=['POST', 'OPTIONS'])
+def digilocker_logout():
+    """Logout from DigiLocker"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    if not DIGILOCKER_AVAILABLE:
+        return jsonify({"error": "UNAVAILABLE", "message": "DigiLocker service not available"}), 503
+    
+    token = request.headers.get('X-DigiLocker-Token', '')
+    success, result = digilocker_api.logout(token)
+    return jsonify(result), 200
+
+
+@app.route('/api/v1/digilocker/demo-credentials', methods=['GET'])
+def digilocker_demo_credentials():
+    """Get demo credentials for testing DigiLocker"""
+    return jsonify({
+        "message": "Use these Aadhaar numbers for testing",
+        "demo_credentials": [
+            {"aadhaar": "111122223333", "name": "Demo User", "otp": "123456"},
+            {"aadhaar": "123456789012", "name": "Rahul Sharma", "otp": "Use OTP from console"},
+            {"aadhaar": "987654321098", "name": "Priya Patel", "otp": "Use OTP from console"},
+        ],
+        "note": "OTP '123456' works for all users in demo mode"
+    })
 
 
 # ==================== FACE AUTHENTICATION API ====================
@@ -9449,6 +9706,13 @@ if __name__ == '__main__':
     except sqlite3.OperationalError:
         print("⚠️  Migrating users table: adding face_auth_enabled column")
         c.execute("ALTER TABLE users ADD COLUMN face_auth_enabled INTEGER DEFAULT 0")
+        conn.commit()
+    
+    try:
+        c.execute("SELECT digilocker_verified FROM users LIMIT 1")
+    except sqlite3.OperationalError:
+        print("⚠️  Migrating users table: adding digilocker_verified column")
+        c.execute("ALTER TABLE users ADD COLUMN digilocker_verified INTEGER DEFAULT 0")
         conn.commit()
         
     c.execute('''CREATE TABLE IF NOT EXISTS project_materials

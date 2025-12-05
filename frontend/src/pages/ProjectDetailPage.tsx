@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { projectsApi, Project, aiGapFill, AIGapFillResult, VerificationStatus, parseNLPDescription } from '../api/projects'
+import { projectsApi, Project, aiGapFill, AIGapFillResult, VerificationStatus, parseNLPDescription, scrapYardApi, ScrapYardStats } from '../api/projects'
 import { materialsApi, Material } from '../api/materials'
 import MaterialAddModal from '../components/MaterialAddModal'
 import ProjectEditModal from '../components/ProjectEditModal'
@@ -10,7 +10,7 @@ import SupplyChainMap from '../components/SupplyChainMap'
 import ActionHotspots from '../components/ActionHotspots'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon, UploadIcon, PlusIcon, PackageIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
-import { FileSpreadsheet, Sparkles, MapPin, Truck, Train, Ship, Plane, Wand2, Loader2 } from 'lucide-react'
+import { FileSpreadsheet, Sparkles, MapPin, Truck, Train, Ship, Plane, Wand2, Loader2, Recycle, ArrowRight, TrendingDown } from 'lucide-react'
 import { Lock } from "lucide-react";
 import { Award } from "lucide-react";
 import { AlertTriangle } from "lucide-react";
@@ -88,12 +88,24 @@ export default function ProjectDetailPage() {
   const [isGeneratingBOM, setIsGeneratingBOM] = useState(false)
   const [aiGapFillResult, setAiGapFillResult] = useState<AIGapFillResult | null>(null)
   const [showAIResultModal, setShowAIResultModal] = useState(false)
+  const [scrapYardStats, setScrapYardStats] = useState<ScrapYardStats | null>(null)
+  const [showScrapYardWidget, setShowScrapYardWidget] = useState(true)
 
   useEffect(() => {
     loadData()
     loadVerificationStatus()
     loadSupplyChain()
+    loadScrapYardStats()
   }, [id])
+
+  const loadScrapYardStats = async () => {
+    try {
+      const stats = await scrapYardApi.getStats()
+      setScrapYardStats(stats)
+    } catch (e) {
+      console.error('Failed to load scrap yard stats:', e)
+    }
+  }
 
   const loadSupplyChain = async () => {
     if (!id) return
@@ -1226,6 +1238,74 @@ export default function ProjectDetailPage() {
               >
                 Done
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Scrap Yard Connect Widget */}
+      {showScrapYardWidget && materials.length > 0 && scrapYardStats && (
+        <div className="fixed bottom-6 right-6 z-40 animate-fade-in-up">
+          <div className="relative bg-green-600 rounded-2xl shadow-2xl shadow-green-200 p-5 max-w-sm border border-green-400/30 overflow-hidden group">
+            {/* Background decoration */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
+            
+            {/* Close button */}
+            <button
+              onClick={() => setShowScrapYardWidget(false)}
+              className="absolute top-2 right-2 p-1 text-white/60 hover:text-white hover:bg-white/20 rounded-full transition"
+              aria-label="Close widget"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <div className="relative">
+              {/* Header */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+                  <Recycle className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-white">Scrap Yard Connect</h3>
+                    <span className="px-1.5 py-0.5 bg-yellow-400 text-yellow-900 text-xs font-bold rounded-full animate-pulse">
+                      NEW
+                    </span>
+                  </div>
+                  <p className="text-green-100 text-sm">Source recycled materials</p>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-white/10 backdrop-blur rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-white">{scrapYardStats.total_scrap_yards}</p>
+                  <p className="text-xs text-green-100">Scrap Yards</p>
+                </div>
+                <div className="bg-white/10 backdrop-blur rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-white">₹{scrapYardStats.potential_savings_crores}Cr</p>
+                  <p className="text-xs text-green-100">Potential Savings</p>
+                </div>
+              </div>
+
+              {/* Benefit highlight */}
+              <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-white/10 backdrop-blur rounded-lg">
+                <TrendingDown className="w-4 h-4 text-green-200" />
+                <p className="text-sm text-white">
+                  Get <span className="font-semibold">Plan A/B/C</span> sourcing options for your {materials.length} materials
+                </p>
+              </div>
+
+              {/* CTA */}
+              <Link
+                to={`/scrap-yard-connect?project=${id}`}
+                className="w-full flex items-center justify-center gap-2 py-3 bg-white text-green-600 rounded-xl font-semibold hover:bg-green-50 transition group-hover:shadow-lg"
+              >
+                View Sourcing Options
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
             </div>
           </div>
         </div>

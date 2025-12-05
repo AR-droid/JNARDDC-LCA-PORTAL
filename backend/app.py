@@ -9624,6 +9624,577 @@ Format: Brief bullet points, no more than 3 insights, each 1-2 sentences."""
         return None
 
 
+# ============================================================================
+# SCRAP YARD CONNECT - Marketplace for Recycled Materials
+# ============================================================================
+
+def seed_scrap_yards(cursor):
+    """Seed the scrap_yards table with mock Indian scrap yard data"""
+    scrap_yards = [
+        # Maharashtra
+        {
+            'id': 'sy-001', 'name': 'Mumbai Metal Recyclers Pvt Ltd', 'state': 'Maharashtra', 'city': 'Mumbai',
+            'address': 'Plot 45, MIDC Industrial Area, Taloja', 'latitude': 19.0760, 'longitude': 72.8777,
+            'material_types': 'aluminium,steel,copper', 'available_qty_tons': 450, 'price_per_kg': 145,
+            'quality_grade': 'A', 'certifications': 'ISO 14001,BIS Certified', 'contact_name': 'Rajesh Sharma',
+            'contact_phone': '+91-9876543210', 'contact_email': 'sales@mumbaimetal.in', 'is_verified': 1,
+            'rating': 4.8, 'total_transactions': 234
+        },
+        {
+            'id': 'sy-002', 'name': 'Pune Scrap Industries', 'state': 'Maharashtra', 'city': 'Pune',
+            'address': '12, Pimpri-Chinchwad Industrial Estate', 'latitude': 18.5204, 'longitude': 73.8567,
+            'material_types': 'steel,brass,zinc', 'available_qty_tons': 280, 'price_per_kg': 132,
+            'quality_grade': 'A', 'certifications': 'ISO 9001,CPCB Authorized', 'contact_name': 'Amit Patil',
+            'contact_phone': '+91-9823456789', 'contact_email': 'info@punescrap.co.in', 'is_verified': 1,
+            'rating': 4.5, 'total_transactions': 189
+        },
+        {
+            'id': 'sy-003', 'name': 'Nagpur Recycling Hub', 'state': 'Maharashtra', 'city': 'Nagpur',
+            'address': 'Butibori MIDC, Plot 78', 'latitude': 21.1458, 'longitude': 79.0882,
+            'material_types': 'aluminium,copper,lead', 'available_qty_tons': 180, 'price_per_kg': 138,
+            'quality_grade': 'B+', 'certifications': 'MPCB Registered', 'contact_name': 'Suresh Rathi',
+            'contact_phone': '+91-9765432109', 'contact_email': 'nagpurrecycle@gmail.com', 'is_verified': 1,
+            'rating': 4.2, 'total_transactions': 98
+        },
+        # Gujarat
+        {
+            'id': 'sy-004', 'name': 'Ahmedabad Steel Recyclers', 'state': 'Gujarat', 'city': 'Ahmedabad',
+            'address': 'Naroda GIDC, Phase II', 'latitude': 23.0225, 'longitude': 72.5714,
+            'material_types': 'steel,stainless_steel', 'available_qty_tons': 620, 'price_per_kg': 128,
+            'quality_grade': 'A+', 'certifications': 'ISO 14001,ISO 45001,BIS', 'contact_name': 'Kamlesh Patel',
+            'contact_phone': '+91-9898765432', 'contact_email': 'info@amdsteelrecycle.com', 'is_verified': 1,
+            'rating': 4.9, 'total_transactions': 412
+        },
+        {
+            'id': 'sy-005', 'name': 'Surat Copper Trading Co', 'state': 'Gujarat', 'city': 'Surat',
+            'address': 'Sachin GIDC, Plot 156', 'latitude': 21.1702, 'longitude': 72.8311,
+            'material_types': 'copper,brass,bronze', 'available_qty_tons': 95, 'price_per_kg': 485,
+            'quality_grade': 'A', 'certifications': 'GPCB Certified', 'contact_name': 'Dharmesh Shah',
+            'contact_phone': '+91-9825678901', 'contact_email': 'suratcopper@yahoo.com', 'is_verified': 1,
+            'rating': 4.6, 'total_transactions': 156
+        },
+        {
+            'id': 'sy-006', 'name': 'Rajkot Metal Works', 'state': 'Gujarat', 'city': 'Rajkot',
+            'address': 'Aji Industrial Area, Plot 234', 'latitude': 22.3039, 'longitude': 70.8022,
+            'material_types': 'steel,aluminium,zinc', 'available_qty_tons': 340, 'price_per_kg': 125,
+            'quality_grade': 'B+', 'certifications': 'ISO 9001', 'contact_name': 'Bhavesh Vadher',
+            'contact_phone': '+91-9427654321', 'contact_email': 'rajkotmetal@gmail.com', 'is_verified': 1,
+            'rating': 4.3, 'total_transactions': 178
+        },
+        # Tamil Nadu
+        {
+            'id': 'sy-007', 'name': 'Chennai Metal Mart', 'state': 'Tamil Nadu', 'city': 'Chennai',
+            'address': 'Ambattur Industrial Estate, Phase I', 'latitude': 13.0827, 'longitude': 80.2707,
+            'material_types': 'aluminium,steel,copper,lead', 'available_qty_tons': 520, 'price_per_kg': 142,
+            'quality_grade': 'A', 'certifications': 'ISO 14001,TNPCB Certified', 'contact_name': 'Senthil Kumar',
+            'contact_phone': '+91-9840123456', 'contact_email': 'chennaimetal@metalmart.in', 'is_verified': 1,
+            'rating': 4.7, 'total_transactions': 298
+        },
+        {
+            'id': 'sy-008', 'name': 'Coimbatore Recycling Industries', 'state': 'Tamil Nadu', 'city': 'Coimbatore',
+            'address': 'SIDCO Industrial Estate, Kurichi', 'latitude': 11.0168, 'longitude': 76.9558,
+            'material_types': 'aluminium,brass,copper', 'available_qty_tons': 210, 'price_per_kg': 148,
+            'quality_grade': 'A', 'certifications': 'ISO 9001,ISO 14001', 'contact_name': 'Ravi Chandran',
+            'contact_phone': '+91-9842567890', 'contact_email': 'cberecycle@gmail.com', 'is_verified': 1,
+            'rating': 4.4, 'total_transactions': 145
+        },
+        # Karnataka
+        {
+            'id': 'sy-009', 'name': 'Bengaluru Green Metals', 'state': 'Karnataka', 'city': 'Bengaluru',
+            'address': 'Peenya Industrial Area, 4th Phase', 'latitude': 12.9716, 'longitude': 77.5946,
+            'material_types': 'aluminium,steel,copper,nickel', 'available_qty_tons': 380, 'price_per_kg': 155,
+            'quality_grade': 'A+', 'certifications': 'ISO 14001,ISO 45001,R2 Certified', 'contact_name': 'Prakash Hegde',
+            'contact_phone': '+91-9845123456', 'contact_email': 'sales@blrgreenmetals.com', 'is_verified': 1,
+            'rating': 4.9, 'total_transactions': 367
+        },
+        {
+            'id': 'sy-010', 'name': 'Hubli Metal Processors', 'state': 'Karnataka', 'city': 'Hubli',
+            'address': 'Tarihal Industrial Area', 'latitude': 15.3647, 'longitude': 75.1240,
+            'material_types': 'steel,aluminium', 'available_qty_tons': 165, 'price_per_kg': 118,
+            'quality_grade': 'B+', 'certifications': 'KSPCB Registered', 'contact_name': 'Basavaraj Hiremath',
+            'contact_phone': '+91-9448765432', 'contact_email': 'hublimetal@yahoo.co.in', 'is_verified': 0,
+            'rating': 4.0, 'total_transactions': 67
+        },
+        # Rajasthan
+        {
+            'id': 'sy-011', 'name': 'Jaipur Copper Exchange', 'state': 'Rajasthan', 'city': 'Jaipur',
+            'address': 'Vishwakarma Industrial Area, Jaipur', 'latitude': 26.9124, 'longitude': 75.7873,
+            'material_types': 'copper,brass,bronze,zinc', 'available_qty_tons': 145, 'price_per_kg': 478,
+            'quality_grade': 'A', 'certifications': 'ISO 9001,RSPCB Certified', 'contact_name': 'Mahesh Agarwal',
+            'contact_phone': '+91-9829876543', 'contact_email': 'jaipurcopper@rediffmail.com', 'is_verified': 1,
+            'rating': 4.5, 'total_transactions': 201
+        },
+        {
+            'id': 'sy-012', 'name': 'Jodhpur Steel Scrap Co', 'state': 'Rajasthan', 'city': 'Jodhpur',
+            'address': 'Boranada Industrial Area', 'latitude': 26.2389, 'longitude': 73.0243,
+            'material_types': 'steel,stainless_steel', 'available_qty_tons': 290, 'price_per_kg': 115,
+            'quality_grade': 'B+', 'certifications': 'RSPCB Registered', 'contact_name': 'Prakash Rathore',
+            'contact_phone': '+91-9413256789', 'contact_email': 'jodhpursteel@gmail.com', 'is_verified': 1,
+            'rating': 4.1, 'total_transactions': 89
+        },
+        # West Bengal
+        {
+            'id': 'sy-013', 'name': 'Kolkata Metal Industries', 'state': 'West Bengal', 'city': 'Kolkata',
+            'address': 'Kasba Industrial Estate', 'latitude': 22.5726, 'longitude': 88.3639,
+            'material_types': 'steel,aluminium,copper,lead', 'available_qty_tons': 410, 'price_per_kg': 135,
+            'quality_grade': 'A', 'certifications': 'ISO 14001,WBPCB Certified', 'contact_name': 'Subrata Banerjee',
+            'contact_phone': '+91-9831234567', 'contact_email': 'kolkatametal@gmail.com', 'is_verified': 1,
+            'rating': 4.6, 'total_transactions': 256
+        },
+        {
+            'id': 'sy-014', 'name': 'Durgapur Steel Recyclers', 'state': 'West Bengal', 'city': 'Durgapur',
+            'address': 'Durgapur Industrial Growth Centre', 'latitude': 23.5204, 'longitude': 87.3119,
+            'material_types': 'steel,stainless_steel,aluminium', 'available_qty_tons': 680, 'price_per_kg': 108,
+            'quality_grade': 'A+', 'certifications': 'ISO 14001,ISO 9001,BIS', 'contact_name': 'Dipak Mukherjee',
+            'contact_phone': '+91-9434567890', 'contact_email': 'durgapursteel@sify.com', 'is_verified': 1,
+            'rating': 4.8, 'total_transactions': 445
+        },
+        # Jharkhand
+        {
+            'id': 'sy-015', 'name': 'Jamshedpur Iron & Steel', 'state': 'Jharkhand', 'city': 'Jamshedpur',
+            'address': 'Adityapur Industrial Area', 'latitude': 22.8046, 'longitude': 86.2029,
+            'material_types': 'steel,stainless_steel', 'available_qty_tons': 850, 'price_per_kg': 102,
+            'quality_grade': 'A+', 'certifications': 'ISO 14001,ISO 45001,Tata Approved', 'contact_name': 'Anil Tiwari',
+            'contact_phone': '+91-9835123456', 'contact_email': 'jamshedpuriron@tatagroup.co.in', 'is_verified': 1,
+            'rating': 4.9, 'total_transactions': 612
+        },
+        # Odisha
+        {
+            'id': 'sy-016', 'name': 'Bhubaneswar Aluminium Recyclers', 'state': 'Odisha', 'city': 'Bhubaneswar',
+            'address': 'Mancheswar Industrial Estate', 'latitude': 20.2961, 'longitude': 85.8245,
+            'material_types': 'aluminium,copper', 'available_qty_tons': 320, 'price_per_kg': 152,
+            'quality_grade': 'A', 'certifications': 'ISO 9001,OSPCB Certified', 'contact_name': 'Prasanna Mishra',
+            'contact_phone': '+91-9437654321', 'contact_email': 'bbsraluminium@nalco.co.in', 'is_verified': 1,
+            'rating': 4.7, 'total_transactions': 189
+        },
+        # Telangana
+        {
+            'id': 'sy-017', 'name': 'Hyderabad Metal Exchange', 'state': 'Telangana', 'city': 'Hyderabad',
+            'address': 'Patancheru Industrial Development Area', 'latitude': 17.3850, 'longitude': 78.4867,
+            'material_types': 'aluminium,steel,copper,brass', 'available_qty_tons': 485, 'price_per_kg': 140,
+            'quality_grade': 'A', 'certifications': 'ISO 14001,TSPCB Certified,EPR Registered', 'contact_name': 'Venkat Rao',
+            'contact_phone': '+91-9848123456', 'contact_email': 'hydmetalex@gmail.com', 'is_verified': 1,
+            'rating': 4.6, 'total_transactions': 312
+        },
+        # Madhya Pradesh
+        {
+            'id': 'sy-018', 'name': 'Indore Scrap Traders', 'state': 'Madhya Pradesh', 'city': 'Indore',
+            'address': 'Pithampur Industrial Area, Sector 3', 'latitude': 22.7196, 'longitude': 75.8577,
+            'material_types': 'steel,aluminium,zinc', 'available_qty_tons': 275, 'price_per_kg': 122,
+            'quality_grade': 'B+', 'certifications': 'ISO 9001,MPPCB Registered', 'contact_name': 'Rakesh Jain',
+            'contact_phone': '+91-9425678901', 'contact_email': 'indorescrap@hotmail.com', 'is_verified': 1,
+            'rating': 4.3, 'total_transactions': 134
+        },
+        # Uttar Pradesh
+        {
+            'id': 'sy-019', 'name': 'Noida Metal Recycling Hub', 'state': 'Uttar Pradesh', 'city': 'Noida',
+            'address': 'Sector 63, Noida Industrial Area', 'latitude': 28.6139, 'longitude': 77.3726,
+            'material_types': 'aluminium,copper,steel,nickel', 'available_qty_tons': 395, 'price_per_kg': 158,
+            'quality_grade': 'A+', 'certifications': 'ISO 14001,ISO 9001,UPPCB Certified', 'contact_name': 'Ajay Gupta',
+            'contact_phone': '+91-9810234567', 'contact_email': 'noidametal@recyclinghub.in', 'is_verified': 1,
+            'rating': 4.8, 'total_transactions': 378
+        },
+        {
+            'id': 'sy-020', 'name': 'Kanpur Steel Scrap Mart', 'state': 'Uttar Pradesh', 'city': 'Kanpur',
+            'address': 'Panki Industrial Area, Site 4', 'latitude': 26.4499, 'longitude': 80.3319,
+            'material_types': 'steel,stainless_steel,lead', 'available_qty_tons': 530, 'price_per_kg': 98,
+            'quality_grade': 'A', 'certifications': 'BIS Certified,UPPCB Registered', 'contact_name': 'Sanjay Agrawal',
+            'contact_phone': '+91-9415876543', 'contact_email': 'kanpursteel@scrapmart.com', 'is_verified': 1,
+            'rating': 4.4, 'total_transactions': 267
+        },
+        # Punjab
+        {
+            'id': 'sy-021', 'name': 'Ludhiana Metal Works', 'state': 'Punjab', 'city': 'Ludhiana',
+            'address': 'Focal Point Industrial Area', 'latitude': 30.9010, 'longitude': 75.8573,
+            'material_types': 'steel,brass,copper,aluminium', 'available_qty_tons': 445, 'price_per_kg': 130,
+            'quality_grade': 'A', 'certifications': 'ISO 9001,ISO 14001,PPCB Certified', 'contact_name': 'Harpreet Singh',
+            'contact_phone': '+91-9814567890', 'contact_email': 'ludhianametal@works.co.in', 'is_verified': 1,
+            'rating': 4.7, 'total_transactions': 356
+        },
+        # Delhi NCR
+        {
+            'id': 'sy-022', 'name': 'Delhi Metal Corporation', 'state': 'Delhi', 'city': 'New Delhi',
+            'address': 'Okhla Industrial Area, Phase II', 'latitude': 28.6139, 'longitude': 77.2090,
+            'material_types': 'copper,brass,aluminium,nickel', 'available_qty_tons': 185, 'price_per_kg': 465,
+            'quality_grade': 'A+', 'certifications': 'ISO 14001,DPCC Certified,EPR Registered', 'contact_name': 'Vikram Khanna',
+            'contact_phone': '+91-9811234567', 'contact_email': 'delhimetal@corporation.in', 'is_verified': 1,
+            'rating': 4.9, 'total_transactions': 423
+        },
+    ]
+    
+    now = datetime.utcnow().isoformat()
+    for yard in scrap_yards:
+        cursor.execute("""
+            INSERT INTO scrap_yards (id, name, state, city, address, latitude, longitude, material_types,
+                available_qty_tons, price_per_kg, quality_grade, certifications, contact_name, contact_phone,
+                contact_email, is_verified, rating, total_transactions, last_updated, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            yard['id'], yard['name'], yard['state'], yard['city'], yard['address'],
+            yard['latitude'], yard['longitude'], yard['material_types'], yard['available_qty_tons'],
+            yard['price_per_kg'], yard['quality_grade'], yard['certifications'], yard['contact_name'],
+            yard['contact_phone'], yard['contact_email'], yard['is_verified'], yard['rating'],
+            yard['total_transactions'], now, now
+        ))
+    print(f"   ✅ Seeded {len(scrap_yards)} scrap yards")
+
+
+# Scrap Yard API Endpoints
+@app.route('/api/v1/scrap-yards', methods=['GET', 'OPTIONS'])
+def get_scrap_yards():
+    """Get all scrap yards with optional filtering"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        # Optional filters
+        material_type = request.args.get('material_type')
+        state = request.args.get('state')
+        min_qty = request.args.get('min_qty', type=float)
+        max_price = request.args.get('max_price', type=float)
+        verified_only = request.args.get('verified_only', 'false').lower() == 'true'
+        
+        conn = sqlite3.connect(DATABASE)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        
+        query = "SELECT * FROM scrap_yards WHERE 1=1"
+        params = []
+        
+        if material_type:
+            query += " AND material_types LIKE ?"
+            params.append(f'%{material_type}%')
+        
+        if state:
+            query += " AND state = ?"
+            params.append(state)
+        
+        if min_qty:
+            query += " AND available_qty_tons >= ?"
+            params.append(min_qty)
+        
+        if max_price:
+            query += " AND price_per_kg <= ?"
+            params.append(max_price)
+        
+        if verified_only:
+            query += " AND is_verified = 1"
+        
+        query += " ORDER BY rating DESC, total_transactions DESC"
+        
+        c.execute(query, params)
+        rows = c.fetchall()
+        conn.close()
+        
+        scrap_yards = []
+        for row in rows:
+            yard = dict(row)
+            yard['material_types'] = yard['material_types'].split(',') if yard['material_types'] else []
+            yard['certifications'] = yard['certifications'].split(',') if yard['certifications'] else []
+            scrap_yards.append(yard)
+        
+        # Calculate summary stats
+        total_qty = sum(y['available_qty_tons'] for y in scrap_yards)
+        avg_price = sum(y['price_per_kg'] for y in scrap_yards) / len(scrap_yards) if scrap_yards else 0
+        
+        return jsonify({
+            'scrap_yards': scrap_yards,
+            'total_count': len(scrap_yards),
+            'summary': {
+                'total_available_tons': total_qty,
+                'average_price_per_kg': round(avg_price, 2),
+                'verified_count': sum(1 for y in scrap_yards if y['is_verified']),
+                'states_covered': len(set(y['state'] for y in scrap_yards))
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching scrap yards: {e}")
+        return jsonify({'detail': str(e)}), 500
+
+
+@app.route('/api/v1/scrap-yards/match/<project_id>', methods=['GET', 'OPTIONS'])
+def match_scrap_yards_to_project(project_id):
+    """Match scrap yards to project materials based on material types"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        conn = sqlite3.connect(DATABASE)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        
+        # Get project materials
+        c.execute("""
+            SELECT id, material_name, material_type, quantity, unit, recycled_content
+            FROM project_materials WHERE project_id = ?
+        """, (project_id,))
+        materials = [dict(row) for row in c.fetchall()]
+        
+        if not materials:
+            conn.close()
+            return jsonify({
+                'matches': [],
+                'message': 'No materials found in project'
+            }), 200
+        
+        # Get all scrap yards
+        c.execute("SELECT * FROM scrap_yards ORDER BY rating DESC")
+        all_yards = [dict(row) for row in c.fetchall()]
+        conn.close()
+        
+        # Match materials to yards
+        matches = []
+        for mat in materials:
+            mat_type = mat['material_type'].lower().replace('_primary', '').replace('_secondary', '')
+            matched_yards = []
+            
+            for yard in all_yards:
+                yard_materials = yard['material_types'].split(',')
+                if any(mat_type in ym.lower() for ym in yard_materials):
+                    yard_copy = yard.copy()
+                    yard_copy['material_types'] = yard_materials
+                    yard_copy['certifications'] = yard['certifications'].split(',') if yard['certifications'] else []
+                    matched_yards.append(yard_copy)
+            
+            if matched_yards:
+                # Calculate potential savings
+                current_recycled = mat['recycled_content'] or 0
+                potential_recycled = 85  # Target recycled content
+                gwp_reduction = (potential_recycled - current_recycled) * 0.5  # Approximate % reduction
+                
+                matches.append({
+                    'material': mat,
+                    'matched_yards': matched_yards[:5],  # Top 5 matches
+                    'match_count': len(matched_yards),
+                    'potential_recycled_content': potential_recycled,
+                    'potential_gwp_reduction_percent': round(gwp_reduction, 1)
+                })
+        
+        return jsonify({
+            'project_id': project_id,
+            'matches': matches,
+            'total_materials': len(materials),
+            'materials_with_matches': len(matches)
+        }), 200
+        
+    except Exception as e:
+        print(f"Error matching scrap yards: {e}")
+        return jsonify({'detail': str(e)}), 500
+
+
+@app.route('/api/v1/scrap-yards/plans/<project_id>', methods=['GET', 'OPTIONS'])
+def get_sourcing_plans(project_id):
+    """Generate Plan A/B/C sourcing options for a project"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        # User location (default to Mumbai, can be passed as query param)
+        user_lat = request.args.get('lat', 19.0760, type=float)
+        user_lng = request.args.get('lng', 72.8777, type=float)
+        
+        conn = sqlite3.connect(DATABASE)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        
+        # Get project info
+        c.execute("SELECT * FROM projects WHERE id = ?", (project_id,))
+        project = c.fetchone()
+        if not project:
+            conn.close()
+            return jsonify({'detail': 'Project not found'}), 404
+        
+        # Get project materials
+        c.execute("""
+            SELECT id, material_name, material_type, quantity, unit, recycled_content, gwp
+            FROM project_materials WHERE project_id = ?
+        """, (project_id,))
+        materials = [dict(row) for row in c.fetchall()]
+        
+        # Get all scrap yards
+        c.execute("SELECT * FROM scrap_yards WHERE is_verified = 1 ORDER BY rating DESC")
+        all_yards = [dict(row) for row in c.fetchall()]
+        conn.close()
+        
+        if not materials:
+            return jsonify({
+                'plans': [],
+                'message': 'No materials in project'
+            }), 200
+        
+        def calculate_distance(lat1, lng1, lat2, lng2):
+            """Haversine formula for distance in km"""
+            import math
+            R = 6371
+            dlat = math.radians(lat2 - lat1)
+            dlng = math.radians(lng2 - lng1)
+            a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlng/2)**2
+            c = 2 * math.asin(math.sqrt(a))
+            return R * c
+        
+        # Add distance to each yard
+        for yard in all_yards:
+            yard['distance_km'] = calculate_distance(user_lat, user_lng, yard['latitude'], yard['longitude'])
+            yard['material_types'] = yard['material_types'].split(',')
+            yard['certifications'] = yard['certifications'].split(',') if yard['certifications'] else []
+        
+        # Build sourcing plans
+        def build_plan(yards, materials, strategy):
+            plan_yards = []
+            total_cost = 0
+            total_distance = 0
+            total_transport_co2 = 0
+            materials_covered = 0
+            
+            for mat in materials:
+                mat_type = mat['material_type'].lower().replace('_primary', '').replace('_secondary', '')
+                qty_needed = mat['quantity'] or 0
+                
+                # Find matching yards
+                matching = [y for y in yards if any(mat_type in m.lower() for m in y['material_types'])]
+                
+                if strategy == 'price':
+                    matching.sort(key=lambda y: y['price_per_kg'])
+                elif strategy == 'distance':
+                    matching.sort(key=lambda y: y['distance_km'])
+                elif strategy == 'quantity':
+                    matching.sort(key=lambda y: y['available_qty_tons'], reverse=True)
+                
+                if matching:
+                    yard = matching[0]
+                    materials_covered += 1
+                    cost = qty_needed * yard['price_per_kg']
+                    total_cost += cost
+                    total_distance += yard['distance_km']
+                    # Transport CO2: ~0.1 kg CO2 per ton-km for road transport
+                    transport_co2 = (qty_needed / 1000) * yard['distance_km'] * 0.1
+                    total_transport_co2 += transport_co2
+                    
+                    plan_yards.append({
+                        'material': mat['material_name'] or mat['material_type'],
+                        'material_id': mat['id'],
+                        'quantity_kg': qty_needed,
+                        'yard': {
+                            'id': yard['id'],
+                            'name': yard['name'],
+                            'city': yard['city'],
+                            'state': yard['state'],
+                            'distance_km': round(yard['distance_km'], 1),
+                            'price_per_kg': yard['price_per_kg'],
+                            'quality_grade': yard['quality_grade'],
+                            'rating': yard['rating'],
+                            'certifications': yard['certifications']
+                        },
+                        'cost': round(cost, 2),
+                        'transport_co2_kg': round(transport_co2, 2)
+                    })
+            
+            return {
+                'sourcing': plan_yards,
+                'summary': {
+                    'total_cost': round(total_cost, 2),
+                    'avg_distance_km': round(total_distance / max(len(plan_yards), 1), 1),
+                    'total_transport_co2_kg': round(total_transport_co2, 2),
+                    'materials_covered': materials_covered,
+                    'coverage_percent': round((materials_covered / len(materials)) * 100, 0) if materials else 0
+                }
+            }
+        
+        # Calculate virgin material baseline cost (for comparison)
+        virgin_baseline = sum((m['quantity'] or 0) * 200 for m in materials)  # Assume ₹200/kg virgin avg
+        
+        plans = {
+            'plan_a': {
+                'name': 'Best Price',
+                'description': 'Optimized for lowest total cost',
+                'icon': '💰',
+                'color': 'green',
+                **build_plan(all_yards, materials, 'price')
+            },
+            'plan_b': {
+                'name': 'Closest Yards',
+                'description': 'Minimized transport distance and emissions',
+                'icon': '📍',
+                'color': 'blue',
+                **build_plan(all_yards, materials, 'distance')
+            },
+            'plan_c': {
+                'name': 'Best Availability',
+                'description': 'Largest available quantities for reliability',
+                'icon': '📦',
+                'color': 'purple',
+                **build_plan(all_yards, materials, 'quantity')
+            }
+        }
+        
+        # Add savings comparison
+        for plan_key in plans:
+            plan = plans[plan_key]
+            plan['savings_vs_virgin'] = round(virgin_baseline - plan['summary']['total_cost'], 2)
+            plan['savings_percent'] = round(((virgin_baseline - plan['summary']['total_cost']) / virgin_baseline) * 100, 1) if virgin_baseline > 0 else 0
+        
+        return jsonify({
+            'project_id': project_id,
+            'project_name': project['name'] if project else 'Unknown',
+            'user_location': {'lat': user_lat, 'lng': user_lng},
+            'virgin_baseline_cost': round(virgin_baseline, 2),
+            'plans': plans,
+            'recommendation': 'plan_a' if plans['plan_a']['summary']['total_cost'] < plans['plan_b']['summary']['total_cost'] else 'plan_b'
+        }), 200
+        
+    except Exception as e:
+        print(f"Error generating sourcing plans: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'detail': str(e)}), 500
+
+
+@app.route('/api/v1/scrap-yards/stats', methods=['GET', 'OPTIONS'])
+def get_scrap_yard_stats():
+    """Get marketplace statistics for hero section"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        c.execute("SELECT COUNT(*) FROM scrap_yards")
+        total_yards = c.fetchone()[0]
+        
+        c.execute("SELECT SUM(available_qty_tons) FROM scrap_yards")
+        total_tons = c.fetchone()[0] or 0
+        
+        c.execute("SELECT SUM(total_transactions) FROM scrap_yards")
+        total_transactions = c.fetchone()[0] or 0
+        
+        c.execute("SELECT COUNT(DISTINCT state) FROM scrap_yards")
+        states_covered = c.fetchone()[0]
+        
+        c.execute("SELECT AVG(price_per_kg) FROM scrap_yards")
+        avg_price = c.fetchone()[0] or 0
+        
+        conn.close()
+        
+        # Estimate potential savings (comparing recycled vs virgin material)
+        potential_savings_crores = round((total_tons * 1000 * (200 - avg_price)) / 10000000, 1)  # In crores
+        
+        return jsonify({
+            'total_scrap_yards': total_yards,
+            'total_available_tons': round(total_tons, 0),
+            'total_transactions': total_transactions,
+            'states_covered': states_covered,
+            'average_price_per_kg': round(avg_price, 2),
+            'potential_savings_crores': potential_savings_crores,
+            'last_updated': datetime.utcnow().isoformat()
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching scrap yard stats: {e}")
+        return jsonify({'detail': str(e)}), 500
+
+
 if __name__ == '__main__':
     # Initialize databases
     conn = sqlite3.connect(DATABASE)
@@ -9800,6 +10371,35 @@ if __name__ == '__main__':
                   created_at TEXT,
                   FOREIGN KEY(project_id) REFERENCES projects(id),
                   FOREIGN KEY(material_id) REFERENCES project_materials(id))''')
+    
+    # Scrap Yard Connect - Marketplace for recycled materials
+    c.execute('''CREATE TABLE IF NOT EXISTS scrap_yards
+                 (id TEXT PRIMARY KEY,
+                  name TEXT NOT NULL,
+                  state TEXT NOT NULL,
+                  city TEXT NOT NULL,
+                  address TEXT,
+                  latitude REAL,
+                  longitude REAL,
+                  material_types TEXT NOT NULL,
+                  available_qty_tons REAL DEFAULT 0,
+                  price_per_kg REAL,
+                  quality_grade TEXT DEFAULT 'A',
+                  certifications TEXT,
+                  contact_name TEXT,
+                  contact_phone TEXT,
+                  contact_email TEXT,
+                  is_verified INTEGER DEFAULT 0,
+                  rating REAL DEFAULT 4.0,
+                  total_transactions INTEGER DEFAULT 0,
+                  last_updated TEXT,
+                  created_at TEXT)''')
+    
+    # Seed scrap yard data if table is empty
+    c.execute("SELECT COUNT(*) FROM scrap_yards")
+    if c.fetchone()[0] == 0:
+        print("🌱 Seeding scrap yard marketplace data...")
+        seed_scrap_yards(c)
     
     conn.commit()
     conn.close()

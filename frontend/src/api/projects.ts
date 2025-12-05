@@ -939,3 +939,178 @@ export const aiGapFill = async (projectId: string): Promise<AIGapFillResult> => 
   return response.data
 }
 
+
+// ============================================================================
+// SCRAP YARD CONNECT - Marketplace Types & API
+// ============================================================================
+
+export interface ScrapYard {
+  id: string
+  name: string
+  state: string
+  city: string
+  address?: string
+  latitude: number
+  longitude: number
+  material_types: string[]
+  available_qty_tons: number
+  price_per_kg: number
+  quality_grade: string
+  certifications: string[]
+  contact_name?: string
+  contact_phone?: string
+  contact_email?: string
+  is_verified: boolean
+  rating: number
+  total_transactions: number
+  last_updated: string
+  created_at: string
+  // Calculated fields
+  distance_km?: number
+}
+
+export interface ScrapYardListResponse {
+  scrap_yards: ScrapYard[]
+  total_count: number
+  summary: {
+    total_available_tons: number
+    average_price_per_kg: number
+    verified_count: number
+    states_covered: number
+  }
+}
+
+export interface ScrapYardMatch {
+  material: {
+    id: string
+    material_name: string
+    material_type: string
+    quantity: number
+    unit: string
+    recycled_content: number
+  }
+  matched_yards: ScrapYard[]
+  match_count: number
+  potential_recycled_content: number
+  potential_gwp_reduction_percent: number
+}
+
+export interface ScrapYardMatchResponse {
+  project_id: string
+  matches: ScrapYardMatch[]
+  total_materials: number
+  materials_with_matches: number
+}
+
+export interface SourcingItem {
+  material: string
+  material_id: string
+  quantity_kg: number
+  yard: {
+    id: string
+    name: string
+    city: string
+    state: string
+    distance_km: number
+    price_per_kg: number
+    quality_grade: string
+    rating: number
+    certifications: string[]
+  }
+  cost: number
+  transport_co2_kg: number
+}
+
+export interface SourcingPlan {
+  name: string
+  description: string
+  icon: string
+  color: string
+  sourcing: SourcingItem[]
+  summary: {
+    total_cost: number
+    avg_distance_km: number
+    total_transport_co2_kg: number
+    materials_covered: number
+    coverage_percent: number
+  }
+  savings_vs_virgin: number
+  savings_percent: number
+}
+
+export interface SourcingPlansResponse {
+  project_id: string
+  project_name: string
+  user_location: { lat: number; lng: number }
+  virgin_baseline_cost: number
+  plans: {
+    plan_a: SourcingPlan
+    plan_b: SourcingPlan
+    plan_c: SourcingPlan
+  }
+  recommendation: 'plan_a' | 'plan_b' | 'plan_c'
+}
+
+export interface ScrapYardStats {
+  total_scrap_yards: number
+  total_available_tons: number
+  total_transactions: number
+  states_covered: number
+  average_price_per_kg: number
+  potential_savings_crores: number
+  last_updated: string
+}
+
+export interface ScrapYardFilters {
+  material_type?: string
+  state?: string
+  min_qty?: number
+  max_price?: number
+  verified_only?: boolean
+}
+
+export const scrapYardApi = {
+  /**
+   * Get all scrap yards with optional filtering
+   */
+  list: async (filters?: ScrapYardFilters): Promise<ScrapYardListResponse> => {
+    const params = new URLSearchParams()
+    if (filters?.material_type) params.append('material_type', filters.material_type)
+    if (filters?.state) params.append('state', filters.state)
+    if (filters?.min_qty) params.append('min_qty', filters.min_qty.toString())
+    if (filters?.max_price) params.append('max_price', filters.max_price.toString())
+    if (filters?.verified_only) params.append('verified_only', 'true')
+    
+    const response = await api.get(`/scrap-yards?${params.toString()}`)
+    return response.data
+  },
+
+  /**
+   * Get marketplace statistics for hero section
+   */
+  getStats: async (): Promise<ScrapYardStats> => {
+    const response = await api.get('/scrap-yards/stats')
+    return response.data
+  },
+
+  /**
+   * Match scrap yards to project materials
+   */
+  matchToProject: async (projectId: string): Promise<ScrapYardMatchResponse> => {
+    const response = await api.get(`/scrap-yards/match/${projectId}`)
+    return response.data
+  },
+
+  /**
+   * Generate Plan A/B/C sourcing options for a project
+   */
+  getSourcingPlans: async (projectId: string, userLocation?: { lat: number; lng: number }): Promise<SourcingPlansResponse> => {
+    const params = new URLSearchParams()
+    if (userLocation) {
+      params.append('lat', userLocation.lat.toString())
+      params.append('lng', userLocation.lng.toString())
+    }
+    const response = await api.get(`/scrap-yards/plans/${projectId}?${params.toString()}`)
+    return response.data
+  }
+}

@@ -231,40 +231,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Analytics Section */}
-        {analytics && analytics.material_distribution && analytics.material_distribution.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-           <GWPBreakdownChart3D
-  data={analytics.material_distribution}
-  title="GWP Distribution by Material Type"
-/>
-
-            <div className="bg-white rounded-lg shadow p-2">
-              <h3 className="text-xl font-bold text-gray-800 mb-4 text-center tracking-tight">
-  Circularity Overview
-</h3>
-
-              <div className="flex items-center justify-around">
-              <div className="w-[300px] h-[200px]">
-  <MCIGauge3D 
-    score={analytics.summary?.avg_mci || 0} 
-    label="Average MCI"
-  />
-</div>
-
-
-                <div className="text-center">
-                  <p className="text-sm text-gray-500 mb-2">Circular Score</p>
-                  <p className="text-4xl font-bold text-orange-500">
-                    {(analytics.summary?.avg_circular_score || 0).toFixed(0)}
-                  </p>
-                  <p className="text-xs text-gray-400">out of 100</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
+        {/* Quick Actions & Recent Projects - Now on top */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
@@ -303,6 +270,25 @@ export default function DashboardPage() {
                 <div>
                   <h3 className="font-semibold text-gray-900">Team Management</h3>
                   <p className="text-sm text-gray-600">Collaborate with your team on projects</p>
+                </div>
+              </Link>
+              {/* Scrap Yard Connect Teaser */}
+              <Link
+                to="/scrap-yard-connect"
+                className="relative flex items-center p-4 bg-green-600 rounded-lg hover:bg-green-700 transition shadow-lg shadow-green-200 overflow-hidden group"
+              >
+                <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-bl-lg">
+                  NEW
+                </div>
+                <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-lg flex items-center justify-center mr-4">
+                  <span className="text-2xl">♻️</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white">Scrap Yard Connect</h3>
+                  <p className="text-sm text-green-100">Source recycled materials • Plan A/B/C options</p>
+                </div>
+                <div className="ml-auto pl-4">
+                  <span className="text-white/80 group-hover:translate-x-1 transition-transform inline-block">→</span>
                 </div>
               </Link>
             </div>
@@ -351,6 +337,40 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+
+        {/* Analytics Section - Circularity Overview */}
+        {analytics && analytics.material_distribution && analytics.material_distribution.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+           <GWPBreakdownChart3D
+  data={analytics.material_distribution}
+  title="GWP Distribution by Material Type"
+/>
+
+            <div className="bg-white rounded-lg shadow p-2">
+              <h3 className="text-xl font-bold text-gray-800 mb-4 text-center tracking-tight">
+  Circularity Overview
+</h3>
+
+              <div className="flex items-center justify-around">
+              <div className="w-[300px] h-[200px]">
+  <MCIGauge3D 
+    score={analytics.summary?.avg_mci || 0} 
+    label="Average MCI"
+  />
+</div>
+
+
+                <div className="text-center">
+                  <p className="text-sm text-gray-500 mb-2">Circular Score</p>
+                  <p className="text-4xl font-bold text-orange-500">
+                    {(analytics.summary?.avg_circular_score || 0).toFixed(0)}
+                  </p>
+                  <p className="text-xs text-gray-400">out of 100</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

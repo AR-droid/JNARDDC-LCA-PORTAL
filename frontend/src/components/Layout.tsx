@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
+import { useLanguageStore, useTranslation, Language } from '../stores/languageStore';
 import AIChatPanel from './AIChatPanel';
-import { Building, Star } from 'lucide-react';
+import { Building, Star, Globe, ChevronDown } from 'lucide-react';
 
 interface NavbarProps {
   children: React.ReactNode;
@@ -10,20 +11,32 @@ interface NavbarProps {
 
 export default function Layout({ children }: NavbarProps) {
   const { isAuthenticated, user, logout } = useAuthStore();
+  const { language, setLanguage } = useLanguageStore();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('darkMode') === 'true';
   });
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const languageDropdownRef = useRef<HTMLDivElement>(null);
+
+  const languages: { code: Language; name: string; nativeName: string; flag: string }[] = [
+    { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧' },
+    { code: 'hi', name: 'Hindi', nativeName: 'हिंदी', flag: '🇮🇳' },
+  ];
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsProfileOpen(false);
+      }
+      if (languageDropdownRef.current && !languageDropdownRef.current.contains(event.target as Node)) {
+        setIsLanguageOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -73,25 +86,32 @@ export default function Layout({ children }: NavbarProps) {
                     to="/dashboard"
                     className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
                   >
-                    Dashboard
+                    {t('nav.dashboard')}
                   </Link>
                   <Link
                     to="/projects"
                     className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
                   >
-                    Projects
+                    {t('nav.projects')}
+                  </Link>
+                  <Link
+                    to="/scrap-yard-connect"
+                    className="text-gray-700 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1"
+                  >
+                    ♻️ {t('nav.scrapYard')}
+                    <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">{t('common.new')}</span>
                   </Link>
                   <Link
                     to="/teams"
                     className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
                   >
-                    Teams
+                    {t('nav.teams')}
                   </Link>
                   <Link
                     to="/comparison"
                     className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
                   >
-                    Compare
+                    {t('nav.compare')}
                   </Link>
                 </div>
               )}
@@ -168,7 +188,7 @@ export default function Layout({ children }: NavbarProps) {
                                   <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
                                 </svg>
                               )}
-                              <span className="text-sm text-gray-700">Dark Mode</span>
+                              <span className="text-sm text-gray-700">{t('nav.darkMode')}</span>
                             </div>
                             <button
                               onClick={toggleDarkMode}
@@ -191,7 +211,7 @@ export default function Layout({ children }: NavbarProps) {
                             <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
-                            <span>Profile</span>
+                            <span>{t('nav.profile')}</span>
                           </button>
                           <button
                             onClick={() => {
@@ -204,7 +224,7 @@ export default function Layout({ children }: NavbarProps) {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
-                            <span>Settings</span>
+                            <span>{t('nav.settings')}</span>
                           </button>
                           <button
                             onClick={() => {
@@ -216,7 +236,7 @@ export default function Layout({ children }: NavbarProps) {
                             <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <span>Pricing & Plans</span>
+                            <span>{t('nav.pricing')}</span>
                           </button>
                         </div>
 
@@ -232,26 +252,112 @@ export default function Layout({ children }: NavbarProps) {
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                             </svg>
-                            <span>Logout</span>
+                            <span>{t('nav.logout')}</span>
                           </button>
                         </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Language Switcher */}
+                  <div className="relative" ref={languageDropdownRef}>
+                    <button
+                      onClick={() => setIsLanguageOpen(!isLanguageOpen)}
+                      className="flex items-center space-x-1.5 px-3 py-2 rounded-lg hover:bg-gray-100 transition text-sm font-medium text-gray-700"
+                    >
+                      <Globe className="w-4 h-4" />
+                      <span>{languages.find(l => l.code === language)?.flag}</span>
+                      <span className="hidden sm:inline">{languages.find(l => l.code === language)?.nativeName}</span>
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isLanguageOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {isLanguageOpen && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                        <div className="px-3 py-2 border-b border-gray-100">
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Select Language</p>
+                        </div>
+                        {languages.map((lang) => (
+                          <button
+                            key={lang.code}
+                            onClick={() => {
+                              setLanguage(lang.code);
+                              setIsLanguageOpen(false);
+                            }}
+                            className={`w-full px-3 py-2 text-left text-sm flex items-center space-x-3 hover:bg-gray-50 transition ${
+                              language === lang.code ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                            }`}
+                          >
+                            <span className="text-lg">{lang.flag}</span>
+                            <div className="flex-1">
+                              <p className="font-medium">{lang.nativeName}</p>
+                              <p className="text-xs text-gray-500">{lang.name}</p>
+                            </div>
+                            {language === lang.code && (
+                              <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
                 </>
               ) : (
                 <>
+                  {/* Language Switcher for non-authenticated users */}
+                  <div className="relative" ref={languageDropdownRef}>
+                    <button
+                      onClick={() => setIsLanguageOpen(!isLanguageOpen)}
+                      className="flex items-center space-x-1.5 px-3 py-2 rounded-lg hover:bg-gray-100 transition text-sm font-medium text-gray-700"
+                    >
+                      <Globe className="w-4 h-4" />
+                      <span>{languages.find(l => l.code === language)?.flag}</span>
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isLanguageOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {isLanguageOpen && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                        <div className="px-3 py-2 border-b border-gray-100">
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Select Language</p>
+                        </div>
+                        {languages.map((lang) => (
+                          <button
+                            key={lang.code}
+                            onClick={() => {
+                              setLanguage(lang.code);
+                              setIsLanguageOpen(false);
+                            }}
+                            className={`w-full px-3 py-2 text-left text-sm flex items-center space-x-3 hover:bg-gray-50 transition ${
+                              language === lang.code ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                            }`}
+                          >
+                            <span className="text-lg">{lang.flag}</span>
+                            <div className="flex-1">
+                              <p className="font-medium">{lang.nativeName}</p>
+                              <p className="text-xs text-gray-500">{lang.name}</p>
+                            </div>
+                            {language === lang.code && (
+                              <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <Link
                     to="/login"
                     className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
                   >
-                    Login
+                    {t('nav.login')}
                   </Link>
                   <Link
                     to="/register"
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-semibold"
                   >
-                    Get Started
+                    {t('nav.getStarted')}
                   </Link>
                 </>
               )}

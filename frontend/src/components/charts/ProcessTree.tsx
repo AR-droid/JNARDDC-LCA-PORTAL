@@ -174,7 +174,7 @@ const getNodeIcon = (name: string) => {
 export const ProcessTree: React.FC<ProcessTreeProps> = ({ data = defaultData }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState({ width: 900, height: 600 });
+  const [dimensions, setDimensions] = useState({ width: 900, height: 359 });
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
 
   const tree = buildProcessTree(data);

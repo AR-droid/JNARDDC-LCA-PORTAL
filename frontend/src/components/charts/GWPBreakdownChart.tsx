@@ -1,13 +1,25 @@
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
 interface GWPBreakdownChartProps {
-  data: { name: string; value: number }[]
-  title?: string
+  data: { name: string; value: number }[];
+  title?: string;
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF6B6B']
+const COLORS = [
+  "#ff6b6b",
+  "#f7b731",
+  "#2ecc71",
+  "#1abc9c",
+  "#3498db",
+  "#9b59b6",
+  "#e67e22",
+  "#FF8042"
+];
 
-export default function GWPBreakdownChart({ data, title = 'GWP Breakdown by Material Type' }: GWPBreakdownChartProps) {
+export default function GWPBreakdownChart({
+  data,
+  title = "GWP Breakdown by Material Type",
+}: GWPBreakdownChartProps) {
   if (!data || data.length === 0) {
     return (
       <div className="bg-white rounded-md shadow-sm p-4">
@@ -16,58 +28,95 @@ export default function GWPBreakdownChart({ data, title = 'GWP Breakdown by Mate
           No data available
         </div>
       </div>
-    )
+    );
   }
 
-  const total = data.reduce((sum, item) => sum + item.value, 0)
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+
+  // Add explode offset for 3D effect
+  const explodeOffset = 12;
 
   return (
     <div className="bg-white rounded-md shadow-sm p-4">
       <h3 className="text-sm font-medium mb-3">{title}</h3>
-      <div className="h-56">
+
+      <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
+            {/* ======= FAKE 3D HEIGHT (SHADOW LAYER) ======== */}
             <Pie
               data={data}
-              cx="30%"
-              cy="50%"
-              labelLine={true}
-              label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
-              outerRadius={55}
-              innerRadius={20}
-              fill="#8884d8"
+              cx="32%"
+              cy="52%"
               dataKey="value"
+              outerRadius={70}
+              innerRadius={25}
               paddingAngle={2}
-              fontSize={9}
+              stroke="none"
+              style={{
+                filter: "drop-shadow(0px 12px 8px rgba(0,0,0,0.25))",
+              }}
             >
-              {data.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              {data.map((entry, index) => (
+                <Cell key={index} fill={COLORS[index % COLORS.length]} opacity={0.7} />
               ))}
             </Pie>
-            <Tooltip 
-              formatter={(value: number) => [`${value.toFixed(2)} kg CO₂-eq`, 'GWP']}
-              contentStyle={{ fontSize: '11px', padding: '6px 10px' }}
+
+            {/* ======= TOP LAYER (VISIBLE 3D PIE) ======== */}
+            <Pie
+              data={data}
+              cx="32%"
+              cy="48%"
+              dataKey="value"
+              outerRadius={70}
+              innerRadius={25}
+              paddingAngle={2}
+              label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+              labelLine={true}
+            >
+              {data.map((entry, index) => (
+                <Cell
+                  key={index}
+                  fill={COLORS[index % COLORS.length]}
+                  // explode effect for selected slice
+                  {...(index === 0
+                    ? { offsetRadius: explodeOffset }
+                    : { offsetRadius: 0 })}
+                />
+              ))}
+            </Pie>
+
+            <Tooltip
+              formatter={(value: number) => [
+                `${value.toFixed(2)} kg CO₂-eq`,
+                "GWP",
+              ]}
             />
-            <Legend 
+
+            <Legend
               layout="vertical"
               align="right"
               verticalAlign="middle"
-              wrapperStyle={{ 
-                fontSize: '10px',
-                paddingLeft: '5px',
-                right: 0,
-                maxWidth: '45%'
+              wrapperStyle={{
+                fontSize: "11px",
+                paddingLeft: "10px",
+                maxWidth: "40%",
               }}
-              formatter={(value: string) => <span className="text-gray-700">{value}</span>}
             />
           </PieChart>
         </ResponsiveContainer>
       </div>
+
       <div className="mt-2 text-center">
         <span className="text-xs text-gray-500">Total: </span>
-        <span className="text-sm font-semibold text-green-600">{total.toFixed(2)} kg CO₂-eq</span>
+        <span className="text-sm font-semibold text-green-600">
+          {total.toFixed(2)} kg CO₂-eq
+        </span>
       </div>
-      <p className="text-2xs text-gray-400 text-center mt-2 italic">Source: IPCC AR6, Ecoinvent 3.9</p>
+
+      <p className="text-2xs text-gray-400 text-center mt-2 italic">
+        Source: IPCC AR6, Ecoinvent 3.9
+      </p>
     </div>
-  )
+  );
 }

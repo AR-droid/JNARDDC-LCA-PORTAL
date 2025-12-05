@@ -11,6 +11,17 @@ import ActionHotspots from '../components/ActionHotspots'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon, UploadIcon, PlusIcon, PackageIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
 import { FileSpreadsheet, Sparkles, MapPin, Truck, Train, Ship, Plane } from 'lucide-react'
+import { Lock } from "lucide-react";
+import { Award } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+import { CheckCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { Bot } from "lucide-react";
+import { Clock } from "lucide-react";
+import { Package } from "lucide-react";
+
+
+
 
 // Transport mode icon helper
 const TransportIcon = ({ mode }: { mode: string }) => {
@@ -397,7 +408,10 @@ export default function ProjectDetailPage() {
                 className="px-3 py-1.5 text-sm bg-gray-400 text-white rounded-md hover:bg-gray-500 transition-colors flex items-center gap-1.5"
                 title="CBAM Export requires Pro plan"
               >
-                <span>🔒</span> CBAM Export
+                <span className="flex items-center gap-1">
+  <Lock className="w-4 h-4 text-gray-600" /> CBAM Export
+</span>
+
               </Link>
             )}
           </div>
@@ -445,7 +459,11 @@ export default function ProjectDetailPage() {
                   to="/pricing"
                   className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
                 >
-                  <span>🔒</span> Upgrade to Enterprise
+                  <span className="flex items-center gap-1">
+  <Lock className="w-4 h-4 text-gray-600" />
+  Upgrade to Enterprise
+</span>
+
                 </Link>
               ) : verificationStatus?.verification_status === 'not_submitted' && (
                 <button
@@ -467,14 +485,20 @@ export default function ProjectDetailPage() {
               )}
               {verificationStatus?.verification_status === 'pending' && (
                 <span className="px-3 py-1.5 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium flex items-center gap-1">
-                  <span className="animate-pulse">⏳</span> Pending Review
+                 <span className="flex items-center gap-1 text-gray-600">
+  <Clock className="w-4 h-4" />
+  Pending Review
+</span>
+
                 </span>
               )}
               {verificationStatus?.verification_status === 'approved' && (
-                <span className="px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-sm font-medium flex items-center gap-1">
-                  ✅ Verified
-                </span>
-              )}
+  <span className="px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-sm font-medium flex items-center gap-1">
+    <CheckCircle className="w-4 h-4" />
+    Verified
+  </span>
+)}
+
               {verificationStatus?.verification_status === 'rejected' && (
                 <span className="px-3 py-1.5 bg-red-100 text-red-800 rounded-full text-sm font-medium flex items-center gap-1">
                   ❌ Rejected
@@ -496,9 +520,11 @@ export default function ProjectDetailPage() {
                   <li>Extended Producer Responsibility (EPR) Rules</li>
                 </ul>
                 {materials.length === 0 && (
-                  <p className="text-sm text-amber-600 font-medium mt-3">
-                    ⚠️ Add at least one material to submit for verification.
-                  </p>
+                  <p className="text-sm text-amber-600 font-medium mt-3 flex items-center gap-1">
+  <AlertTriangle className="w-4 h-4" />
+  Add at least one material to submit for verification.
+</p>
+
                 )}
               </div>
             )}
@@ -534,7 +560,10 @@ export default function ProjectDetailPage() {
             {verificationStatus?.verification_status === 'approved' && (
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
-                  <div className="text-3xl">🏆</div>
+                  <div className="text-3xl">
+  <Award className="w-8 h-8 text-yellow-500" />
+</div>
+
                   <div>
                     <p className="text-sm font-semibold text-green-800">JNARDDC Verified Assessment</p>
                     <p className="text-sm text-gray-700 mt-1">
@@ -994,7 +1023,11 @@ export default function ProjectDetailPage() {
             <div className="flex-1 overflow-y-auto p-4">
               {/* Materials */}
               <div className="mb-6">
-                <h4 className="text-lg font-semibold text-gray-800 mb-3">📦 Materials Analysis</h4>
+                <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+  <Package className="w-5 h-5 text-gray-800" />
+  Materials Analysis
+</h4>
+
                 {!aiGapFillResult.materials || aiGapFillResult.materials.length === 0 ? (
                   <div className="bg-gray-50 rounded-lg p-6 text-center">
                     <p className="text-gray-600">No materials in this project to analyze.</p>
@@ -1066,7 +1099,11 @@ export default function ProjectDetailPage() {
 
               {/* AI Models Used */}
               <div>
-                <h4 className="text-lg font-semibold text-gray-800 mb-3">🤖 AI Models Used</h4>
+                <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+  <Bot className="w-5 h-5 text-gray-800" />
+  AI Models Used
+</h4>
+
                 {aiGapFillResult.ai_models_used && aiGapFillResult.ai_models_used.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {aiGapFillResult.ai_models_used.map((model, idx) => (

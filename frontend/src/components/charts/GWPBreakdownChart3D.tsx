@@ -20,73 +20,72 @@ export default function GWPBreakdownChart3D({ title, data }: GWPBreakdownChart3D
       textStyle: { fontSize: 16, fontWeight: "bold" },
     },
 
-   tooltip: {
-  trigger: "item",
-  formatter: "{b}: {c} kg CO₂-eq ({d}%)",
-  backgroundColor: "rgba(30,30,30,0.9)", // dark background
-  borderColor: "#444",
-  textStyle: { color: "#fff", fontSize: 12 },
-  borderRadius: 6,
-  padding: 10
-},
-
+    tooltip: {
+      trigger: "item",
+      formatter: "{b}: {c} kg CO₂-eq ({d}%)",
+      backgroundColor: "rgba(30,30,30,0.9)",
+      borderColor: "#444",
+      textStyle: { color: "#fff", fontSize: 12 },
+      borderRadius: 6,
+      padding: 10,
+    },
 
     legend: {
       orient: "vertical",
-      right: 5,
+      right: 8,
       top: "center",
-
-      // 🔥 Smaller legend
       itemWidth: 10,
       itemHeight: 10,
       itemGap: 6,
-
       textStyle: {
-        fontSize: 10,        // 🔥 Reduce label size
+        fontSize: 10,
         color: "#555",
-        transition: "all 0.2s ease",
       },
-    emphasis: {
-      textStyle: {
-      fontSize: 14,       // enlarged size
-      fontWeight: "bold",
-      color: "#000",      // darker on hover
-    }
-  }
     },
 
     series: [
-      {
-        type: "pie",
-        radius: ["30%", "55%"],
-        center: ["35%", "62%"],  // Shift chart slightly left
+  {
+    type: "pie",
+    radius: ["38%", "70%"],
+    center: ["40%", "50%"],
 
-        avoidLabelOverlap: true,
+    // 💡 Hide labels normally
+    label: {
+      show: false,
+    },
 
-        label: {
-          show: true,
-          formatter: "{b}",
-          fontSize: 12,        // 🔥 Smaller labels
-          position: "outside",
-        },
-
-        labelLine: {
-          show: true,
-          length: 8,
-          length2: 4,
-          smooth: true,
-        },
-
-        itemStyle: {
-          shadowBlur: 18,
-          shadowColor: "rgba(0,0,0,0.25)",
-          shadowOffsetX: 0,
-          shadowOffsetY: 6,
-        },
-
-        data: chartData,
+    // 💡 Show name ONLY on hover
+    emphasis: {
+      label: {
+        show: true,
+        formatter: "{b}\n{d}%",
+        fontSize: 10,
+        fontWeight: "bold",
+        color: "#000",
       },
-    ],
+      scale: true,
+      scaleSize: 6,
+      itemStyle: {
+        shadowBlur: 20,
+        shadowColor: "rgba(0,0,0,0.35)",
+      },
+    },
+
+    // Connector lines appear only on hover
+    labelLine: {
+      show: false,
+      emphasis: {
+        show: true,
+        length: 10,
+        length2: 10,
+        lineStyle: { width: 1.5, color: "#444" },
+      },
+    },
+
+    data: chartData,
+  },
+]
+
   };
 
   return (

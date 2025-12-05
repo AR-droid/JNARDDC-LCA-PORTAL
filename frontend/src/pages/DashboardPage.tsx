@@ -204,7 +204,14 @@ export default function DashboardPage() {
             <div className="absolute inset-0 bg-black/50"></div>
             <div className="relative z-10">
               <h3 className="text-lg font-semibold mb-2 text-white">Total Carbon Footprint</h3>
-              <p className="text-4xl font-bold text-green-400">{analytics?.summary?.total_gwp?.toFixed(1) || stats.avgGwp.toFixed(1)}</p>
+              <p className="text-4xl font-bold text-green-400">
+  {
+    analytics?.summary?.total_gwp
+      ? Intl.NumberFormat("en", { notation: "compact" }).format(analytics.summary.total_gwp)
+      : Intl.NumberFormat("en", { notation: "compact" }).format(stats.avgGwp)
+  }
+</p>
+
               <p className="text-sm text-gray-200 mt-1">kg CO₂-eq across all projects</p>
               <p className="text-2xs text-gray-300 italic mt-1">Source: IPCC AR6, Ecoinvent 3.9</p>
             </div>

@@ -164,6 +164,15 @@ export default function AnalyticsPage() {
             </div>
           </div>
         </div>
+        
+{/* Process Tree */}
+        <div className="mb-6">
+          <div className="bg-white rounded-lg shadow p-4">
+            <h3 className="text-base font-semibold mb-4">Manufacturing Process Tree</h3>
+            <ProcessTree />
+          </div>
+        </div>
+
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
@@ -185,13 +194,7 @@ export default function AnalyticsPage() {
           />
         </div>
 
-        {/* Process Tree */}
-        <div className="mb-6">
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="text-base font-semibold mb-4">Manufacturing Process Tree</h3>
-            <ProcessTree />
-          </div>
-        </div>
+        
 
         {/* Process Flow */}
         <div className="mb-6">

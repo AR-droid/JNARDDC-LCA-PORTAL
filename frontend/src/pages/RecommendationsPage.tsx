@@ -154,7 +154,8 @@ export default function RecommendationsPage() {
       return
     }
     
-    // Generate images if they don't exist
+    // Set selected recommendation BEFORE starting generation (for loading state)
+    setSelectedRecommendation(rec)
     setIsGeneratingImages(true)
     try {
       console.log('Generating images for recommendation:', rec)
@@ -652,7 +653,7 @@ export default function RecommendationsPage() {
                           {isGeneratingImages && selectedRecommendation === rec ? (
                             <>
                               <span className="inline-block animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
-                              Creating...
+                              Generating...
                             </>
                           ) : hasImages(rec) ? (
                             <>

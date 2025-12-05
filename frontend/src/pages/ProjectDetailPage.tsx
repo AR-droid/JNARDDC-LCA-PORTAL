@@ -332,6 +332,13 @@ export default function ProjectDetailPage() {
   }
 
   const totalGWP = materials.reduce((sum, m) => sum + m.gwp, 0)
+  const avgRecycledContent = materials.length > 0 
+    ? materials.reduce((sum, m) => sum + (m.recycled_content || 0), 0) / materials.length 
+    : 0
+  // MCI (Material Circularity Indicator) - simplified calculation
+  // MCI = (recycled_content_fraction * 0.5) + (recyclability_fraction * 0.5)
+  // For simplicity, we assume recyclability matches recycled content
+  const mciScore = (avgRecycledContent / 100 * 0.5 + avgRecycledContent / 100 * 0.5).toFixed(2)
   const sortedMaterials = getSortedMaterials()
 
   if (isLoading) {
@@ -482,12 +489,18 @@ export default function ProjectDetailPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-5">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-5">
             <div className="bg-blue-50 p-3 rounded-md">
               <p className="text-xs text-blue-600 font-medium">Total GWP</p>
               <p className="text-xl font-semibold text-blue-900">{totalGWP.toFixed(2)}</p>
               <p className="text-2xs text-blue-500">kg CO₂-eq</p>
               <p className="text-2xs text-blue-400 italic mt-1">IPCC AR6, Ecoinvent 3.9</p>
+            </div>
+            <div className="bg-teal-50 p-3 rounded-md">
+              <p className="text-xs text-teal-600 font-medium">MCI Score</p>
+              <p className="text-xl font-semibold text-teal-900">{mciScore}</p>
+              <p className="text-2xs text-teal-500">Material Circularity</p>
+              <p className="text-2xs text-teal-400 italic mt-1">Ellen MacArthur Foundation</p>
             </div>
             <div className="bg-green-50 p-3 rounded-md">
               <p className="text-xs text-green-600 font-medium">Materials</p>

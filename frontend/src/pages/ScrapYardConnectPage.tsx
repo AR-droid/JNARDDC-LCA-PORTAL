@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import {
   scrapYardApi,
   ScrapYard,
   ScrapYardStats,
   SourcingPlansResponse,
   ScrapYardFilters,
+  ApplySourcingPlanResponse,
 } from '../api/projects'
 import {
   Recycle,
@@ -32,6 +33,7 @@ import {
   Zap,
   Globe,
   DollarSign,
+  CheckCircle2,
 } from 'lucide-react'
 
 // Indian states for filter
@@ -55,6 +57,7 @@ const MATERIAL_TYPES = [
 
 export default function ScrapYardConnectPage() {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const projectId = searchParams.get('project')
 
   // State
@@ -64,6 +67,9 @@ export default function ScrapYardConnectPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedPlan, setSelectedPlan] = useState<'plan_a' | 'plan_b' | 'plan_c' | null>(null)
   const [expandedYard, setExpandedYard] = useState<string | null>(null)
+  const [isApplying, setIsApplying] = useState(false)
+  const [applyResult, setApplyResult] = useState<ApplySourcingPlanResponse | null>(null)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
   
   // Filters
   const [filters, setFilters] = useState<ScrapYardFilters>({})
@@ -111,6 +117,26 @@ export default function ScrapYardConnectPage() {
       setScrapYards(data.scrap_yards)
     } catch (e) {
       console.error('Failed to load scrap yards:', e)
+    }
+  }
+
+  // Handle applying sourcing plan to project
+  const handleApplyPlan = async () => {
+    if (!selectedPlan || !projectId || !sourcingPlans) return
+    
+    setIsApplying(true)
+    try {
+      // Use the full sourcing items from the selected plan
+      const sourcing = sourcingPlans.plans[selectedPlan].sourcing
+      
+      const result = await scrapYardApi.applySourcingPlan(projectId, selectedPlan, sourcing)
+      setApplyResult(result)
+      setShowSuccessModal(true)
+    } catch (e) {
+      console.error('Failed to apply sourcing plan:', e)
+      alert('Failed to apply sourcing plan. Please try again.')
+    } finally {
+      setIsApplying(false)
     }
   }
 
@@ -467,6 +493,33 @@ export default function ScrapYardConnectPage() {
                     </div>
                   ))}
                 </div>
+
+                {/* Apply to Project Button */}
+                <div className="px-5 py-4 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-100">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="text-sm text-gray-600">
+                      <p className="font-medium text-gray-900 mb-1">Apply this plan to your project?</p>
+                      <p>This will update your BOM with recycled materials and recalculate GWP & MCI scores.</p>
+                    </div>
+                    <button
+                      onClick={handleApplyPlan}
+                      disabled={isApplying}
+                      className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isApplying ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Applying...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-5 h-5" />
+                          Apply to Project
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -785,6 +838,88 @@ export default function ScrapYardConnectPage() {
           </div>
         )}
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && applyResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+            {/* Success Header */}
+            <div className="bg-gradient-to-r from-green-500 to-emerald-500 px-6 py-8 text-center">
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-10 h-10 text-green-500" />
+              </div>
+              <h3 className="text-2xl font-bold text-white">Sourcing Plan Applied!</h3>
+              <p className="text-green-100 mt-2">Your project has been updated with recycled materials</p>
+            </div>
+
+            {/* Impact Summary */}
+            <div className="p-6">
+              <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                Environmental Impact Summary
+              </h4>
+
+              {/* Before/After Comparison */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-red-50 rounded-xl p-4 text-center">
+                  <p className="text-xs text-red-600 font-medium mb-1">Before</p>
+                  <p className="text-2xl font-bold text-red-700">
+                    {applyResult.impact?.gwp_before?.toFixed(1) || '0'}
+                  </p>
+                  <p className="text-xs text-red-500">kg CO₂ eq</p>
+                </div>
+                <div className="bg-green-50 rounded-xl p-4 text-center">
+                  <p className="text-xs text-green-600 font-medium mb-1">After</p>
+                  <p className="text-2xl font-bold text-green-700">
+                    {applyResult.impact?.gwp_after?.toFixed(1) || '0'}
+                  </p>
+                  <p className="text-xs text-green-500">kg CO₂ eq</p>
+                </div>
+              </div>
+
+              {/* Reduction Banner */}
+              <div className="bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl p-4 mb-6 text-center">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <TrendingDown className="w-5 h-5 text-green-600" />
+                  <span className="text-3xl font-bold text-green-700">
+                    {applyResult.impact?.gwp_reduction_percent?.toFixed(0) || '0'}%
+                  </span>
+                </div>
+                <p className="text-sm text-green-600 font-medium">Carbon Footprint Reduction</p>
+              </div>
+
+              {/* Stats */}
+              <div className="flex items-center justify-center gap-6 text-center mb-6">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{applyResult.materials_updated || 0}</p>
+                  <p className="text-xs text-gray-500">Materials Updated</p>
+                </div>
+                <div className="w-px h-10 bg-gray-200"></div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{applyResult.impact?.recycled_content_after?.toFixed(0) || '100'}%</p>
+                  <p className="text-xs text-gray-500">Recycled Content</p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowSuccessModal(false)}
+                  className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => navigate(`/projects/${projectId}`)}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-medium hover:shadow-lg transition flex items-center justify-center gap-2"
+                >
+                  View Project
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1121,5 +1121,44 @@ export const scrapYardApi = {
     }
     const response = await api.get(`/scrap-yards/plans/${projectId}?${params.toString()}`)
     return response.data
+  },
+
+  /**
+   * Apply a selected sourcing plan to update project materials
+   */
+  applySourcingPlan: async (projectId: string, plan: 'plan_a' | 'plan_b' | 'plan_c', sourcing: SourcingItem[]): Promise<ApplySourcingPlanResponse> => {
+    const response = await api.post(`/projects/${projectId}/apply-sourcing-plan`, {
+      plan,
+      sourcing
+    })
+    return response.data
   }
+}
+
+// Apply sourcing plan response interface
+export interface ApplySourcingPlanResponse {
+  success: boolean
+  plan_applied: string
+  materials_updated: number
+  updates: {
+    material_id: string
+    material_name: string
+    recycled_content_before: number
+    recycled_content_after: number
+    gwp_before: number
+    gwp_after: number
+    supplier: string
+  }[]
+  impact: {
+    gwp_before: number
+    gwp_after: number
+    gwp_reduction: number
+    gwp_reduction_percent: number
+    recycled_content_before: number
+    recycled_content_after: number
+    mci_before: number
+    mci_after: number
+    mci_improvement: number
+  }
+  message: string
 }

@@ -10290,6 +10290,144 @@ def get_sourcing_plans(project_id):
         return jsonify({'detail': str(e)}), 500
 
 
+@app.route('/api/v1/projects/<project_id>/apply-sourcing-plan', methods=['POST', 'OPTIONS'])
+def apply_sourcing_plan(project_id):
+    """Apply a selected sourcing plan to update project materials with recycled content"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        data = request.get_json()
+        plan_key = data.get('plan')  # 'plan_a', 'plan_b', or 'plan_c'
+        sourcing_details = data.get('sourcing', [])  # Array of {material_id, yard info}
+        
+        if not plan_key or plan_key not in ['plan_a', 'plan_b', 'plan_c']:
+            return jsonify({'detail': 'Invalid plan selected'}), 400
+        
+        conn = sqlite3.connect(DATABASE)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        
+        # Verify project exists
+        c.execute("SELECT * FROM projects WHERE id = ?", (project_id,))
+        project = c.fetchone()
+        if not project:
+            conn.close()
+            return jsonify({'detail': 'Project not found'}), 404
+        
+        # Get current project materials for before/after comparison
+        c.execute("""
+            SELECT id, material_name, material_type, quantity, recycled_content, gwp
+            FROM project_materials WHERE project_id = ?
+        """, (project_id,))
+        materials_before = {row['id']: dict(row) for row in c.fetchall()}
+        
+        # Calculate before totals
+        total_gwp_before = sum(m['gwp'] or 0 for m in materials_before.values())
+        avg_recycled_before = sum(m['recycled_content'] or 0 for m in materials_before.values()) / max(len(materials_before), 1)
+        
+        # Update materials with recycled content from sourcing plan
+        updated_materials = []
+        for sourcing in sourcing_details:
+            material_id = sourcing.get('material_id')
+            yard_info = sourcing.get('yard', {})
+            
+            if material_id and material_id in materials_before:
+                mat = materials_before[material_id]
+                
+                # Set recycled_content to 100% since sourcing from scrap yard
+                new_recycled_content = 100.0
+                
+                # Recalculate GWP - recycled materials have ~70-90% lower emissions
+                # Using a conservative 75% reduction factor for recycled metals
+                original_gwp = mat['gwp'] or 0
+                original_recycled = mat['recycled_content'] or 0
+                
+                # Adjust GWP based on new recycled content
+                # Formula: new_gwp = virgin_gwp * (1 - recycled_content * 0.75)
+                if original_recycled < 100:
+                    virgin_gwp = original_gwp / (1 - (original_recycled / 100) * 0.75) if original_recycled > 0 else original_gwp
+                else:
+                    virgin_gwp = original_gwp * 4  # If already 100% recycled, estimate virgin
+                
+                new_gwp = virgin_gwp * (1 - (new_recycled_content / 100) * 0.75)
+                
+                # Update the material in database (only updating columns that exist)
+                c.execute("""
+                    UPDATE project_materials 
+                    SET recycled_content = ?,
+                        gwp = ?,
+                        transport_distance = ?
+                    WHERE id = ? AND project_id = ?
+                """, (
+                    new_recycled_content,
+                    round(new_gwp, 4),
+                    yard_info.get('distance_km', 0),
+                    material_id,
+                    project_id
+                ))
+                
+                updated_materials.append({
+                    'material_id': material_id,
+                    'material_name': mat['material_name'] or mat['material_type'],
+                    'recycled_content_before': original_recycled,
+                    'recycled_content_after': new_recycled_content,
+                    'gwp_before': original_gwp,
+                    'gwp_after': round(new_gwp, 4),
+                    'supplier': yard_info.get('name', '')
+                })
+        
+        # Update project status
+        c.execute("""
+            UPDATE projects 
+            SET status = 'calculated'
+            WHERE id = ?
+        """, (project_id,))
+        
+        conn.commit()
+        
+        # Get updated totals
+        c.execute("""
+            SELECT id, material_name, material_type, quantity, recycled_content, gwp
+            FROM project_materials WHERE project_id = ?
+        """, (project_id,))
+        materials_after = [dict(row) for row in c.fetchall()]
+        
+        total_gwp_after = sum(m['gwp'] or 0 for m in materials_after)
+        avg_recycled_after = sum(m['recycled_content'] or 0 for m in materials_after) / max(len(materials_after), 1)
+        
+        conn.close()
+        
+        # Calculate MCI improvement (simplified)
+        mci_before = avg_recycled_before / 100 * 0.5 + 0.3  # Simplified MCI calculation
+        mci_after = avg_recycled_after / 100 * 0.5 + 0.3
+        
+        return jsonify({
+            'success': True,
+            'plan_applied': plan_key,
+            'materials_updated': len(updated_materials),
+            'updates': updated_materials,
+            'impact': {
+                'gwp_before': round(total_gwp_before, 2),
+                'gwp_after': round(total_gwp_after, 2),
+                'gwp_reduction': round(total_gwp_before - total_gwp_after, 2),
+                'gwp_reduction_percent': round(((total_gwp_before - total_gwp_after) / max(total_gwp_before, 1)) * 100, 1),
+                'recycled_content_before': round(avg_recycled_before, 1),
+                'recycled_content_after': round(avg_recycled_after, 1),
+                'mci_before': round(mci_before, 2),
+                'mci_after': round(mci_after, 2),
+                'mci_improvement': round(mci_after - mci_before, 2)
+            },
+            'message': f'Successfully applied {plan_key.replace("_", " ").title()} sourcing plan'
+        }), 200
+        
+    except Exception as e:
+        print(f"Error applying sourcing plan: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'detail': str(e)}), 500
+
+
 @app.route('/api/v1/scrap-yards/stats', methods=['GET', 'OPTIONS'])
 def get_scrap_yard_stats():
     """Get marketplace statistics for hero section"""

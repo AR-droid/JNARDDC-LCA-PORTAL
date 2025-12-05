@@ -60,18 +60,23 @@ export default function LoginPage() {
                 });
                 
                 const data = await response.json();
+                console.log('DigiLocker login response:', data);
                 
                 if (data.access_token && data.user) {
                   // Set auth state and token
                   localStorage.setItem('access_token', data.access_token);
                   localStorage.setItem('digilocker_verified', 'true');
                   setAuth(data.user, data.access_token);
-                  navigate('/dashboard');
+                  
+                  // Force redirect to dashboard
+                  window.location.href = '/dashboard';
                 } else {
                   console.error('DigiLocker login failed:', data);
+                  alert('Login failed: ' + (data.detail || 'Unknown error'));
                 }
               } catch (err) {
                 console.error('Error during DigiLocker login:', err);
+                alert('Network error. Please make sure the backend is running.');
               }
             }}
             onBack={() => setLoginMode('email')}

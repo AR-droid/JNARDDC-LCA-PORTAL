@@ -481,8 +481,15 @@ def digilocker_login():
             email = digilocker_email
             full_name = name
             
+            # First ensure digilocker_verified column exists
+            try:
+                c.execute("ALTER TABLE users ADD COLUMN digilocker_verified INTEGER DEFAULT 0")
+                conn.commit()
+            except:
+                pass  # Column already exists
+            
             c.execute("""
-                INSERT INTO users (id, email, password_hash, full_name, organization_name, created_at, digilocker_verified)
+                INSERT INTO users (id, email, password, full_name, organization_name, created_at, digilocker_verified)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (user_id, email, 'DIGILOCKER_AUTH', full_name, 'DigiLocker Verified', datetime.utcnow().isoformat(), 1))
             

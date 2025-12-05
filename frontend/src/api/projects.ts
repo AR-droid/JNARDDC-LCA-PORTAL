@@ -99,7 +99,7 @@ export const projectsApi = {
   },
 
   /**
-   * Get action hotspots (Stuck to Address) for a project
+   * Get action hotspots (Scrap Yard Connect) for a project
    */
   getActionHotspots: async (projectId: string): Promise<ActionHotspotsResult> => {
     const response = await api.get(`/projects/${projectId}/action-hotspots`)
@@ -279,7 +279,7 @@ export interface AIDesignInsight {
   implementation_timeframe: 'short_term' | 'medium_term' | 'long_term'
 }
 
-// Action Hotspots (Stuck to Address) Types
+// Action Hotspots (Scrap Yard Connect) Types
 export interface ActionHotspot {
   id: string
   rank: number

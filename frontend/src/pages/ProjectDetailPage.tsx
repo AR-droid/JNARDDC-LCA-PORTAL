@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { projectsApi, Project, aiGapFill, AIGapFillResult, VerificationStatus } from '../api/projects'
+import { projectsApi, Project, aiGapFill, AIGapFillResult, VerificationStatus, parseNLPDescription } from '../api/projects'
 import { materialsApi, Material } from '../api/materials'
 import MaterialAddModal from '../components/MaterialAddModal'
 import ProjectEditModal from '../components/ProjectEditModal'
@@ -10,7 +10,7 @@ import SupplyChainMap from '../components/SupplyChainMap'
 import ActionHotspots from '../components/ActionHotspots'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon, UploadIcon, PlusIcon, PackageIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
-import { FileSpreadsheet, Sparkles, MapPin, Truck, Train, Ship, Plane } from 'lucide-react'
+import { FileSpreadsheet, Sparkles, MapPin, Truck, Train, Ship, Plane, Wand2, Loader2 } from 'lucide-react'
 import { Lock } from "lucide-react";
 import { Award } from "lucide-react";
 import { AlertTriangle } from "lucide-react";
@@ -85,6 +85,7 @@ export default function ProjectDetailPage() {
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null)
   const [isSubmittingVerification, setIsSubmittingVerification] = useState(false)
   const [isAIFilling, setIsAIFilling] = useState(false)
+  const [isGeneratingBOM, setIsGeneratingBOM] = useState(false)
   const [aiGapFillResult, setAiGapFillResult] = useState<AIGapFillResult | null>(null)
   const [showAIResultModal, setShowAIResultModal] = useState(false)
 
@@ -172,6 +173,51 @@ export default function ProjectDetailPage() {
       alert('Failed to fill gaps with AI. Please try again.')
     } finally {
       setIsAIFilling(false)
+    }
+  }
+
+  // AI Generate BOM from project description
+  const handleGenerateBOM = async () => {
+    if (!id || !project?.description) {
+      alert('Project description is required to generate BOM. Please add a description first.')
+      return
+    }
+
+    try {
+      setIsGeneratingBOM(true)
+      
+      // Parse the project description using NLP
+      const nlpResult = await parseNLPDescription(project.description)
+      
+      if (!nlpResult.parsed.materials || nlpResult.parsed.materials.length === 0) {
+        alert('Could not extract materials from the description. Please try adding more details about the materials used.')
+        return
+      }
+
+      // Convert NLP materials to batch add format
+      const materialsToAdd = nlpResult.parsed.materials.map(mat => ({
+        material_name: mat.material_name,
+        material_type: mat.material_type || 'other',
+        quantity: mat.quantity || 1,
+        unit: mat.unit || 'kg',
+        recycled_content: mat.recycled_content || 0,
+        transport_distance: mat.transport_distance || 500
+      }))
+
+      // Batch add the materials
+      const result = await materialsApi.addBatch(id, materialsToAdd)
+      
+      if (result.added > 0) {
+        alert(`✅ Successfully generated BOM!\n\n${result.added} materials added from your description.\n${result.failed > 0 ? `${result.failed} materials could not be added.` : ''}`)
+        await loadData()
+      } else {
+        alert('No materials could be added. Please check the description or add materials manually.')
+      }
+    } catch (error) {
+      console.error('Error generating BOM:', error)
+      alert('Failed to generate BOM. Please try again or add materials manually.')
+    } finally {
+      setIsGeneratingBOM(false)
     }
   }
 
@@ -304,6 +350,66 @@ export default function ProjectDetailPage() {
           ← Back to Projects
         </button>
 
+        {/* Secondary Navigation Bar - Quick Actions */}
+        <div className="bg-white rounded-lg shadow mb-5">
+          <div className="flex flex-wrap items-center gap-1 p-2 border-b border-gray-100">
+            <button
+              onClick={() => navigate(`/projects/${id}/analytics`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <ChartIcon size={16} /> Analytics
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/lcia`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-teal-50 hover:text-teal-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AnalyticsIcon size={16} /> LCIA
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/analysis`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AnalyticsIcon size={16} /> Analysis
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/recommendations`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AIIcon size={16} /> AI Advisor
+            </button>
+            <button
+              onClick={handleAIGapFill}
+              disabled={isAIFilling || materials.length === 0}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-pink-50 hover:text-pink-700 disabled:text-gray-400 disabled:hover:bg-transparent disabled:cursor-not-allowed rounded-md transition-colors flex items-center gap-2"
+              title="Use AI to estimate missing data values"
+            >
+              <Sparkles size={16} /> {isAIFilling ? 'Filling...' : 'AI Gap Fill'}
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/scenario`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <FlaskIcon size={16} /> Scenarios
+            </button>
+            {hasCBAMAccess ? (
+              <button
+                onClick={() => navigate(`/projects/${id}/cbam-export`)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-md transition-colors flex items-center gap-2"
+              >
+                <FileSpreadsheet size={16} /> CBAM
+              </button>
+            ) : (
+              <Link
+                to="/pricing"
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+                title="CBAM Export requires Pro plan"
+              >
+                <Lock size={16} /> CBAM
+              </Link>
+            )}
+          </div>
+        </div>
+
         <div className="bg-white rounded-lg shadow p-5 mb-5">
           <div className="flex justify-between items-start mb-3">
             <div>
@@ -353,284 +459,9 @@ export default function ProjectDetailPage() {
               <p className="text-2xs text-purple-500">product type</p>
             </div>
           </div>
-
-          {/* Quick Actions */}
-          <div className="flex flex-wrap gap-2 mt-5">
-            <button
-              onClick={() => navigate(`/projects/${id}/analytics`)}
-              className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-1.5"
-            >
-              <ChartIcon size={14} /> Analytics
-            </button>
-            <button
-              onClick={() => navigate(`/projects/${id}/lcia`)}
-              className="px-3 py-1.5 text-sm bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors flex items-center gap-1.5"
-            >
-              <AnalyticsIcon size={14} /> LCIA
-            </button>
-            <button
-              onClick={() => navigate(`/projects/${id}/analysis`)}
-              className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center gap-1.5"
-            >
-              <AnalyticsIcon size={14} /> Analysis
-            </button>
-            <button
-              onClick={() => navigate(`/projects/${id}/recommendations`)}
-              className="px-3 py-1.5 text-sm bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors flex items-center gap-1.5"
-            >
-              <AIIcon size={14} /> AI Advisor
-            </button>
-            <button
-              onClick={handleAIGapFill}
-              disabled={isAIFilling || materials.length === 0}
-              className="px-3 py-1.5 text-sm bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-md hover:from-pink-600 hover:to-violet-600 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
-              title="Use AI to estimate missing data values"
-            >
-              <Sparkles size={14} /> {isAIFilling ? 'Filling...' : 'AI Gap Fill'}
-            </button>
-            <button
-              onClick={() => navigate(`/projects/${id}/scenario`)}
-              className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors flex items-center gap-1.5"
-            >
-              <FlaskIcon size={14} /> Scenarios
-            </button>
-            {hasCBAMAccess ? (
-              <button
-                onClick={() => navigate(`/projects/${id}/cbam-export`)}
-                className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors flex items-center gap-1.5"
-              >
-                <FileSpreadsheet size={14} /> CBAM Export
-              </button>
-            ) : (
-              <Link
-                to="/pricing"
-                className="px-3 py-1.5 text-sm bg-gray-400 text-white rounded-md hover:bg-gray-500 transition-colors flex items-center gap-1.5"
-                title="CBAM Export requires Pro plan"
-              >
-                <span className="flex items-center gap-1">
-  <Lock className="w-4 h-4 text-gray-600" /> CBAM Export
-</span>
-
-              </Link>
-            )}
-          </div>
         </div>
 
-        {/* Action Hotspots - Stuck to Address Module */}
-        {materials.length > 0 && (
-          <div className="mb-5">
-            <ActionHotspots
-              projectId={id || ''}
-              projectName={project.name}
-              totalGWP={totalGWP}
-              mciScore={project.mci_score || 0}
-              materials={materials}
-              onActionClick={(action, hotspot) => {
-                console.log('Action clicked:', action, hotspot)
-                // Handle custom actions like navigating to specific pages
-                if (action === 'mci_calc') {
-                  navigate(`/projects/${id}/analytics`)
-                } else if (action === 'calculate_roi') {
-                  navigate(`/projects/${id}/scenario`)
-                }
-              }}
-            />
-          </div>
-        )}
-
-        {/* JNARDDC Verification Section */}
-        <div className="bg-white rounded-lg shadow p-5 mb-5">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                🏛️ JNARDDC Verification
-                {!hasVerificationAccess && (
-                  <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">Enterprise</span>
-                )}
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                Get your LCA assessment verified by JNARDDC (Joint National Action for Rare Earths & Defense Compliance)
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {!hasVerificationAccess ? (
-                <Link
-                  to="/pricing"
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
-                >
-                  <span className="flex items-center gap-1">
-  <Lock className="w-4 h-4 text-gray-600" />
-  Upgrade to Enterprise
-</span>
-
-                </Link>
-              ) : verificationStatus?.verification_status === 'not_submitted' && (
-                <button
-                  onClick={handleSubmitVerification}
-                  disabled={isSubmittingVerification || materials.length === 0}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                >
-                  {isSubmittingVerification ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Submitting...
-                    </>
-                  ) : (
-                    <>
-                      <span>✓</span> Request Verification
-                    </>
-                  )}
-                </button>
-              )}
-              {verificationStatus?.verification_status === 'pending' && (
-                <span className="px-3 py-1.5 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium flex items-center gap-1">
-                 <span className="flex items-center gap-1 text-gray-600">
-  <Clock className="w-4 h-4" />
-  Pending Review
-</span>
-
-                </span>
-              )}
-              {verificationStatus?.verification_status === 'approved' && (
-  <span className="px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-sm font-medium flex items-center gap-1">
-    <CheckCircle className="w-4 h-4" />
-    Verified
-  </span>
-)}
-
-              {verificationStatus?.verification_status === 'rejected' && (
-                <span className="px-3 py-1.5 bg-red-100 text-red-800 rounded-full text-sm font-medium flex items-center gap-1">
-                  ❌ Rejected
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-gray-50 rounded-lg p-4">
-            {verificationStatus?.verification_status === 'not_submitted' && (
-              <div className="space-y-3">
-                <p className="text-sm text-gray-700">
-                  <strong>Why get verified?</strong> JNARDDC verification certifies that your LCA assessment meets Indian regulatory standards and is compliant with:
-                </p>
-                <ul className="text-sm text-gray-600 list-disc list-inside space-y-1 ml-2">
-                  <li>Critical Minerals Mission Guidelines</li>
-                  <li>SEBI BRSR ESG Disclosure Requirements</li>
-                  <li>National E-Waste Management Standards</li>
-                  <li>Extended Producer Responsibility (EPR) Rules</li>
-                </ul>
-                {materials.length === 0 && (
-                  <p className="text-sm text-amber-600 font-medium mt-3 flex items-center gap-1">
-  <AlertTriangle className="w-4 h-4" />
-  Add at least one material to submit for verification.
-</p>
-
-                )}
-              </div>
-            )}
-
-            {verificationStatus?.verification_status === 'pending' && (
-              <div className="space-y-3">
-                <p className="text-sm text-gray-700">
-                  Your LCA assessment has been submitted for JNARDDC verification. Our team will review your submission and provide feedback.
-                </p>
-                <div className="flex items-center gap-6 text-sm">
-                  <div>
-                    <span className="text-gray-500">Submitted:</span>{' '}
-                    <span className="font-medium">
-                      {verificationStatus.verification_submitted_at 
-                        ? new Date(verificationStatus.verification_submitted_at).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })
-                        : 'Just now'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Expected Review:</span>{' '}
-                    <span className="font-medium">3-5 business days</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {verificationStatus?.verification_status === 'approved' && (
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="text-3xl">
-  <Award className="w-8 h-8 text-yellow-500" />
-</div>
-
-                  <div>
-                    <p className="text-sm font-semibold text-green-800">JNARDDC Verified Assessment</p>
-                    <p className="text-sm text-gray-700 mt-1">
-                      This LCA assessment has been verified by JNARDDC and meets all Indian regulatory compliance standards.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-6 text-sm mt-2">
-                  <div>
-                    <span className="text-gray-500">Verified on:</span>{' '}
-                    <span className="font-medium">
-                      {verificationStatus.verification_reviewed_at 
-                        ? new Date(verificationStatus.verification_reviewed_at).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
-                          })
-                        : 'Recently'}
-                    </span>
-                  </div>
-                </div>
-                {verificationStatus.verification_notes && (
-                  <div className="mt-3 p-3 bg-green-50 rounded border border-green-200">
-                    <p className="text-xs font-medium text-green-700 mb-1">Reviewer Notes:</p>
-                    <p className="text-sm text-green-800">{verificationStatus.verification_notes}</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {verificationStatus?.verification_status === 'rejected' && (
-              <div className="space-y-3">
-                <p className="text-sm text-red-700">
-                  Your verification request was not approved. Please review the feedback below and make necessary corrections.
-                </p>
-                <div className="flex items-center gap-6 text-sm">
-                  <div>
-                    <span className="text-gray-500">Reviewed on:</span>{' '}
-                    <span className="font-medium">
-                      {verificationStatus.verification_reviewed_at 
-                        ? new Date(verificationStatus.verification_reviewed_at).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
-                          })
-                        : 'Recently'}
-                    </span>
-                  </div>
-                </div>
-                {verificationStatus.verification_notes && (
-                  <div className="mt-3 p-3 bg-red-50 rounded border border-red-200">
-                    <p className="text-xs font-medium text-red-700 mb-1">Rejection Reason:</p>
-                    <p className="text-sm text-red-800">{verificationStatus.verification_notes}</p>
-                  </div>
-                )}
-                <button
-                  onClick={handleSubmitVerification}
-                  disabled={isSubmittingVerification}
-                  className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                >
-                  Resubmit for Verification
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Tabs for Materials and Supply Chain */}
+        {/* Tabs for Materials and Supply Chain - BOM Input Section */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="border-b">
             <div className="flex">
@@ -669,6 +500,23 @@ export default function ProjectDetailPage() {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">Bill of Materials</h2>
                 <div className="flex gap-2">
+                  {project?.description && (
+                    <button
+                      onClick={handleGenerateBOM}
+                      disabled={isGeneratingBOM}
+                      className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-3 py-1.5 text-sm rounded-md hover:from-purple-700 hover:to-indigo-700 transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isGeneratingBOM ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" /> Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 size={14} /> AI Generate
+                        </>
+                      )}
+                    </button>
+                  )}
                   <button
                     onClick={() => setShowBOMUpload(true)}
                     className="bg-green-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-green-700 transition-colors flex items-center gap-1.5"
@@ -685,23 +533,60 @@ export default function ProjectDetailPage() {
               </div>
 
               {materials.length === 0 ? (
-                <div className="text-center py-10">
-                  <PackageIcon className="mx-auto text-gray-300 mb-3" size={48} />
-                  <h3 className="text-base font-medium text-gray-900 mb-1">No materials yet</h3>
-                  <p className="text-sm text-gray-500 mb-4">Start building your Bill of Materials</p>
-                  <div className="flex justify-center gap-2">
-                    <button
-                      onClick={() => setShowBOMUpload(true)}
-                      className="bg-green-600 text-white px-4 py-1.5 text-sm rounded-md hover:bg-green-700 flex items-center gap-1.5"
-                    >
-                      <UploadIcon size={14} /> Upload CSV
-                    </button>
-                    <button
-                      onClick={() => setShowAddModal(true)}
-                      className="bg-blue-600 text-white px-4 py-1.5 text-sm rounded-md hover:bg-blue-700 flex items-center gap-1.5"
-                    >
-                      <PlusIcon size={14} /> Add Material
-                    </button>
+                <div className="border-2 border-dashed border-purple-200 rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50 p-8">
+                  <div className="text-center">
+                    {/* Step indicator */}
+                    <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-1.5 rounded-full text-sm font-medium mb-4">
+                      <span className="w-5 h-5 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs">2</span>
+                      Next Step
+                    </div>
+                    
+                    <Wand2 className="mx-auto text-purple-400 mb-4" size={48} />
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Build Your Bill of Materials</h3>
+                    <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                      {project?.description 
+                        ? "Use AI to automatically extract materials from your product description, or add them manually."
+                        : "Add your product's materials to calculate its environmental impact. Upload a CSV or add materials one by one."
+                      }
+                    </p>
+                    
+                    <div className="flex flex-col sm:flex-row justify-center gap-3">
+                      {project?.description && (
+                        <button
+                          onClick={handleGenerateBOM}
+                          disabled={isGeneratingBOM}
+                          className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-2.5 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all flex items-center justify-center gap-2 font-medium shadow-lg shadow-purple-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isGeneratingBOM ? (
+                            <>
+                              <Loader2 size={18} className="animate-spin" /> Generating BOM...
+                            </>
+                          ) : (
+                            <>
+                              <Wand2 size={18} /> Generate BOM with AI
+                            </>
+                          )}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setShowBOMUpload(true)}
+                        className="bg-white text-green-700 border-2 border-green-200 px-5 py-2.5 rounded-lg hover:bg-green-50 hover:border-green-300 transition-all flex items-center justify-center gap-2 font-medium"
+                      >
+                        <UploadIcon size={18} /> Upload CSV
+                      </button>
+                      <button
+                        onClick={() => setShowAddModal(true)}
+                        className="bg-white text-blue-700 border-2 border-blue-200 px-5 py-2.5 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all flex items-center justify-center gap-2 font-medium"
+                      >
+                        <PlusIcon size={18} /> Add Manually
+                      </button>
+                    </div>
+                    
+                    {!project?.description && (
+                      <p className="text-sm text-gray-500 mt-4">
+                        💡 Tip: Add a product description to enable AI-powered BOM generation
+                      </p>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -910,6 +795,220 @@ export default function ProjectDetailPage() {
               )}
             </div>
           )}
+        </div>
+
+        {/* Scrap Yard Connect - Action Hotspots */}
+        {materials.length > 0 && (
+          <div className="mt-5 mb-5">
+            <ActionHotspots
+              projectId={id || ''}
+              projectName={project.name}
+              totalGWP={totalGWP}
+              mciScore={project.mci_score || 0}
+              materials={materials}
+              onActionClick={(action, hotspot) => {
+                console.log('Action clicked:', action, hotspot)
+                // Handle custom actions like navigating to specific pages
+                if (action === 'mci_calc') {
+                  navigate(`/projects/${id}/analytics`)
+                } else if (action === 'calculate_roi') {
+                  navigate(`/projects/${id}/scenario`)
+                }
+              }}
+            />
+          </div>
+        )}
+
+        {/* JNARDDC Verification Section */}
+        <div className="bg-white rounded-lg shadow p-5 mt-5">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                🏛️ JNARDDC Verification
+                {!hasVerificationAccess && (
+                  <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">Enterprise</span>
+                )}
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Get your LCA assessment verified by JNARDDC (Joint National Action for Rare Earths & Defense Compliance)
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {!hasVerificationAccess ? (
+                <Link
+                  to="/pricing"
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+                >
+                  <span className="flex items-center gap-1">
+  <Lock className="w-4 h-4 text-gray-600" />
+  Upgrade to Enterprise
+</span>
+
+                </Link>
+              ) : verificationStatus?.verification_status === 'not_submitted' && (
+                <button
+                  onClick={handleSubmitVerification}
+                  disabled={isSubmittingVerification || materials.length === 0}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                >
+                  {isSubmittingVerification ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <span>✓</span> Request Verification
+                    </>
+                  )}
+                </button>
+              )}
+              {verificationStatus?.verification_status === 'pending' && (
+                <span className="px-3 py-1.5 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium flex items-center gap-1">
+                 <span className="flex items-center gap-1 text-gray-600">
+  <Clock className="w-4 h-4" />
+  Pending Review
+</span>
+
+                </span>
+              )}
+              {verificationStatus?.verification_status === 'approved' && (
+  <span className="px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-sm font-medium flex items-center gap-1">
+    <CheckCircle className="w-4 h-4" />
+    Verified
+  </span>
+)}
+
+              {verificationStatus?.verification_status === 'rejected' && (
+                <span className="px-3 py-1.5 bg-red-100 text-red-800 rounded-full text-sm font-medium flex items-center gap-1">
+                  ❌ Rejected
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4">
+            {verificationStatus?.verification_status === 'not_submitted' && (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-700">
+                  <strong>Why get verified?</strong> JNARDDC verification certifies that your LCA assessment meets Indian regulatory standards and is compliant with:
+                </p>
+                <ul className="text-sm text-gray-600 list-disc list-inside space-y-1 ml-2">
+                  <li>Critical Minerals Mission Guidelines</li>
+                  <li>SEBI BRSR ESG Disclosure Requirements</li>
+                  <li>National E-Waste Management Standards</li>
+                  <li>Extended Producer Responsibility (EPR) Rules</li>
+                </ul>
+                {materials.length === 0 && (
+                  <p className="text-sm text-amber-600 font-medium mt-3 flex items-center gap-1">
+  <AlertTriangle className="w-4 h-4" />
+  Add at least one material to submit for verification.
+</p>
+
+                )}
+              </div>
+            )}
+
+            {verificationStatus?.verification_status === 'pending' && (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-700">
+                  Your LCA assessment has been submitted for JNARDDC verification. Our team will review your submission and provide feedback.
+                </p>
+                <div className="flex items-center gap-6 text-sm">
+                  <div>
+                    <span className="text-gray-500">Submitted:</span>{' '}
+                    <span className="font-medium">
+                      {verificationStatus.verification_submitted_at 
+                        ? new Date(verificationStatus.verification_submitted_at).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                        : 'Just now'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Expected Review:</span>{' '}
+                    <span className="font-medium">3-5 business days</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {verificationStatus?.verification_status === 'approved' && (
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="text-3xl">
+  <Award className="w-8 h-8 text-yellow-500" />
+</div>
+
+                  <div>
+                    <p className="text-sm font-semibold text-green-800">JNARDDC Verified Assessment</p>
+                    <p className="text-sm text-gray-700 mt-1">
+                      This LCA assessment has been verified by JNARDDC and meets all Indian regulatory compliance standards.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-6 text-sm mt-2">
+                  <div>
+                    <span className="text-gray-500">Verified on:</span>{' '}
+                    <span className="font-medium">
+                      {verificationStatus.verification_reviewed_at 
+                        ? new Date(verificationStatus.verification_reviewed_at).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                          })
+                        : 'Recently'}
+                    </span>
+                  </div>
+                </div>
+                {verificationStatus.verification_notes && (
+                  <div className="mt-3 p-3 bg-green-50 rounded border border-green-200">
+                    <p className="text-xs font-medium text-green-700 mb-1">Reviewer Notes:</p>
+                    <p className="text-sm text-green-800">{verificationStatus.verification_notes}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {verificationStatus?.verification_status === 'rejected' && (
+              <div className="space-y-3">
+                <p className="text-sm text-red-700">
+                  Your verification request was not approved. Please review the feedback below and make necessary corrections.
+                </p>
+                <div className="flex items-center gap-6 text-sm">
+                  <div>
+                    <span className="text-gray-500">Reviewed on:</span>{' '}
+                    <span className="font-medium">
+                      {verificationStatus.verification_reviewed_at 
+                        ? new Date(verificationStatus.verification_reviewed_at).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                          })
+                        : 'Recently'}
+                    </span>
+                  </div>
+                </div>
+                {verificationStatus.verification_notes && (
+                  <div className="mt-3 p-3 bg-red-50 rounded border border-red-200">
+                    <p className="text-xs font-medium text-red-700 mb-1">Rejection Reason:</p>
+                    <p className="text-sm text-red-800">{verificationStatus.verification_notes}</p>
+                  </div>
+                )}
+                <button
+                  onClick={handleSubmitVerification}
+                  disabled={isSubmittingVerification}
+                  className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  Resubmit for Verification
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

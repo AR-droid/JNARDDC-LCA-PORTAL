@@ -9277,15 +9277,16 @@ def brsr_export_excel(project_id):
 
 
 # =====================================================
-# STUCK TO ADDRESS - ACTION HOTSPOTS API
+# SCRAP YARD CONNECT - ACTION HOTSPOTS API
 # =====================================================
 
 @app.route('/api/v1/projects/<project_id>/action-hotspots', methods=['GET', 'OPTIONS'])
 def get_action_hotspots(project_id):
     """
     Get prioritized action hotspots for a project.
-    This is the "Stuck to Address" module - transforms LCA data into a ranked 
-    list of actionable improvement opportunities.
+    This is the "Scrap Yard Connect" module - transforms LCA data into a ranked 
+    list of actionable recycling & improvement opportunities, connecting users
+    with scrap yards, recyclers, and circular economy partners.
     """
     if request.method == 'OPTIONS':
         return '', 200

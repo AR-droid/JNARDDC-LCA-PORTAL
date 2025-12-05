@@ -434,8 +434,8 @@ export default function ActionHotspots({
               <AlertTriangle className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-white">Stuck to Address</h3>
-              <p className="text-sm text-purple-100">Top {hotspots.length} improvement opportunities ranked by impact</p>
+              <h3 className="text-lg font-semibold text-white">♻️ Scrap Yard Connect</h3>
+              <p className="text-sm text-purple-100">Top {hotspots.length} recycling & improvement opportunities</p>
             </div>
           </div>
           <div className="text-right">

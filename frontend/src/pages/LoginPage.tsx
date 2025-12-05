@@ -155,13 +155,21 @@ export default function LoginPage() {
 
         {/* DigiLocker Login Button */}
         <button
-          type="button"
-          onClick={() => setLoginMode('digilocker')}
-          className="w-full mt-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white py-3 rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all font-medium flex items-center justify-center gap-2 shadow-md"
-        >
-          <Shield className="w-5 h-5" />
-          Sign in with DigiLocker
-        </button>
+  type="button"
+  onClick={() => setLoginMode('digilocker')}
+  className="w-full mt-3 bg-purple-600 text-white py-3 rounded-lg 
+             hover:bg-purple-700 transition-all font-medium 
+             flex items-center gap-3 shadow-md 
+             pl-12 justify-start"
+>
+  <img 
+    src="/images/digilocker.jpeg" 
+    alt="DigiLocker" 
+    className="w-15 h-10"
+  />
+  Sign in with DigiLocker
+</button>
+
 
         <div className="mt-6 text-center">
           <p className="text-gray-600">

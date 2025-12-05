@@ -240,7 +240,10 @@ export default function DashboardPage() {
 />
 
             <div className="bg-white rounded-lg shadow p-2">
-              <h3 className="text-lg font-semibold mb-4">Circularity Overview</h3>
+              <h3 className="text-xl font-bold text-gray-800 mb-4 text-center tracking-tight">
+  Circularity Overview
+</h3>
+
               <div className="flex items-center justify-around">
               <div className="w-[300px] h-[200px]">
   <MCIGauge3D 

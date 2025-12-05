@@ -1,3 +1,5 @@
+import nest_asyncio
+nest_asyncio.apply()
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from datetime import datetime, timedelta
@@ -8,6 +10,8 @@ import uuid
 import os
 import io
 import sys
+import base64
+import qrcode
 from dotenv import load_dotenv
 
 # Face++ API utilities
@@ -24,6 +28,9 @@ from openpyxl.utils import get_column_letter
 # Load environment variables
 load_dotenv()  # Try .env first
 load_dotenv('.env.example')  # Fallback to .env.example
+
+# Base directory (project root one level above backend/)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Try to import Groq (optional dependency)
 try:
@@ -7733,6 +7740,8 @@ def get_design_recommendations(project_id):
             result['ai_insights'] = []
             result['source'] = 'rule_based'
         
+        # Note: Images are generated on-demand via the /generate-images endpoint
+        
         return jsonify(result), 200
         
     except Exception as e:
@@ -7743,6 +7752,76 @@ def get_design_recommendations(project_id):
 # =====================================================
 # ENGINE 5: ANALYTICS & CHARTS DATA
 # =====================================================
+
+@app.route('/api/v1/projects/<project_id>/generate-images', methods=['POST', 'OPTIONS'])
+def generate_recommendation_images_endpoint(project_id):
+    """Generate images for a specific recommendation"""
+    if request.method == 'OPTIONS':
+        return jsonify({}), 200
+    
+    try:
+        print(f"Image generation request received for project: {project_id}")
+        auth_header = request.headers.get('Authorization')
+        print(f"Auth header: {auth_header}")
+        
+        if not auth_header or not auth_header.startswith('Bearer '):
+            print("No valid Bearer token found")
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        print(f"Token: {token[:20]}...")
+        
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+            print(f"Token decoded successfully for user: {payload.get('user_id')}")
+        except jwt.ExpiredSignatureError:
+            print("Token expired")
+            return jsonify({"detail": "Token expired"}), 401
+        except jwt.InvalidTokenError as e:
+            print(f"Invalid token: {e}")
+            return jsonify({"detail": "Invalid token"}), 401
+        
+        data = request.get_json()
+        print(f"Request data: {data}")
+        recommendation = data.get('recommendation')
+        
+        if not recommendation:
+            print("No recommendation data found")
+            return jsonify({"detail": "Recommendation data is required"}), 400
+        
+        print(f"Processing recommendation: {recommendation.get('title', 'Unknown')}")
+        
+        # Generate images using Gemini
+        try:
+            from gemini_utils import generate_recommendation_images
+            
+            print("Calling generate_recommendation_images...")
+            # Generate images synchronously
+            images = generate_recommendation_images(recommendation)
+            print(f"Images generated: {list(images.keys()) if images else 'None'}")
+            
+            if images:
+                print(f"Returning images with keys: {list(images.keys())}")
+                return jsonify(images), 200
+            else:
+                print("No images generated")
+                return jsonify({"detail": "Failed to generate images"}), 500
+                
+        except ImportError:
+            print("Gemini utils not available")
+            return jsonify({"detail": "Image generation not available - Gemini not configured"}), 503
+        except Exception as e:
+            print(f"Error generating images: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({"detail": f"Image generation failed: {str(e)}"}), 500
+            
+    except Exception as e:
+        print(f"General error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"detail": str(e)}), 500
+
 
 @app.route('/api/v1/projects/<project_id>/analytics', methods=['GET', 'OPTIONS'])
 def get_project_analytics(project_id):
@@ -8474,6 +8553,67 @@ def export_cbam_report(project_id):
         
     except Exception as e:
         print(f"CBAM Export Error: {e}")
+        return jsonify({"detail": str(e)}), 500
+
+
+@app.route('/api/v1/projects/<project_id>/cbam-export/qr', methods=['GET', 'OPTIONS'])
+def export_cbam_qr(project_id):
+    """Generate a QR code that links to the CBAM export page for this project"""
+    if request.method == 'OPTIONS':
+        return '', 200
+
+    try:
+        # Use a fixed URL for the report download.
+        # Prefer CBAM_QR_REPORT_URL from env; fall back to local cbam-sample-report route.
+        cbam_url = os.getenv(
+            'CBAM_QR_REPORT_URL',
+            'http://localhost:5000/cbam-sample-report'
+        )
+
+        # Generate QR code image in memory
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=6,
+            border=2,
+        )
+        qr.add_data(cbam_url)
+        qr.make(fit=True)
+
+        img = qr.make_image(fill_color="black", back_color="white")
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+
+        # Encode as base64 for easy use in frontend
+        qr_b64 = base64.b64encode(buffer.read()).decode('utf-8')
+
+        return jsonify({
+            'qr_code': qr_b64,
+            'url': cbam_url,
+        }), 200
+
+    except Exception as e:
+        print(f"CBAM QR Export Error: {e}")
+        return jsonify({"detail": str(e)}), 500
+
+
+@app.route('/cbam-sample-report', methods=['GET'])
+def download_cbam_sample_report():
+    """Serve the example CBAM Excel report for QR downloads."""
+    try:
+        file_path = os.path.join(BASE_DIR, 'CBAM_Report_1ecf445f.xlsx')
+        if not os.path.exists(file_path):
+            return jsonify({"detail": "Sample CBAM report file not found on server"}), 404
+
+        return send_file(
+            file_path,
+            as_attachment=True,
+            download_name='CBAM_Report_1ecf445f.xlsx',
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+    except Exception as e:
+        print(f"CBAM sample report download error: {e}")
         return jsonify({"detail": str(e)}), 500
 
 

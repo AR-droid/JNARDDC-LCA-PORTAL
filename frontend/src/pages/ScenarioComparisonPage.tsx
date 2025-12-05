@@ -50,6 +50,63 @@ interface ComparisonResult {
   recommendations: string[]
 }
 
+interface LifecycleStage {
+  id: string
+  label: string
+  value: number
+}
+
+function LifecycleFlowBar({ stages, total }: { stages: LifecycleStage[]; total: number }) {
+  if (!total || total <= 0) return null
+
+  let offset = 0
+
+  return (
+    <div className="w-full mb-4">
+      <div className="flex justify-between items-end mb-2">
+        <p className="text-xs font-medium text-gray-600">Lifecycle impact distribution</p>
+        <p className="text-xs text-gray-400">Relative contribution of each stage</p>
+      </div>
+      <div className="relative h-6 w-full rounded-full bg-gray-100 overflow-hidden">
+        {stages.map((stage) => {
+          const widthPct = (stage.value / total) * 100
+          const leftPct = (offset / total) * 100
+          offset += stage.value
+
+          return (
+            <div
+              key={stage.id}
+              className="absolute top-0 bottom-0 transition-all duration-500 ease-out"
+              style={{
+                left: `${leftPct}%`,
+                width: `${widthPct}%`,
+                background:
+                  stage.id === 'materials'
+                    ? '#fee2e2' // red-100
+                    : stage.id === 'manufacturing'
+                      ? '#e0f2fe' // sky-100
+                      : stage.id === 'transport'
+                        ? '#fef9c3' // yellow-100
+                        : stage.id === 'use'
+                          ? '#dcfce7' // green-100
+                          : '#e5e7eb', // gray-200 fallback
+              }}
+            >
+              {widthPct > 12 && (
+                <div className="h-full flex items-center justify-center px-2">
+                  <span className="text-[10px] font-medium text-gray-800 truncate">
+                    {stage.label}
+                  </span>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function ScenarioComparisonPage() {
   const { id } = useParams<{ id: string }>()
   
@@ -233,6 +290,39 @@ export default function ScenarioComparisonPage() {
     const recycled = recycledFactors[type] || recycledFactors['default']
     
     return virgin * (1 - recycledPercent / 100) + recycled * (recycledPercent / 100)
+  }
+
+  const getLifecycleStagesForPathway = (pathway: PathwayData): { stages: LifecycleStage[]; total: number } => {
+    const stages: LifecycleStage[] = [
+      {
+        id: 'materials',
+        label: 'Material input',
+        value: pathway.virgin_material + pathway.recycled_input,
+      },
+      {
+        id: 'manufacturing',
+        label: 'Processing & manufacturing',
+        value: pathway.energy_consumption,
+      },
+      {
+        id: 'transport',
+        label: 'Transport',
+        value: pathway.transport_emissions,
+      },
+      {
+        id: 'use',
+        label: 'Use phase',
+        value: pathway.lifespan_years,
+      },
+      {
+        id: 'end_of_life',
+        label: 'End of life',
+        value: pathway.end_of_life_recovery,
+      },
+    ]
+
+    const total = stages.reduce((sum, s) => sum + (s.value || 0), 0)
+    return { stages, total }
   }
 
   const recalculate = () => {
@@ -582,6 +672,10 @@ export default function ScenarioComparisonPage() {
                     <Factory className="w-5 h-5" />
                     Conventional (Linear) Lifecycle
                   </h3>
+                  {(() => {
+                    const { stages, total } = getLifecycleStagesForPathway(comparison.conventional)
+                    return <LifecycleFlowBar stages={stages} total={total} />
+                  })()}
                   <div className="space-y-4">
                     <LifecycleStep
                       step={1}
@@ -631,6 +725,10 @@ export default function ScenarioComparisonPage() {
                     <Recycle className="w-5 h-5" />
                     Circular (Sustainable) Lifecycle
                   </h3>
+                  {(() => {
+                    const { stages, total } = getLifecycleStagesForPathway(comparison.circular)
+                    return <LifecycleFlowBar stages={stages} total={total} />
+                  })()}
                   <div className="space-y-4">
                     <LifecycleStep
                       step={1}

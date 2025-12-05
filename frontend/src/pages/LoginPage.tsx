@@ -1,7 +1,7 @@
 import { useState, FormEvent } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
-import { Scan, Shield } from 'lucide-react'
+import { Scan } from 'lucide-react'
 import { FaceLogin } from '../components/face-auth'
 import DigiLockerLogin from '../components/DigiLockerLogin'
 
@@ -139,37 +139,36 @@ export default function LoginPage() {
         {/* Divider */}
         <div className="my-6 flex items-center">
           <div className="flex-1 border-t border-gray-300"></div>
-          <span className="px-4 text-sm text-gray-500">or</span>
+          <span className="px-4 text-sm text-gray-500">or sign in with</span>
           <div className="flex-1 border-t border-gray-300"></div>
         </div>
 
-        {/* Face Login Button */}
-        <button
-          type="button"
-          onClick={() => setLoginMode('face')}
-          className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center justify-center gap-2"
-        >
-          <Scan className="w-5 h-5" />
-          Sign in with Face
-        </button>
+        {/* Alternative Sign-in Options - Side by Side */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Face Login Button */}
+          <button
+            type="button"
+            onClick={() => setLoginMode('face')}
+            className="flex items-center justify-center gap-2 py-3 px-4 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
+          >
+            <Scan className="w-5 h-5 text-purple-600" />
+            <span className="text-sm">Face ID</span>
+          </button>
 
-        {/* DigiLocker Login Button */}
-        <button
-  type="button"
-  onClick={() => setLoginMode('digilocker')}
-  className="w-full mt-3 bg-purple-600 text-white py-3 rounded-lg 
-             hover:bg-purple-700 transition-all font-medium 
-             flex items-center gap-3 shadow-md 
-             pl-12 justify-start"
->
-  <img 
-    src="/images/digilocker.jpeg" 
-    alt="DigiLocker" 
-    className="w-15 h-10"
-  />
-  Sign in with DigiLocker
-</button>
-
+          {/* DigiLocker Login Button */}
+          <button
+            type="button"
+            onClick={() => setLoginMode('digilocker')}
+            className="flex items-center justify-center gap-2 py-3 px-4 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
+          >
+            <img 
+              src="/images/digilocker.jpeg" 
+              alt="DigiLocker" 
+              className="w-10 h-10 object-contain"
+            />
+            <span className="text-sm">DigiLocker</span>
+          </button>
+        </div>
 
         <div className="mt-6 text-center">
           <p className="text-gray-600">

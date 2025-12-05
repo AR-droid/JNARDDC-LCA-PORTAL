@@ -15,7 +15,6 @@ import { Lock } from "lucide-react";
 import { Award } from "lucide-react";
 import { AlertTriangle } from "lucide-react";
 import { CheckCircle } from "lucide-react";
-import { Loader2 } from "lucide-react";
 import { Bot } from "lucide-react";
 import { Clock } from "lucide-react";
 import { Package } from "lucide-react";

@@ -12,7 +12,7 @@ import {
 import { useAuthStore } from '../stores/authStore';
 import { Mic, MicOff, Loader2, Upload, FileText, X } from 'lucide-react';
 import { Sparkles } from "lucide-react";
-import { FileUp, UploadCloud } from "lucide-react";
+import { UploadCloud } from "lucide-react";
 import { FileSpreadsheet } from "lucide-react";
 import { Atom } from "lucide-react";
 import { Database } from "lucide-react";

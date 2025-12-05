@@ -57,7 +57,7 @@ export default function GWPBreakdownChart({
                 filter: "drop-shadow(0px 12px 8px rgba(0,0,0,0.25))",
               }}
             >
-              {data.map((entry, index) => (
+              {data.map((_, index) => (
                 <Cell key={index} fill={COLORS[index % COLORS.length]} opacity={0.7} />
               ))}
             </Pie>
@@ -74,7 +74,7 @@ export default function GWPBreakdownChart({
               label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
               labelLine={true}
             >
-              {data.map((entry, index) => (
+              {data.map((_, index) => (
                 <Cell
                   key={index}
                   fill={COLORS[index % COLORS.length]}

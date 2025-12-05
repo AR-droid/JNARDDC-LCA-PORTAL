@@ -441,7 +441,7 @@ export default function CreateProjectPage() {
               )}
 
               {/* Ask AI Button */}
-              <div className="mt-4">
+              <div className="mt-4 flex justify-end">
                 <button
                   type="button"
                   onClick={handleAskAI}
@@ -456,7 +456,7 @@ export default function CreateProjectPage() {
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4" />
-                      Ask AI
+                      AI Enhance
                     </>
                   )}
                 </button>

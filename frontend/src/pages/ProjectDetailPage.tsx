@@ -90,6 +90,15 @@ export default function ProjectDetailPage() {
   const [showAIResultModal, setShowAIResultModal] = useState(false)
   const [scrapYardStats, setScrapYardStats] = useState<ScrapYardStats | null>(null)
   const [showScrapYardWidget, setShowScrapYardWidget] = useState(true)
+  const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null)
+
+  // Auto-hide notification after 5 seconds
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [notification])
 
   useEffect(() => {
     loadData()
@@ -191,7 +200,7 @@ export default function ProjectDetailPage() {
   // AI Generate BOM from project description
   const handleGenerateBOM = async () => {
     if (!id || !project?.description) {
-      alert('Project description is required to generate BOM. Please add a description first.')
+      setNotification({ type: 'error', message: 'Project description is required to generate BOM. Please add a description first.' })
       return
     }
 
@@ -202,7 +211,7 @@ export default function ProjectDetailPage() {
       const nlpResult = await parseNLPDescription(project.description)
       
       if (!nlpResult.parsed.materials || nlpResult.parsed.materials.length === 0) {
-        alert('Could not extract materials from the description. Please try adding more details about the materials used.')
+        setNotification({ type: 'error', message: 'Could not extract materials from the description. Please try adding more details about the materials used.' })
         return
       }
 
@@ -220,14 +229,14 @@ export default function ProjectDetailPage() {
       const result = await materialsApi.addBatch(id, materialsToAdd)
       
       if (result.added > 0) {
-        alert(`✅ Successfully generated BOM!\n\n${result.added} materials added from your description.\n${result.failed > 0 ? `${result.failed} materials could not be added.` : ''}`)
+        setNotification({ type: 'success', message: `✅ Successfully generated BOM! ${result.added} materials added from your description.${result.failed > 0 ? ` ${result.failed} materials could not be added.` : ''}` })
         await loadData()
       } else {
-        alert('No materials could be added. Please check the description or add materials manually.')
+        setNotification({ type: 'error', message: 'No materials could be added. Please check the description or add materials manually.' })
       }
     } catch (error) {
       console.error('Error generating BOM:', error)
-      alert('Failed to generate BOM. Please try again or add materials manually.')
+      setNotification({ type: 'error', message: 'Failed to generate BOM. Please try again or add materials manually.' })
     } finally {
       setIsGeneratingBOM(false)
     }
@@ -354,17 +363,37 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Notification Banner */}
+      {notification && (
+        <div className={`fixed top-4 right-4 z-50 max-w-md px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-slide-in ${
+          notification.type === 'success' ? 'bg-green-50 border border-green-200 text-green-800' :
+          notification.type === 'error' ? 'bg-red-50 border border-red-200 text-red-800' :
+          'bg-blue-50 border border-blue-200 text-blue-800'
+        }`}>
+          {notification.type === 'success' && <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />}
+          {notification.type === 'error' && <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />}
+          {notification.type === 'info' && <Bot className="w-5 h-5 text-blue-600 flex-shrink-0" />}
+          <p className="text-sm font-medium">{notification.message}</p>
+          <button 
+            onClick={() => setNotification(null)}
+            className="ml-auto text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      
       <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
-        <button
-          onClick={() => navigate('/projects')}
-          className="text-sm text-blue-600 hover:text-blue-700 mb-3 flex items-center gap-1"
-        >
-          ← Back to Projects
-        </button>
-
         {/* Secondary Navigation Bar - Quick Actions */}
         <div className="bg-white rounded-lg shadow mb-5">
           <div className="flex flex-wrap items-center gap-1 p-2 border-b border-gray-100">
+            <button
+              onClick={() => navigate('/projects')}
+              className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-1.5"
+            >
+              <span className="text-base">←</span> Back
+            </button>
+            <div className="w-px h-6 bg-gray-200 mx-1"></div>
             <button
               onClick={() => navigate(`/projects/${id}/analytics`)}
               className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
@@ -387,7 +416,7 @@ export default function ProjectDetailPage() {
               onClick={() => navigate(`/projects/${id}/recommendations`)}
               className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-700 rounded-md transition-colors flex items-center gap-2"
             >
-              <AIIcon size={16} /> AI Advisor
+              <AIIcon size={16} /> Design Advisor
             </button>
             <button
               onClick={handleAIGapFill}

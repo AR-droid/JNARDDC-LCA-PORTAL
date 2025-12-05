@@ -31,6 +31,7 @@ import {
   Clock,
   Zap,
   Globe,
+  DollarSign,
 } from 'lucide-react'
 
 // Indian states for filter
@@ -174,7 +175,7 @@ export default function ScrapYardConnectPage() {
         <div className="absolute inset-0 bg-[url('/images/scrap.jpg')] bg-cover bg-center"></div>
         <div className="absolute inset-0 bg-green-900/70"></div>
         
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-3 bg-white/20 backdrop-blur rounded-xl">
               <Recycle className="w-8 h-8 text-white" />
@@ -281,7 +282,7 @@ export default function ScrapYardConnectPage() {
                 <div className="p-5">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                      <span className="text-2xl">{sourcingPlans.plans.plan_a.icon}</span>
+                      <DollarSign className="w-6 h-6 text-green-600" />
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900">Plan A: {sourcingPlans.plans.plan_a.name}</h3>
@@ -337,7 +338,7 @@ export default function ScrapYardConnectPage() {
                 <div className="p-5">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                      <span className="text-2xl">{sourcingPlans.plans.plan_b.icon}</span>
+                      <MapPin className="w-6 h-6 text-blue-600" />
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900">Plan B: {sourcingPlans.plans.plan_b.name}</h3>
@@ -393,7 +394,7 @@ export default function ScrapYardConnectPage() {
                 <div className="p-5">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                      <span className="text-2xl">{sourcingPlans.plans.plan_c.icon}</span>
+                      <Package className="w-6 h-6 text-purple-600" />
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900">Plan C: {sourcingPlans.plans.plan_c.name}</h3>
@@ -437,8 +438,8 @@ export default function ScrapYardConnectPage() {
             {selectedPlan && sourcingPlans.plans[selectedPlan].sourcing.length > 0 && (
               <div className="mt-6 bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
-                  <h3 className="font-semibold text-gray-900">
-                    {selectedPlan === 'plan_a' ? '💰' : selectedPlan === 'plan_b' ? '📍' : '📦'} {sourcingPlans.plans[selectedPlan].name} - Sourcing Details
+                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                    {selectedPlan === 'plan_a' ? <DollarSign className="w-4 h-4 text-green-600" /> : selectedPlan === 'plan_b' ? <MapPin className="w-4 h-4 text-blue-600" /> : <Package className="w-4 h-4 text-purple-600" />} {sourcingPlans.plans[selectedPlan].name} - Sourcing Details
                   </h3>
                 </div>
                 <div className="divide-y divide-gray-100">

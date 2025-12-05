@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { projectsApi, DesignRecommendation, DesignRecommendationsResult, AIDesignInsight } from '../api/projects'
 import { API_URL } from '../api/client'
+import { 
+  FiRefreshCw, FiTruck, FiAlertTriangle, FiClock, FiTool,
+  FiChevronRight, FiEye, FiExternalLink, FiCheckCircle, FiInfo, FiArrowLeft
+} from 'react-icons/fi'
+import { HiOutlineSparkles, HiOutlineLightBulb } from 'react-icons/hi'
+import { BiLeaf, BiTargetLock, BiRecycle } from 'react-icons/bi'
+import { TbArrowNarrowRight } from 'react-icons/tb'
 
 interface RecommendationImages {
   before_image?: string
@@ -106,6 +113,7 @@ export default function RecommendationsPage() {
   const [selectedRecommendation, setSelectedRecommendation] = useState<DesignRecommendation | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isGeneratingImages, setIsGeneratingImages] = useState(false)
+  const [showAiInsights, setShowAiInsights] = useState(false)
 
   useEffect(() => {
     loadRecommendations()
@@ -205,24 +213,73 @@ export default function RecommendationsPage() {
     return ['recycled_content', 'material_substitution', 'design_for_disassembly'].includes(rec.type)
   }
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityConfig = (priority: string) => {
     switch (priority) {
-      case 'high': return 'bg-red-100 text-red-800 border-red-200'
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'low': return 'bg-green-100 text-green-800 border-green-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+      case 'high': return { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', dot: 'bg-red-500' }
+      case 'medium': return { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' }
+      case 'low': return { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' }
+      default: return { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200', dot: 'bg-gray-500' }
     }
   }
 
-  const getTypeLabel = (type: string) => {
+  const getTypeConfig = (type: string): { label: string; Icon: React.ComponentType<{ className?: string }>; color: string; bgLight: string; borderColor: string } => {
     switch (type) {
-      case 'recycled_content': return 'Recycled Content'
-      case 'material_substitution': return 'Material Substitution'
-      case 'transport_optimization': return 'Transport'
-      case 'scarcity_alert': return 'Critical Mineral'
-      case 'lifespan_extension': return 'Lifespan'
-      case 'design_for_disassembly': return 'Design for Disassembly'
-      default: return type
+      case 'recycled_content': 
+        return { 
+          label: 'Recycled Content', 
+          Icon: BiRecycle,
+          color: 'text-emerald-600',
+          bgLight: 'bg-emerald-50',
+          borderColor: 'border-emerald-200'
+        }
+      case 'material_substitution': 
+        return { 
+          label: 'Material Swap', 
+          Icon: FiRefreshCw,
+          color: 'text-blue-600',
+          bgLight: 'bg-blue-50',
+          borderColor: 'border-blue-200'
+        }
+      case 'transport_optimization': 
+        return { 
+          label: 'Transport', 
+          Icon: FiTruck,
+          color: 'text-orange-600',
+          bgLight: 'bg-orange-50',
+          borderColor: 'border-orange-200'
+        }
+      case 'scarcity_alert': 
+        return { 
+          label: 'Critical Mineral', 
+          Icon: FiAlertTriangle,
+          color: 'text-red-600',
+          bgLight: 'bg-red-50',
+          borderColor: 'border-red-200'
+        }
+      case 'lifespan_extension': 
+        return { 
+          label: 'Lifespan', 
+          Icon: FiClock,
+          color: 'text-violet-600',
+          bgLight: 'bg-violet-50',
+          borderColor: 'border-violet-200'
+        }
+      case 'design_for_disassembly': 
+        return { 
+          label: 'Design for Disassembly', 
+          Icon: FiTool,
+          color: 'text-cyan-600',
+          bgLight: 'bg-cyan-50',
+          borderColor: 'border-cyan-200'
+        }
+      default: 
+        return { 
+          label: type, 
+          Icon: FiInfo,
+          color: 'text-gray-600',
+          bgLight: 'bg-gray-50',
+          borderColor: 'border-gray-200'
+        }
     }
   }
 
@@ -261,19 +318,19 @@ export default function RecommendationsPage() {
         {/* Page header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <button
-              onClick={() => navigate(`/projects/${id}`)}
-              className="text-sm text-gray-600 hover:text-gray-900 mb-2 inline-flex items-center gap-1"
-            >
-              <span className="text-base">&#8592;</span>
-              <span>Back to project</span>
-            </button>
             <h1 className="text-2xl font-semibold text-gray-900">Design recommendations</h1>
             <p className="text-sm text-gray-600 mt-1">
               Data-driven guidance to improve circularity, climate impact and material risk for this project.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => navigate(`/projects/${id}`)}
+              className="px-3 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 inline-flex items-center gap-1.5"
+            >
+              <FiArrowLeft className="w-4 h-4" />
+              Back
+            </button>
             <button
               onClick={() => navigate(`/projects/${id}/analysis`)}
               className="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100"
@@ -317,18 +374,40 @@ export default function RecommendationsPage() {
           </div>
         )}
 
-        {/* AI Strategic insights */}
+        {/* AI Strategic insights - Collapsible */}
         {recommendations?.ai_insights && recommendations.ai_insights.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">AI strategic insights</h2>
-                <p className="text-sm text-gray-600">Additional perspectives generated by the AI model to complement rule-based logic.</p>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
+            <button
+              onClick={() => setShowAiInsights(!showAiInsights)}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-purple-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                  </svg>
+                </span>
+                <div className="text-left">
+                  <h2 className="text-sm font-semibold text-gray-900">AI Strategic Insights</h2>
+                  <p className="text-xs text-gray-500">{recommendations.ai_insights.length} insights available</p>
+                </div>
               </div>
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">AI generated</span>
-            </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-purple-600 bg-purple-50 px-2 py-1 rounded">AI Generated</span>
+                <svg
+                  className={`h-5 w-5 text-gray-400 transition-transform ${showAiInsights ? 'rotate-180' : ''}`}
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </button>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {showAiInsights && (
+              <div className="px-4 pb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {recommendations.ai_insights.map((insight: AIDesignInsight, index: number) => (
                 <div 
                   key={index}
@@ -376,7 +455,9 @@ export default function RecommendationsPage() {
                   </div>
                 </div>
               ))}
-            </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -398,185 +479,206 @@ export default function RecommendationsPage() {
 
         {/* Recommendations List */}
         {recommendations && recommendations.recommendations.length > 0 && (
-          <div className="space-y-4">
-            {recommendations.recommendations.map((rec: DesignRecommendation, index: number) => (
-              <div 
-                key={index} 
-                className={`rounded-xl shadow-sm overflow-hidden border border-gray-200 border-l-4 bg-green-50 ${
-                  rec.priority === 'high'
-                    ? 'border-l-red-500'
-                    : rec.priority === 'medium'
-                      ? 'border-l-yellow-500'
-                      : 'border-l-green-500'
-                }`}
-              >
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{rec.title}</h3>
-                      {rec.material && (
-                        <p className="text-sm text-gray-500 mt-0.5">Material: {rec.material}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(rec.priority)}`}>
-                        {rec.priority.toUpperCase()}
-                      </span>
-                      <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">
-                        {getTypeLabel(rec.type)}
-                      </span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {recommendations.recommendations.map((rec: DesignRecommendation, index: number) => {
+              const typeConfig = getTypeConfig(rec.type)
+              const priorityConfig = getPriorityConfig(rec.priority)
+              const TypeIcon = typeConfig.Icon
+              
+              return (
+                <div 
+                  key={index} 
+                  className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200"
+                >
+                  {/* Card Header */}
+                  <div className="px-5 py-4 border-b border-gray-100">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className={`p-2 rounded-lg ${typeConfig.bgLight}`}>
+                          <TypeIcon className={`w-5 h-5 ${typeConfig.color}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-semibold text-gray-900 leading-tight">{rec.title}</h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`inline-flex items-center text-xs font-medium ${typeConfig.color}`}>
+                              {typeConfig.label}
+                            </span>
+                            {rec.material && (
+                              <>
+                                <span className="text-gray-300">•</span>
+                                <span className="text-xs text-gray-500">{rec.material}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${priorityConfig.bg} ${priorityConfig.text}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${priorityConfig.dot}`}></span>
+                        {rec.priority}
+                      </div>
                     </div>
                   </div>
 
-                  <p className="text-gray-700 mb-4">{rec.description}</p>
+                  {/* Card Body */}
+                  <div className="px-5 py-4">
+                    <p className="text-sm text-gray-600 leading-relaxed">{rec.description}</p>
 
-                  {/* Current vs Recommended Values */}
-                  {(rec.current_value !== undefined || rec.current_lifespan !== undefined || rec.current_distance !== undefined) && (
-                    <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                      <h4 className="font-medium text-gray-700 mb-2">Optimization Target</h4>
-                      <div className="flex items-center gap-4">
-                        {rec.current_value !== undefined && (
-                          <>
-                            <div className="text-center">
-                              <p className="text-sm text-gray-500">Current</p>
-                              <p className="text-xl font-bold text-red-600">{rec.current_value}%</p>
+                    {/* Current vs Recommended Values */}
+                    {(rec.current_value !== undefined || rec.current_lifespan !== undefined || rec.current_distance !== undefined) && (
+                      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="text-center flex-1">
+                            <p className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Current</p>
+                            <p className="text-xl font-bold text-gray-900 mt-0.5">
+                              {rec.current_value !== undefined && `${rec.current_value}%`}
+                              {rec.current_lifespan !== undefined && `${rec.current_lifespan} yrs`}
+                              {rec.current_distance !== undefined && `${rec.current_distance} km`}
+                            </p>
+                          </div>
+                          <div className="px-4">
+                            <TbArrowNarrowRight className="w-5 h-5 text-gray-300" />
+                          </div>
+                          <div className="text-center flex-1">
+                            <p className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Target</p>
+                            <p className={`text-xl font-bold mt-0.5 ${typeConfig.color}`}>
+                              {rec.recommended_value !== undefined && `${rec.recommended_value}%`}
+                              {rec.recommended_lifespan !== undefined && `${rec.recommended_lifespan} yrs`}
+                              {rec.recommended_distance !== undefined && `${rec.recommended_distance} km`}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Impact Metrics */}
+                    {rec.impact && (
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        {rec.impact.gwp_savings_kg !== undefined && (
+                          <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-md">
+                            <BiLeaf className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs text-blue-600 font-medium">CO₂ Saved</p>
+                              <p className="text-sm font-semibold text-blue-900">{rec.impact.gwp_savings_kg} kg</p>
                             </div>
-                            <span className="text-2xl text-gray-400">→</span>
-                            <div className="text-center">
-                              <p className="text-sm text-gray-500">Recommended</p>
-                              <p className="text-xl font-bold text-green-600">{rec.recommended_value}%</p>
-                            </div>
-                          </>
+                          </div>
                         )}
-                        {rec.current_lifespan !== undefined && (
-                          <>
-                            <div className="text-center">
-                              <p className="text-sm text-gray-500">Current Lifespan</p>
-                              <p className="text-xl font-bold text-red-600">{rec.current_lifespan} years</p>
+                        {rec.impact.gwp_savings_percent !== undefined && (
+                          <div className="flex items-center gap-2 p-2 bg-emerald-50 rounded-md">
+                            <BiTargetLock className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs text-emerald-600 font-medium">GWP Reduction</p>
+                              <p className="text-sm font-semibold text-emerald-900">{rec.impact.gwp_savings_percent}%</p>
                             </div>
-                            <span className="text-2xl text-gray-400">→</span>
-                            <div className="text-center">
-                              <p className="text-sm text-gray-500">Recommended</p>
-                              <p className="text-xl font-bold text-green-600">{rec.recommended_lifespan} years</p>
-                            </div>
-                          </>
+                          </div>
                         )}
-                        {rec.current_distance !== undefined && (
-                          <>
-                            <div className="text-center">
-                              <p className="text-sm text-gray-500">Current Distance</p>
-                              <p className="text-xl font-bold text-red-600">{rec.current_distance} km</p>
+                        {rec.impact.mci_improvement !== undefined && (
+                          <div className="flex items-center gap-2 p-2 bg-violet-50 rounded-md">
+                            <BiRecycle className="w-4 h-4 text-violet-600 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs text-violet-600 font-medium">MCI Gain</p>
+                              <p className="text-sm font-semibold text-violet-900">+{rec.impact.mci_improvement}</p>
                             </div>
-                            <span className="text-2xl text-gray-400">→</span>
-                            <div className="text-center">
-                              <p className="text-sm text-gray-500">Target</p>
-                              <p className="text-xl font-bold text-green-600">{rec.recommended_distance} km</p>
+                          </div>
+                        )}
+                        {rec.impact.cost_impact && (
+                          <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-md">
+                            <FiCheckCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs text-amber-600 font-medium">Cost</p>
+                              <p className="text-sm font-semibold text-amber-900 capitalize">{rec.impact.cost_impact.replace(/_/g, ' ')}</p>
                             </div>
-                          </>
+                          </div>
                         )}
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Impact Metrics */}
-                  {rec.impact && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                      {rec.impact.gwp_savings_kg !== undefined && (
-                        <div className="bg-blue-50 rounded-lg p-3">
-                          <p className="text-xs text-blue-600">GWP Savings</p>
-                          <p className="text-lg font-bold text-blue-800">{rec.impact.gwp_savings_kg} kg</p>
-                        </div>
-                      )}
-                      {rec.impact.gwp_savings_percent !== undefined && (
-                        <div className="bg-green-50 rounded-lg p-3">
-                          <p className="text-xs text-green-600">GWP Reduction</p>
-                          <p className="text-lg font-bold text-green-800">{rec.impact.gwp_savings_percent}%</p>
-                        </div>
-                      )}
-                      {rec.impact.mci_improvement !== undefined && (
-                        <div className="bg-purple-50 rounded-lg p-3">
-                          <p className="text-xs text-purple-600">MCI Improvement</p>
-                          <p className="text-lg font-bold text-purple-800">+{rec.impact.mci_improvement}</p>
-                        </div>
-                      )}
-                      {rec.impact.lifetime_gwp_reduction_percent !== undefined && (
-                        <div className="bg-orange-50 rounded-lg p-3">
-                          <p className="text-xs text-orange-600">Lifetime GWP</p>
-                          <p className="text-lg font-bold text-orange-800">-{rec.impact.lifetime_gwp_reduction_percent}%</p>
-                        </div>
-                      )}
-                      {rec.impact.cost_impact && (
-                        <div className="bg-emerald-50 rounded-lg p-3">
-                          <p className="text-xs text-emerald-600">Cost Impact</p>
-                          <p className="text-sm font-bold text-emerald-800 capitalize">
-                            {rec.impact.cost_impact.replace(/_/g, ' ')}
-                          </p>
-                        </div>
-                      )}
-                      {rec.impact.supply_risk && (
-                        <div className="bg-red-50 rounded-lg p-3">
-                          <p className="text-xs text-red-600">Supply Risk</p>
-                          <p className="text-sm font-bold text-red-800 capitalize">{rec.impact.supply_risk}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    {/* Suggestions */}
+                    {rec.suggestions && rec.suggestions.length > 0 && (
+                      <div className="mt-4">
+                        <button 
+                          className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 font-medium"
+                          onClick={(e) => {
+                            const content = e.currentTarget.nextElementSibling
+                            const icon = e.currentTarget.querySelector('svg')
+                            if (content && icon) {
+                              content.classList.toggle('hidden')
+                              icon.classList.toggle('rotate-90')
+                            }
+                          }}
+                        >
+                          <FiChevronRight className="w-3.5 h-3.5 transition-transform" />
+                          <HiOutlineLightBulb className="w-3.5 h-3.5" />
+                          {rec.suggestions.length} suggestion{rec.suggestions.length > 1 ? 's' : ''}
+                        </button>
+                        <ul className="hidden mt-2 space-y-1.5 pl-5">
+                          {rec.suggestions.map((suggestion: string, idx: number) => (
+                            <li key={idx} className="text-xs text-gray-600 leading-relaxed">
+                              • {suggestion}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
 
-                  {/* Suggestions */}
-                  {rec.suggestions && rec.suggestions.length > 0 && (
-                    <div className="bg-yellow-50 rounded-lg p-4">
-                      <h4 className="font-medium text-yellow-800 mb-2">💡 Implementation Suggestions</h4>
-                      <ul className="space-y-1">
-                        {rec.suggestions.map((suggestion: string, idx: number) => (
-                          <li key={idx} className="text-sm text-yellow-700 flex items-center gap-2">
-                            <span>•</span> {suggestion}
-                          </li>
-                        ))}
-                      </ul>
+                  {/* Card Footer */}
+                  <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400">Confidence</span>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full ${
+                              rec.confidence >= 0.8 ? 'bg-emerald-500' : 
+                              rec.confidence >= 0.6 ? 'bg-amber-500' : 'bg-gray-400'
+                            }`}
+                            style={{ width: `${Math.round(rec.confidence * 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-medium text-gray-600">{Math.round(rec.confidence * 100)}%</span>
+                      </div>
                     </div>
-                  )}
-
-                  {/* Confidence and actions */}
-                  <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
-                    <span>AI confidence: {Math.round(rec.confidence * 100)}%</span>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       {canGenerateImages(rec) && (
                         <button
                           onClick={() => handleVisualize(rec)}
                           disabled={isGeneratingImages}
-                          className={`inline-flex items-center px-4 py-2 rounded-md text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 disabled:opacity-50 disabled:cursor-not-allowed ${
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                             hasImages(rec)
-                              ? 'bg-white text-gray-900 border border-gray-300 hover:bg-gray-50'
-                              : 'bg-gray-900 text-white hover:bg-gray-800'
+                              ? 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                              : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md hover:shadow-lg hover:scale-105'
                           }`}
                         >
                           {isGeneratingImages && selectedRecommendation === rec ? (
                             <>
-                              <span className="inline-block animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-2" />
-                              Generating visualisation
+                              <span className="inline-block animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
+                              Creating...
                             </>
                           ) : hasImages(rec) ? (
                             <>
-                              View visualisation
+                              <FiEye className="w-3.5 h-3.5" />
+                              View
                             </>
                           ) : (
                             <>
-                              Generate visualisation
+                              <HiOutlineSparkles className="w-3.5 h-3.5" />
+                              Generate Visualisation
                             </>
                           )}
                         </button>
                       )}
                       <button 
                         onClick={() => navigate(`/projects/${id}/scenario`)}
-                        className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                        className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 font-medium"
                       >
-                        Open in scenario tool
+                        Scenario
+                        <FiExternalLink className="w-3 h-3" />
                       </button>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

@@ -250,6 +250,8 @@ export interface DesignRecommendation {
   impact: RecommendationImpact
   suggestions?: string[]
   confidence: number
+  before_image?: string
+  after_image?: string
 }
 
 export interface DesignRecommendationsResult {
@@ -661,6 +663,13 @@ export interface CBAMReport {
  */
 export const getCBAMReport = async (projectId: string): Promise<CBAMReport> => {
   const response = await api.get(`/projects/${projectId}/cbam-export`)
+  return response.data
+}
+
+export const getCBAMReportQr = async (
+  projectId: string
+): Promise<{ qr_code: string; url: string }> => {
+  const response = await api.get(`/projects/${projectId}/cbam-export/qr`)
   return response.data
 }
 

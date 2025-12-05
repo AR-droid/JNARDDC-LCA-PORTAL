@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getCBAMReport, downloadCBAMCSV, downloadCBAMExcel, downloadBRSRExcel, CBAMReport, projectsApi } from '../api/projects'
+import { getCBAMReport, getCBAMReportQr, downloadCBAMCSV, downloadCBAMExcel, downloadBRSRExcel, CBAMReport, projectsApi } from '../api/projects'
 import { useAuthStore } from '../stores/authStore'
 import { UpgradePrompt } from '../components/FeatureGate'
-import { FileSpreadsheet, Download, FileText, Loader2 } from 'lucide-react'
+import { FileSpreadsheet, Download, FileText, Loader2, QrCode } from 'lucide-react'
 
 export default function CBAMExportPage() {
   const { id } = useParams<{ id: string }>()
@@ -13,6 +13,10 @@ export default function CBAMExportPage() {
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadingType, setDownloadingType] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [qrModalOpen, setQrModalOpen] = useState(false)
+  const [qrData, setQrData] = useState<string | null>(null)
+  const [qrUrl, setQrUrl] = useState<string | null>(null)
+  const [isQrLoading, setIsQrLoading] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -104,6 +108,22 @@ export default function CBAMExportPage() {
     window.URL.revokeObjectURL(url)
   }
 
+  const handleShowQr = async () => {
+    if (!id) return
+    try {
+      setIsQrLoading(true)
+      const data = await getCBAMReportQr(id)
+      setQrData(data.qr_code)
+      setQrUrl(data.url)
+      setQrModalOpen(true)
+    } catch (err) {
+      console.error('Error generating QR code:', err)
+      alert('Failed to generate QR code')
+    } finally {
+      setIsQrLoading(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -168,7 +188,7 @@ export default function CBAMExportPage() {
               <h1 className="text-3xl font-bold text-gray-900">Compliance Export Reports</h1>
               <p className="text-gray-600 mt-1">CBAM (EU) & BRSR (SEBI) Compliance Reports</p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 items-center">
               <button
                 onClick={handleDownloadExcel}
                 disabled={isDownloading}
@@ -195,6 +215,14 @@ export default function CBAMExportPage() {
                 className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 flex items-center gap-2"
               >
                 <FileText className="w-4 h-4" /> JSON
+              </button>
+              <button
+                onClick={handleShowQr}
+                disabled={isQrLoading}
+                className="px-4 py-2 bg-white text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 flex items-center gap-2"
+              >
+                {isQrLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
+                QR code
               </button>
             </div>
           </div>
@@ -393,6 +421,37 @@ export default function CBAMExportPage() {
             View Analytics →
           </Link>
         </div>
+        {/* QR Modal */}
+        {qrModalOpen && qrData && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">CBAM report QR code</h3>
+                <button
+                  onClick={() => setQrModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="flex flex-col items-center gap-3">
+                <img
+                  src={`data:image/png;base64,${qrData}`}
+                  alt="CBAM report QR code"
+                  className="w-48 h-48 border border-gray-200 rounded-lg"
+                />
+                {qrUrl && (
+                  <p className="text-xs text-gray-500 break-all text-center">
+                    {qrUrl}
+                  </p>
+                )}
+                <p className="text-xs text-gray-500 text-center mt-1">
+                  Scan this QR to open the CBAM report export page.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

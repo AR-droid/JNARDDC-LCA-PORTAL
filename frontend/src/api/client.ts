@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosError } from 'axios'
 
-const API_URL = 'http://localhost:5000/api/v1'
+export const API_URL = 'http://localhost:5000/api/v1'
 
 // Create axios instance
 const api: AxiosInstance = axios.create({

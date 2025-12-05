@@ -102,20 +102,22 @@ const categoryDefinitions: Record<string, { definition: string; relevance: strin
 }
 
 // Color mapping for LCIA categories
-const categoryColors: Record<string, string> = {
-  gwp: 'bg-red-100 text-red-700 border-red-200',
-  ap: 'bg-orange-100 text-orange-700 border-orange-200',
-  ep: 'bg-blue-100 text-blue-700 border-blue-200',
-  odp: 'bg-purple-100 text-purple-700 border-purple-200',
-  pocp: 'bg-amber-100 text-amber-700 border-amber-200',
-  htp: 'bg-rose-100 text-rose-700 border-rose-200',
-  faetp: 'bg-cyan-100 text-cyan-700 border-cyan-200',
-  tetp: 'bg-green-100 text-green-700 border-green-200',
-  adp_elements: 'bg-slate-100 text-slate-700 border-slate-200',
-  adp_fossil: 'bg-gray-100 text-gray-700 border-gray-200',
-  water_use: 'bg-sky-100 text-sky-700 border-sky-200',
-  land_use: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-}
+// Background images for each category
+const categoryImages: Record<string, string> = {
+  gwp: "/images/co2.jpg",
+  ap: "/images/smoke.jpg",
+  ep: "/images/eutrophication.jpg",
+  odp: "/images/depletion.jpg",
+  pocp: "/images/ozone.jpg",
+  htp: "/images/human.jpg",
+  faetp: "/images/polluted_water.jpg",
+  tetp: "/images/soil_pollution.jpg",
+  adp_elements: "/images/abiotic.jpg",
+  adp_fossil: "/images/fossil.jpg",
+  water_use: "/images/water.jpg",
+  land_use: "/images/deforestation1.jpg"
+};
+
 
 // Format scientific notation for small values
 function formatValue(value: number, _unit?: string): string {
@@ -327,30 +329,69 @@ export default function LCIAPage() {
             Energy Consumption Breakdown
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-amber-50 rounded-lg p-4 text-center">
-              <p className="text-sm text-amber-600 font-medium">Mining</p>
-              <p className="text-2xl font-bold text-amber-700">
-                {formatValue(impacts.energy_breakdown.mining_kwh, 'kWh')} kWh
-              </p>
-            </div>
-            <div className="bg-orange-50 rounded-lg p-4 text-center">
-              <p className="text-sm text-orange-600 font-medium">Refining</p>
-              <p className="text-2xl font-bold text-orange-700">
-                {formatValue(impacts.energy_breakdown.refining_kwh, 'kWh')} kWh
-              </p>
-            </div>
-            <div className="bg-red-50 rounded-lg p-4 text-center">
-              <p className="text-sm text-red-600 font-medium">Smelting</p>
-              <p className="text-2xl font-bold text-red-700">
-                {formatValue(impacts.energy_breakdown.smelting_kwh, 'kWh')} kWh
-              </p>
-            </div>
-            <div className="bg-purple-50 rounded-lg p-4 text-center">
-              <p className="text-sm text-purple-600 font-medium">Total Energy</p>
-              <p className="text-2xl font-bold text-purple-700">
-                {formatValue(impacts.energy_breakdown.total_kwh, 'kWh')} kWh
-              </p>
-            </div>
+           <div
+  className="relative rounded-lg p-4 text-center bg-cover bg-center"
+  style={{ backgroundImage: "url('/images/mining.jpeg')" }}
+>
+  <div className="absolute inset-0 bg-white/80"></div> {/* slight overlay */}
+
+  <div className="relative z-10">
+    <p className="text-sm font-medium text-amber-700">Mining</p>
+    <p className="text-3xl font-bold text-amber-800">
+      {formatValue(impacts.energy_breakdown.mining_kwh, 'kWh')} kWh
+    </p>
+  </div>
+</div>
+
+
+          <div
+  className="relative rounded-lg p-6 text-center bg-cover bg-center"
+  style={{ backgroundImage: "url('/images/refi.jpg')" }}
+>
+  {/* Soft white overlay for readability */}
+  <div className="absolute inset-0 bg-white/70 rounded-lg"></div>
+
+  {/* Content */}
+  <div className="relative z-10">
+    <p className="text-sm font-medium text-orange-600">Refining</p>
+    <p className="text-3xl font-bold text-orange-700">
+      {formatValue(impacts.energy_breakdown.refining_kwh, 'kWh')} kWh
+    </p>
+  </div>
+</div>
+
+            <div
+  className="relative rounded-lg p-6 text-center bg-cover bg-center"
+  style={{ backgroundImage: "url('/images/smelting.jpg')" }}
+>
+  {/* Soft overlay (slight red tint like your screenshot) */}
+  <div className="absolute inset-0 bg-red-50/80 rounded-lg"></div>
+
+  {/* Content */}
+  <div className="relative z-10">
+    <p className="text-sm font-medium text-red-600">Smelting</p>
+    <p className="text-3xl font-bold text-red-700">
+      {formatValue(impacts.energy_breakdown.smelting_kwh, 'kWh')} kWh
+    </p>
+  </div>
+</div>
+
+            <div
+  className="relative rounded-lg p-4 text-center bg-cover bg-center overflow-hidden"
+  style={{ backgroundImage: "url('/images/totalpower.jpg')" }}   // <-- your image path
+>
+  {/* Soft overlay so text remains readable */}
+  <div className="absolute inset-0 bg-white/70"></div>
+
+  {/* Foreground content */}
+  <div className="relative z-10">
+    <p className="text-sm text-purple-700 font-medium">Total Energy</p>
+    <p className="text-2xl font-bold text-purple-800">
+      {formatValue(impacts.energy_breakdown.total_kwh, 'kWh')} kWh
+    </p>
+  </div>
+</div>
+
           </div>
           <div className="mt-4 p-3 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-600">
@@ -371,37 +412,60 @@ export default function LCIAPage() {
             {Object.entries(categories).map(([key, meta]: [string, LCIACategoryMetadata]) => {
               const value = impacts[key as keyof typeof impacts] as number
               return (
-                <div
-                  key={key}
-                  className={`rounded-lg border-2 p-4 relative ${categoryColors[key] || 'bg-gray-100 text-gray-700 border-gray-200'}`}
-                >
-                  <div className="flex items-center mb-2">
-                    {categoryIcons[key] || <Gauge className="w-5 h-5" />}
-                    <span className="ml-2 font-semibold text-sm">{meta.short_name}</span>
-                    <button
-                      onClick={() => setShowTooltip(showTooltip === key ? null : key)}
-                      className="ml-auto p-1 rounded-full hover:bg-white/30 transition-colors"
-                      title={`Learn about ${meta.short_name}`}
-                    >
-                      <Info className="w-4 h-4 opacity-60 hover:opacity-100" />
-                    </button>
-                  </div>
-                  {/* Tooltip */}
-                  {showTooltip === key && categoryDefinitions[key] && (
-                    <div 
-                      ref={tooltipRef}
-                      className="absolute z-10 top-full left-0 right-0 mt-2 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg"
-                    >
-                      <div className="font-semibold mb-1">{meta.name}</div>
-                      <p className="leading-relaxed mb-2">{categoryDefinitions[key].definition}</p>
-                      <p className="text-gray-300 text-[10px] italic">{categoryDefinitions[key].relevance}</p>
-                      <div className="absolute -top-2 left-4 w-4 h-4 bg-gray-900 transform rotate-45"></div>
-                    </div>
-                  )}
-                  <p className="text-2xl font-bold">{formatValue(value, meta.unit)}</p>
-                  <p className="text-xs opacity-75">{meta.unit}</p>
-                  <p className="text-xs mt-2 opacity-60">{meta.name}</p>
-                </div>
+  <div
+  key={key}
+  className="relative rounded-lg overflow-hidden border-2 p-4 bg-cover bg-center"
+  style={{
+    backgroundImage: `url(${categoryImages[key]})`
+  }}
+>
+  {/* Overlay */}
+  <div className="absolute inset-0 bg-white/70"></div>
+
+  {/* Foreground content */}
+  <div className="relative z-10">
+    
+    <div className="flex items-center mb-2">
+      {categoryIcons[key] || <Gauge className="w-5 h-5" />}
+      <span className="ml-2 font-semibold text-sm">{meta.short_name}</span>
+
+      <button
+        onClick={() => setShowTooltip(showTooltip === key ? null : key)}
+        className="ml-auto p-1 rounded-full hover:bg-white/30 transition-colors"
+      >
+        <Info className="w-4 h-4 opacity-60 hover:opacity-100" />
+      </button>
+    </div>
+
+    {/* Tooltip */}
+    {showTooltip === key && categoryDefinitions[key] && (
+      <div 
+        ref={tooltipRef}
+        className="absolute z-20 top-full left-0 right-0 mt-2 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg"
+      >
+        <div className="font-semibold mb-1">{meta.name}</div>
+        <p className="leading-relaxed mb-2">
+          {categoryDefinitions[key].definition}
+        </p>
+      </div>
+    )}
+
+    {/* Value & texts */}
+   <p className="text-2xl font-extrabold text-gray-900 drop-shadow-md">
+  {formatValue(value, meta.unit)}
+</p>
+
+<p className="text-sm font-semibold text-gray-800 drop-shadow">
+  {meta.unit}
+</p>
+
+<p className="text-sm mt-2 font-semibold text-gray-900 drop-shadow">
+  {meta.name}
+</p>
+
+  </div>
+</div>
+
               )
             })}
           </div>

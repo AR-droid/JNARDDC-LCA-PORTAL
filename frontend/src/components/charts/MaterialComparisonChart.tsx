@@ -63,14 +63,14 @@ export default function MaterialComparisonChart({
             <XAxis
               type="number"
               unit=" kg"
-              tick={{ fontSize: 11, fill: "#6b7280" }}
+              tick={{ fontSize: 9, fill: "#6b7280" }}
               axisLine={{ stroke: "#d1d5db" }}
             />
 
             <YAxis
               type="category"
               dataKey="name"
-              tick={{ fontSize: 11, fill: "#374151" }}
+              tick={{ fontSize: 8, fill: "#374151" ,fontWeight:"bold"}}
               width={90}
             />
 

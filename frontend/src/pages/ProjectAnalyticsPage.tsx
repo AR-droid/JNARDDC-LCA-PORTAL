@@ -101,8 +101,9 @@ export default function AnalyticsPage() {
             <span>/</span>
             <span className="text-gray-700">Analytics</span>
           </div>
-          <h1 className="text-xl font-semibold text-gray-900">Project Analytics</h1>
-          <p className="text-sm text-gray-500">Comprehensive environmental impact analysis</p>
+          <h1 className="text-2xl font-bold text-gray-900">{projectName}</h1>
+<p className="text-sm text-gray-500">Environmental impact & circularity overview</p>
+
         </div>
 
         {/* Summary Cards */}

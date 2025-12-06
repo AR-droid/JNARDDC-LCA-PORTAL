@@ -3,14 +3,9 @@ Flask routes for Blockchain Carbon Credit System
 """
 
 from flask import Blueprint, request, jsonify
-import sys
-import os
-
-# Add blockchain to path
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'blockchain'))
 
 try:
-    from mock_blockchain import get_blockchain, CarbonTokenCalculator
+    from blockchain_mock import get_blockchain, CarbonTokenCalculator
     BLOCKCHAIN_AVAILABLE = True
 except ImportError:
     BLOCKCHAIN_AVAILABLE = False

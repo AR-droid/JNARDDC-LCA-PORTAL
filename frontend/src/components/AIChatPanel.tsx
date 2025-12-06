@@ -341,7 +341,7 @@ export default function AIChatPanel({ projectId, initialContext, isOpen, onClose
   }
 
   return (
-    <div className={`fixed bottom-4 right-4 w-[450px] h-[650px] flex flex-col z-50 rounded-2xl shadow-2xl border transition-all duration-300 ${prefs.theme === 'dark' ? 'bg-gray-900 border-gray-700 text-white' :
+    <div className={`fixed bottom-4 right-4 w-[450px] h-[550px] flex flex-col z-50 rounded-2xl shadow-2xl border transition-all duration-300 ${prefs.theme === 'dark' ? 'bg-gray-900 border-gray-700 text-white' :
       prefs.theme === 'eco' ? 'bg-green-50 border-green-200 text-gray-900' :
         'bg-white border-gray-200 text-gray-900'
       }`}>

@@ -1,11 +1,13 @@
 services:
   # Backend Service
   - type: web
-    name: jnarddc-lca-backend
-    env: docker
+    env: python
     region: singapore
-    dockerfilePath: Dockerfile
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && gunicorn app:app
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.2
       - key: FLASK_ENV
         value: production
       - key: GROQ_API_KEY

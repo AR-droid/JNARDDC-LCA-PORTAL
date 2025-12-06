@@ -20,7 +20,6 @@ import SettingsPage from './pages/SettingsPage'
 import TeamManagementPage from './pages/TeamManagementPage'
 import ScrapYardConnectPage from './pages/ScrapYardConnectPage'
 import WalletPage from './pages/WalletPage'
-import VerificationPage from './pages/VerificationPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 
@@ -81,15 +80,7 @@ function App() {
           }
         />
         <Route
-          path="/projects/:id/verification"
-          element={
-            <ProtectedRoute>
-              <VerificationPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/comparison"
+          path="/projects/:id/scenario"
           element={
             <ProtectedRoute>
               <ScenarioComparisonPage />

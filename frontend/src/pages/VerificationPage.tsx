@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Building2, CheckCircle, Clock, XCircle, AlertTriangle, Award, Lock, ArrowLeft } from 'lucide-react';
+import { Building2, CheckCircle, Clock, XCircle, AlertTriangle, Award, Lock } from 'lucide-react';
 import { projectsApi, VerificationStatus, Project } from '../api/projects';
 import { useAuthStore } from '../stores/authStore';
 
@@ -90,16 +90,63 @@ const VerificationPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+        {/* Secondary Navigation Bar - Quick Actions */}
+        <div className="bg-white rounded-lg shadow mb-5">
+          <div className="flex flex-wrap items-center gap-1 p-2 border-b border-gray-100">
+            <Link
+              to={`/projects/${id}`}
+              className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-1.5"
+            >
+              <span className="text-base">←</span> Back
+            </Link>
+            <div className="w-px h-6 bg-gray-200 mx-1"></div>
+            <Link
+              to={`/projects/${id}/analytics`}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <CheckCircle size={16} /> Analytics
+            </Link>
+            <Link
+              to={`/projects/${id}/lcia`}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-teal-50 hover:text-teal-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <CheckCircle size={16} /> LCIA
+            </Link>
+            <Link
+              to={`/projects/${id}/analysis`}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <CheckCircle size={16} /> Analysis
+            </Link>
+            <Link
+              to={`/projects/${id}/recommendations`}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <CheckCircle size={16} /> Design Advisor
+            </Link>
+            <Link
+              to={`/projects/${id}/scenario`}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <CheckCircle size={16} /> Scenarios
+            </Link>
+            <Link
+              to={`/projects/${id}/cbam-export`}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <Lock size={16} /> CBAM
+            </Link>
+            <Link
+              to={`/projects/${id}/verification`}
+              className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 rounded-md transition-colors flex items-center gap-2"
+            >
+              <Building2 size={16} /> Verification
+            </Link>
+          </div>
+        </div>
         {/* Header */}
         <div className="mb-6">
-          <Link
-            to={`/projects/${id}`}
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Project
-          </Link>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
             <Building2 className="w-8 h-8 text-blue-600" />
             JNARDDC Verification

@@ -21,7 +21,8 @@ import {
   Target,
   FileSpreadsheet,
   Lock,
-  ArrowLeft
+  ArrowLeft,
+  Building2
 } from 'lucide-react'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
@@ -125,6 +126,7 @@ export default function ScenarioComparisonPage() {
   const [activeView, setActiveView] = useState<'overview' | 'detailed' | 'lifecycle'>('overview')
 
   const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
+  const hasVerificationAccess = user?.tier === 'enterprise' || user?.features?.verification
 
   // Circular pathway configuration
   const [circularConfig, setCircularConfig] = useState({
@@ -421,21 +423,35 @@ export default function ScenarioComparisonPage() {
                 onClick={() => navigate(`/projects/${id}/cbam-export`)}
                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-md transition-colors flex items-center gap-2"
               >
-                <FileSpreadsheet size={16} /> CBAM
-              </button>
-            ) : (
-              <Link
-                to="/pricing"
-                className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
-                title="CBAM Export requires Pro plan"
-              >
-                <Lock size={16} /> CBAM
-              </Link>
-            )}
-          </div>
+              <FileSpreadsheet size={16} /> CBAM
+            </button>
+          ) : (
+            <Link
+              to="/pricing"
+              className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+              title="CBAM Export requires Pro plan"
+            >
+              <Lock size={16} /> CBAM
+            </Link>
+          )}
+          {hasVerificationAccess ? (
+            <button
+              onClick={() => navigate(`/projects/${project?.id}/verification`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <Building2 size={16} /> Verification
+            </button>
+          ) : (
+            <Link
+              to="/pricing"
+              className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+              title="JNARDDC Verification requires Enterprise plan"
+            >
+              <Lock size={16} /> Verification
+            </Link>
+          )}
         </div>
-
-        {/* Header */}
+      </div>        {/* Header */}
         <div className="mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>

@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getCBAMReport, getCBAMReportQr, downloadCBAMCSV, downloadCBAMExcel, downloadBRSRExcel, CBAMReport } from '../api/projects'
 import { useAuthStore } from '../stores/authStore'
 import { UpgradePrompt } from '../components/FeatureGate'
-import { FileSpreadsheet, Download, FileText, Loader2, QrCode, AlertTriangle } from 'lucide-react'
+import { FileSpreadsheet, Download, FileText, Loader2, QrCode, AlertTriangle, Building2, Lock } from 'lucide-react'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
 
 export default function CBAMExportPage() {
@@ -21,6 +21,7 @@ export default function CBAMExportPage() {
   const [isQrLoading, setIsQrLoading] = useState(false)
   
   const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
+  const hasVerificationAccess = user?.tier === 'enterprise' || user?.features?.verification
 
   useEffect(() => {
     if (id) {
@@ -219,6 +220,22 @@ export default function CBAMExportPage() {
             >
               <FileSpreadsheet size={16} /> CBAM
             </button>
+            {hasVerificationAccess ? (
+              <button
+                onClick={() => navigate(`/projects/${id}/verification`)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
+              >
+                <Building2 size={16} /> Verification
+              </button>
+            ) : (
+              <Link
+                to="/pricing"
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+                title="JNARDDC Verification requires Enterprise plan"
+              >
+                <Lock size={16} /> Verification
+              </Link>
+            )}
           </div>
         </div>
 

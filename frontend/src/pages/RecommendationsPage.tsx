@@ -9,7 +9,7 @@ import { HiOutlineSparkles, HiOutlineLightBulb } from 'react-icons/hi'
 import { BiLeaf, BiTargetLock, BiRecycle } from 'react-icons/bi'
 import { TbArrowNarrowRight } from 'react-icons/tb'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
-import { FileSpreadsheet, Lock } from 'lucide-react'
+import { FileSpreadsheet, Lock, Building2 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 
 interface RecommendationImages {
@@ -119,6 +119,7 @@ export default function RecommendationsPage() {
   const [showAiInsights, setShowAiInsights] = useState(false)
   
   const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
+  const hasVerificationAccess = user?.tier === 'enterprise' || user?.features?.verification
 
   useEffect(() => {
     loadRecommendations()
@@ -371,21 +372,35 @@ export default function RecommendationsPage() {
                 onClick={() => navigate(`/projects/${id}/cbam-export`)}
                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-md transition-colors flex items-center gap-2"
               >
-                <FileSpreadsheet size={16} /> CBAM
-              </button>
-            ) : (
-              <Link
-                to="/pricing"
-                className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
-                title="CBAM Export requires Pro plan"
-              >
-                <Lock size={16} /> CBAM
-              </Link>
-            )}
-          </div>
+              <FileSpreadsheet size={16} /> CBAM
+            </button>
+          ) : (
+            <Link
+              to="/pricing"
+              className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+              title="CBAM Export requires Pro plan"
+            >
+              <Lock size={16} /> CBAM
+            </Link>
+          )}
+          {hasVerificationAccess ? (
+            <button
+              onClick={() => navigate(`/projects/${id}/verification`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <Building2 size={16} /> Verification
+            </button>
+          ) : (
+            <Link
+              to="/pricing"
+              className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+              title="JNARDDC Verification requires Enterprise plan"
+            >
+              <Lock size={16} /> Verification
+            </Link>
+          )}
         </div>
-
-        {/* Page header */}
+      </div>        {/* Page header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">Design recommendations</h1>

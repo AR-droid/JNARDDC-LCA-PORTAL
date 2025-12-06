@@ -217,21 +217,35 @@ export default function AnalysisPage() {
                 onClick={() => navigate(`/projects/${id}/cbam-export`)}
                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-md transition-colors flex items-center gap-2"
               >
-                <FileSpreadsheet size={16} /> CBAM
-              </button>
-            ) : (
-              <Link
-                to="/pricing"
-                className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
-                title="CBAM Export requires Pro plan"
-              >
-                <Lock size={16} /> CBAM
-              </Link>
-            )}
-          </div>
+              <FileSpreadsheet size={16} /> CBAM
+            </button>
+          ) : (
+            <Link
+              to="/pricing"
+              className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+              title="CBAM Export requires Pro plan"
+            >
+              <Lock size={16} /> CBAM
+            </Link>
+          )}
+          {hasVerificationAccess ? (
+            <button
+              onClick={() => navigate(`/projects/${projectId}/verification`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <Building2 size={16} /> Verification
+            </button>
+          ) : (
+            <Link
+              to="/pricing"
+              className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+              title="JNARDDC Verification requires Enterprise plan"
+            >
+              <Lock size={16} /> Verification
+            </Link>
+          )}
         </div>
-
-        <div className="mb-6">
+      </div>        <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Project Analysis</h1>
           <p className="text-gray-600">{project.name}</p>
         </div>

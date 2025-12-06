@@ -12,7 +12,7 @@ import {
   RecycledContentChart
 } from '../components/charts'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
-import { FileSpreadsheet, Lock, AlertTriangle } from 'lucide-react'
+import { FileSpreadsheet, Lock, AlertTriangle, Building2 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 
 export default function AnalyticsPage() {
@@ -25,6 +25,7 @@ export default function AnalyticsPage() {
   const [error, setError] = useState<string | null>(null)
   
   const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
+  const hasVerificationAccess = user?.tier === 'enterprise' || user?.features?.verification
 
   useEffect(() => {
     if (id) {
@@ -150,21 +151,35 @@ export default function AnalyticsPage() {
                 onClick={() => navigate(`/projects/${id}/cbam-export`)}
                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-md transition-colors flex items-center gap-2"
               >
-                <FileSpreadsheet size={16} /> CBAM
-              </button>
-            ) : (
-              <Link
-                to="/pricing"
-                className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
-                title="CBAM Export requires Pro plan"
-              >
-                <Lock size={16} /> CBAM
-              </Link>
-            )}
-          </div>
+              <FileSpreadsheet size={16} /> CBAM
+            </button>
+          ) : (
+            <Link
+              to="/pricing"
+              className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+              title="CBAM Export requires Pro plan"
+            >
+              <Lock size={16} /> CBAM
+            </Link>
+          )}
+          {hasVerificationAccess ? (
+            <button
+              onClick={() => navigate(`/projects/${id}/verification`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <Building2 size={16} /> Verification
+            </button>
+          ) : (
+            <Link
+              to="/pricing"
+              className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+              title="JNARDDC Verification requires Enterprise plan"
+            >
+              <Lock size={16} /> Verification
+            </Link>
+          )}
         </div>
-
-        {/* Header */}
+      </div>        {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">{projectName}</h1>
           <p className="text-sm text-gray-500">Environmental impact & circularity overview</p>

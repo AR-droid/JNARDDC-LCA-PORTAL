@@ -8,3 +8,6 @@ google-genai>=1.0.0
 pillow==10.0.1
 nest-asyncio==1.5.6
 qrcode==7.4.2
+PyPDF2==3.0.1
+openpyxl==3.1.2
+python-docx==1.1.0

@@ -118,17 +118,55 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
         setLibrary(lib)
       }
 
-      const content = await file.text()
-      const lines = content.split('\n').filter(line => line.trim())
+      const fileName = file.name.toLowerCase()
+      let content = ''
+      let lines: string[] = []
+      
+      // Handle different file types
+      if (fileName.endsWith('.pdf') || fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+        // For PDF and Excel, use backend API to parse
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('auto_parse', 'false') // We'll parse manually
+        
+        const token = localStorage.getItem('access_token')
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/v1/parse-document`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        })
+        
+        if (!response.ok) {
+          const error = await response.json()
+          setError(error.detail || 'Failed to parse file')
+          setIsParsing(false)
+          return
+        }
+        
+        const result = await response.json()
+        content = result.extracted_text || ''
+        lines = content.split('\n').filter(line => line.trim())
+      } else if (fileName.endsWith('.csv')) {
+        // CSV - parse directly
+        content = await file.text()
+        lines = content.split('\n').filter(line => line.trim())
+      } else {
+        setError('Unsupported file type. Please upload PDF, Excel (.xlsx, .xls), or CSV file.')
+        setIsParsing(false)
+        return
+      }
       
       if (lines.length < 2) {
-        setError('CSV file must have at least a header row and one data row')
+        setError('File must have at least a header row and one data row')
         setIsParsing(false)
         return
       }
 
-      // Parse headers
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''))
+      // Parse headers - handle both CSV and table formats (with | separators)
+      const separator = lines[0].includes('|') ? '|' : ','
+      const headers = lines[0].split(separator).map(h => h.trim().toLowerCase().replace(/['"]/g, ''))
       
       // Find column indices
       const nameIdx = headers.findIndex(h => 
@@ -151,13 +189,13 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
       )
 
       if (nameIdx === -1 && typeIdx === -1) {
-        setError('CSV must have a "name" or "material" column')
+        setError('File must have a "name" or "material" column')
         setIsParsing(false)
         return
       }
 
       if (qtyIdx === -1) {
-        setError('CSV must have a "quantity" or "qty" column')
+        setError('File must have a "quantity" or "qty" column')
         setIsParsing(false)
         return
       }
@@ -165,7 +203,7 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
       // Parse data rows
       const items: ParsedBOMItem[] = []
       for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim().replace(/['"]/g, ''))
+        const values = lines[i].split(separator).map(v => v.trim().replace(/['"]/g, ''))
         
         const materialName = values[nameIdx] || values[typeIdx] || `Material ${i}`
         const materialType = values[typeIdx] || values[nameIdx] || ''
@@ -310,7 +348,7 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Import Bill of Materials</h2>
-              <p className="text-sm text-gray-500 mt-1">Upload a CSV file with your materials</p>
+              <p className="text-sm text-gray-500 mt-1">Upload PDF, Excel, or CSV file with your materials</p>
             </div>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
           </div>
@@ -340,7 +378,7 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".csv"
+                  accept=".pdf,.xlsx,.xls,.csv"
                   onChange={handleFileUpload}
                   className="hidden"
                 />
@@ -348,16 +386,18 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
                   <FileText className="w-16 h-16 text-gray-400" />
                 </div>
                 <p className="text-lg font-medium text-gray-700">
-                  {isParsing ? 'Parsing...' : 'Click to upload CSV file'}
+                  {isParsing ? 'Parsing...' : 'Click to upload PDF, Excel, or CSV'}
                 </p>
                 <p className="text-sm text-gray-500 mt-2">or drag and drop</p>
               </div>
 
-              {/* CSV Format Guide */}
+              {/* File Format Guide */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="font-semibold text-blue-800 mb-2">📋 CSV Format</h3>
+                <h3 className="font-semibold text-blue-800 mb-2">📋 Supported Formats</h3>
                 <p className="text-sm text-blue-700 mb-3">
-                  Your CSV should have the following columns (headers in first row):
+                  <strong>PDF:</strong> BOM tables from design documents<br/>
+                  <strong>Excel (.xlsx, .xls):</strong> Spreadsheets with material data<br/>
+                  <strong>CSV:</strong> Comma-separated values with columns:
                 </p>
                 <div className="bg-white rounded p-3 font-mono text-xs overflow-x-auto">
                   <p className="text-gray-600">name,type,quantity,unit,recycled_content,transport_distance</p>

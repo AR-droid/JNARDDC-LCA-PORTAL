@@ -575,7 +575,7 @@ export default function ProjectDetailPage() {
                     onClick={() => setShowBOMUpload(true)}
                     className="bg-green-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-green-700 transition-colors flex items-center gap-1.5"
                   >
-                    <UploadIcon size={14} /> Upload CSV
+                    <UploadIcon size={14} /> Upload BOM
                   </button>
                   <button
                     onClick={() => setShowAddModal(true)}
@@ -600,7 +600,7 @@ export default function ProjectDetailPage() {
                     <p className="text-gray-600 mb-6 max-w-md mx-auto">
                       {project?.description 
                         ? "Use AI to automatically extract materials from your product description, or add them manually."
-                        : "Add your product's materials to calculate its environmental impact. Upload a CSV or add materials one by one."
+                        : "Add your product's materials to calculate its environmental impact. Upload a PDF/Excel BOM or add materials one by one."
                       }
                     </p>
                     
@@ -626,7 +626,7 @@ export default function ProjectDetailPage() {
                         onClick={() => setShowBOMUpload(true)}
                         className="bg-white text-green-700 border-2 border-green-200 px-5 py-2.5 rounded-lg hover:bg-green-50 hover:border-green-300 transition-all flex items-center justify-center gap-2 font-medium"
                       >
-                        <UploadIcon size={18} /> Upload CSV
+                        <UploadIcon size={18} /> Upload BOM
                       </button>
                       <button
                         onClick={() => setShowAddModal(true)}

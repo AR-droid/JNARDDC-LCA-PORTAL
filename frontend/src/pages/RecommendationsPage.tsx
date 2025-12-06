@@ -4,13 +4,12 @@ import { projectsApi, DesignRecommendation, DesignRecommendationsResult, AIDesig
 import { API_URL } from '../api/client'
 import { 
   FiRefreshCw, FiTruck, FiAlertTriangle, FiClock, FiTool,
-  FiChevronRight, FiEye, FiExternalLink, FiCheckCircle, FiInfo, FiArrowLeft
-} from 'react-icons/fi'
+  FiChevronRight, FiEye, FiExternalLink, FiCheckCircle, FiInfo} from 'react-icons/fi'
 import { HiOutlineSparkles, HiOutlineLightBulb } from 'react-icons/hi'
 import { BiLeaf, BiTargetLock, BiRecycle } from 'react-icons/bi'
 import { TbArrowNarrowRight } from 'react-icons/tb'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
-import { FileSpreadsheet, Sparkles, Lock } from 'lucide-react'
+import { FileSpreadsheet, Lock } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 
 interface RecommendationImages {

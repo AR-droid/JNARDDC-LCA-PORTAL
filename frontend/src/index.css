@@ -206,7 +206,7 @@ body {
   transform-style: preserve-3d;
 }
 
-/* Hide Google Translate UI elements */
+/* Hide Google Translate UI elements but keep functional */
 .goog-te-banner-frame,
 .goog-te-balloon-frame,
 #goog-gt-tt,
@@ -224,18 +224,27 @@ body {
 /* Prevent body shift from Google Translate */
 body {
   top: 0 !important;
+  position: static !important;
 }
 
-/* Hide the floating translate widget */
-#google_translate_element,
+/* Hide the floating translate widget visually */
+#google_translate_element {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  z-index: -1 !important;
+}
+
+/* Hide the skip translate bar at top */
 .skiptranslate {
   display: none !important;
 }
 
-/* But keep the iframe functional */
-.skiptranslate iframe {
-  display: block !important;
-  visibility: hidden !important;
-  position: absolute !important;
-  top: -9999px !important;
+/* Keep select accessible for JS but hidden */
+.goog-te-gadget {
+  opacity: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
 }

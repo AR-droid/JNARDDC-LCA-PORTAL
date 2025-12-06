@@ -13,18 +13,26 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   </head>
   <body>
-    <!-- Hidden Google Translate element - controlled via navbar -->
-    <div id="google_translate_element" style="position: absolute; top: -9999px; left: -9999px; visibility: hidden;"></div>
+    <!-- Google Translate element - visually hidden but functional -->
+    <div id="google_translate_element" style="position: fixed; top: 0; right: 0; opacity: 0; pointer-events: none; z-index: -1;"></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
     <!-- Google Translate -->
     <script type="text/javascript">
+      // Clear any existing googtrans cookies on page load to prevent auto-translation
+      (function() {
+        document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + window.location.hostname;
+        document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.' + window.location.hostname;
+      })();
+      
       function googleTranslateElementInit() {
         new google.translate.TranslateElement({
           pageLanguage: 'en',
           includedLanguages: 'en,hi', 
-          layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+          layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+          autoDisplay: false
         }, 'google_translate_element');
       }
     </script>

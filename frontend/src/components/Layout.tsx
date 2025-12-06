@@ -62,24 +62,29 @@ export default function Layout({ children }: NavbarProps) {
     setIsDarkMode(!isDarkMode);
   };
 
-  // Trigger Google Translate with page reload
+  // Trigger Google Translate without page reload (safer for React Router)
   const triggerGoogleTranslate = (langCode: string) => {
-    // Map language codes to Google Translate codes
-    const gtLangCode = langCode === 'en' ? 'en' : 'hi';
+    // Find the Google Translate select element
+    const select = document.querySelector('.goog-te-combo') as HTMLSelectElement;
     
-    // Clear existing googtrans cookies first
-    document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`;
-    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${window.location.hostname}`;
-    
-    if (langCode !== 'en') {
-      // Set new translation cookie
-      document.cookie = `googtrans=/en/${gtLangCode}; path=/`;
-      document.cookie = `googtrans=/en/${gtLangCode}; path=/; domain=${window.location.hostname}`;
+    if (select) {
+      // Map to Google Translate language code
+      select.value = langCode === 'en' ? 'en' : 'hi';
+      select.dispatchEvent(new Event('change'));
+    } else {
+      // If Google Translate widget not loaded yet, store preference and retry
+      const checkInterval = setInterval(() => {
+        const sel = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+        if (sel) {
+          sel.value = langCode === 'en' ? 'en' : 'hi';
+          sel.dispatchEvent(new Event('change'));
+          clearInterval(checkInterval);
+        }
+      }, 500);
+      
+      // Clear interval after 5 seconds to prevent infinite loop
+      setTimeout(() => clearInterval(checkInterval), 5000);
     }
-    
-    // Reload page to apply translation
-    window.location.reload();
   };
 
   // Don't show nav on homepage, login, or register pages

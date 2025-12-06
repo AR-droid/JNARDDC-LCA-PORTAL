@@ -1286,9 +1286,23 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
+      {/* Floating Scrap Yard Connect Button */}
+      {materials.length > 0 && scrapYardStats && (
+        <button
+          onClick={() => setShowScrapYardWidget(!showScrapYardWidget)}
+          className="fixed bottom-24 right-6 w-14 h-14 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center z-40 hover:scale-110"
+          title="Scrap Yard Connect"
+        >
+          <Recycle className="w-6 h-6" />
+          {!showScrapYardWidget && (
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></span>
+          )}
+        </button>
+      )}
+
       {/* Floating Scrap Yard Connect Widget */}
       {showScrapYardWidget && materials.length > 0 && scrapYardStats && (
-        <div className="fixed bottom-6 right-6 z-40 animate-fade-in-up">
+        <div className="fixed bottom-6 right-24 z-40 animate-slide-in-right">
           <div className="relative bg-green-600 rounded-2xl shadow-2xl shadow-green-200 p-5 max-w-sm border border-green-400/30 overflow-hidden group">
             {/* Background decoration */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>

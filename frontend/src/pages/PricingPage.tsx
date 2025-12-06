@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { Check, X } from 'lucide-react'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
+const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const API_BASE = `${baseUrl.replace(/\/$/, '')}/api/v1`
 
 export default function PricingPage() {
   const { isAuthenticated, user, checkAuth, token } = useAuthStore()
   const [upgrading, setUpgrading] = useState(false)
-  
+
   // Refresh user data to get latest project count
   useEffect(() => {
     if (isAuthenticated) {
@@ -18,7 +19,7 @@ export default function PricingPage() {
 
   const handleUpgrade = async (tier: string) => {
     if (!token) return
-    
+
     setUpgrading(true)
     try {
       const res = await fetch(`${API_BASE}/auth/upgrade`, {
@@ -29,9 +30,9 @@ export default function PricingPage() {
         },
         body: JSON.stringify({ tier })
       })
-      
+
       const data = await res.json()
-      
+
       if (res.ok) {
         alert(data.message || `Successfully upgraded to ${tier}!`)
         checkAuth() // Refresh user data
@@ -45,7 +46,7 @@ export default function PricingPage() {
       setUpgrading(false)
     }
   }
-  
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
@@ -58,8 +59,8 @@ export default function PricingPage() {
           {!isAuthenticated && (
             <div className="flex items-center space-x-4">
               <Link to="/login" className="text-gray-600 dark:text-gray-300 hover:text-blue-600">Login</Link>
-              <Link 
-                to="/register" 
+              <Link
+                to="/register"
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
               >
                 Get Started
@@ -87,7 +88,7 @@ export default function PricingPage() {
       {/* Pricing Cards */}
       <section className="w-full px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          
+
           {/* Free Tier */}
           <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 p-6 relative ${user?.tier === 'free' ? 'border-green-500' : 'border-gray-200 dark:border-gray-700'}`}>
             {user?.tier === 'free' && (
@@ -118,8 +119,8 @@ export default function PricingPage() {
                 Current Plan
               </button>
             ) : !isAuthenticated ? (
-              <Link 
-                to="/register" 
+              <Link
+                to="/register"
                 className="block w-full text-center py-2.5 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition"
               >
                 Get Started Free
@@ -158,7 +159,7 @@ export default function PricingPage() {
                 Current Plan
               </button>
             ) : isAuthenticated ? (
-              <button 
+              <button
                 onClick={() => handleUpgrade('pro')}
                 disabled={upgrading}
                 className="block w-full text-center py-2.5 px-4 bg-white text-blue-600 rounded-lg text-sm font-bold hover:bg-blue-50 transition disabled:opacity-50"
@@ -166,7 +167,7 @@ export default function PricingPage() {
                 {upgrading ? 'Upgrading...' : 'Upgrade Now'}
               </button>
             ) : (
-              <Link 
+              <Link
                 to="/register"
                 className="block w-full text-center py-2.5 px-4 bg-white text-blue-600 rounded-lg text-sm font-bold hover:bg-blue-50 transition"
               >
@@ -205,7 +206,7 @@ export default function PricingPage() {
                 Current Plan
               </button>
             ) : isAuthenticated ? (
-              <button 
+              <button
                 onClick={() => handleUpgrade('enterprise')}
                 disabled={upgrading}
                 className="block w-full text-center py-2.5 px-4 bg-gray-900 dark:bg-gray-700 text-white rounded-lg text-sm font-bold hover:bg-gray-800 dark:hover:bg-gray-600 transition disabled:opacity-50"
@@ -213,8 +214,8 @@ export default function PricingPage() {
                 {upgrading ? 'Upgrading...' : 'Upgrade Now'}
               </button>
             ) : (
-              <a 
-                href="mailto:enterprise@JNARDDC.gov.in" 
+              <a
+                href="mailto:enterprise@JNARDDC.gov.in"
                 className="block w-full text-center py-2.5 px-4 bg-gray-900 dark:bg-gray-700 text-white rounded-lg text-sm font-bold hover:bg-gray-800 dark:hover:bg-gray-600 transition"
               >
                 Contact Sales
@@ -231,8 +232,8 @@ export default function PricingPage() {
                 <h4 className="font-bold text-gray-900 dark:text-white text-base">Consultant License</h4>
                 <p className="text-gray-600 dark:text-gray-300 text-sm">Multi-client management • Verified consultant badge • ₹25,000/month</p>
               </div>
-              <a 
-                href="mailto:consultants@JNARDDC.gov.in" 
+              <a
+                href="mailto:consultants@JNARDDC.gov.in"
                 className="px-5 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition whitespace-nowrap"
               >
                 Apply Now
@@ -278,19 +279,19 @@ export default function PricingPage() {
       <section className="container mx-auto px-4 py-12">
         <h2 className="text-xl font-bold text-center text-gray-900 dark:text-white mb-6">Frequently Asked Questions</h2>
         <div className="max-w-3xl mx-auto space-y-3">
-          <FAQ 
+          <FAQ
             question="Can I upgrade at any time?"
             answer="Yes! You can upgrade your plan at any time. Your new features will be available immediately, and billing will be prorated."
           />
-          <FAQ 
+          <FAQ
             question="What payment methods do you accept?"
             answer="We accept all major credit/debit cards, UPI, net banking, and wire transfers for enterprise customers."
           />
-          <FAQ 
+          <FAQ
             question="Is there a free trial for Pro?"
             answer="Yes, we offer a 14-day free trial of Pro plan. No credit card required to start."
           />
-          <FAQ 
+          <FAQ
             question="What is JNARDDC Verification?"
             answer="JNARDDC verification is an official certification from Joint National Action for Rare Earths & Defense Compliance that validates your LCA assessment for regulatory compliance and export documentation."
           />
@@ -304,7 +305,7 @@ export default function PricingPage() {
           <p className="text-blue-100 mb-6 max-w-2xl mx-auto text-sm">
             Join thousands of Indian manufacturers already using JNARDDC LCA Portal for their environmental compliance needs.
           </p>
-          <Link 
+          <Link
             to={isAuthenticated ? "/dashboard" : "/register"}
             className="inline-flex items-center gap-2 bg-white text-blue-600 px-6 py-3 rounded-lg text-sm font-bold hover:bg-blue-50 transition"
           >
@@ -338,7 +339,7 @@ function CompareRow({ feature, free, pro, enterprise }: { feature: string; free:
     }
     return <span>{value}</span>
   }
-  
+
   return (
     <tr className="border-b border-gray-100 dark:border-gray-700/50">
       <td className="py-2.5 px-4 text-gray-700 dark:text-gray-300">{feature}</td>

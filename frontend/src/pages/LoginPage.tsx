@@ -11,7 +11,7 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const { login, setAuth, isLoading, error } = useAuthStore()
   const [loginMode, setLoginMode] = useState<LoginMode>('email')
-  
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -19,7 +19,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    
+
     try {
       await login(formData.email, formData.password)
       navigate('/dashboard')
@@ -29,17 +29,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div 
+    <div
       className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: "url('/images/login-bg.jpg')" }}
     >
       {/* Dark overlay for better readability */}
       <div className="absolute inset-0 bg-black/40"></div>
-      
+
       <div className="relative z-10 max-w-md w-full bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 animate-fade-in-down">
         {/* Face Login Mode */}
         {loginMode === 'face' ? (
-          <FaceLogin 
+          <FaceLogin
             onSuccess={() => navigate('/dashboard')}
             onBack={() => setLoginMode('email')}
             initialEmail={formData.email}
@@ -49,7 +49,8 @@ export default function LoginPage() {
             onSuccess={async (digiUser, digiToken) => {
               try {
                 // Convert DigiLocker auth to app auth via backend
-                const response = await fetch('http://localhost:5000/api/v1/auth/digilocker-login', {
+                const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                const response = await fetch(`${apiBase.replace(/\/$/, '')}/api/v1/auth/digilocker-login`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -58,16 +59,16 @@ export default function LoginPage() {
                     aadhaar_masked: digiUser.masked_aadhaar
                   })
                 });
-                
+
                 const data = await response.json();
                 console.log('DigiLocker login response:', data);
-                
+
                 if (data.access_token && data.user) {
                   // Set auth state and token
                   localStorage.setItem('access_token', data.access_token);
                   localStorage.setItem('digilocker_verified', 'true');
                   setAuth(data.user, data.access_token);
-                  
+
                   // Force redirect to dashboard
                   window.location.href = '/dashboard';
                 } else {
@@ -110,80 +111,80 @@ export default function LoginPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="you@example.com"
                 />
-          </div>
+              </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              required
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="••••••••"
-            />
-          </div>
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="••••••••"
+                />
+              </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
-          >
-            {isLoading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+              >
+                {isLoading ? 'Signing in...' : 'Sign In'}
+              </button>
+            </form>
 
-        {/* Divider */}
-        <div className="my-6 flex items-center">
-          <div className="flex-1 border-t border-gray-300"></div>
-          <span className="px-4 text-sm text-gray-500">or sign in with</span>
-          <div className="flex-1 border-t border-gray-300"></div>
-        </div>
+            {/* Divider */}
+            <div className="my-6 flex items-center">
+              <div className="flex-1 border-t border-gray-300"></div>
+              <span className="px-4 text-sm text-gray-500">or sign in with</span>
+              <div className="flex-1 border-t border-gray-300"></div>
+            </div>
 
-        {/* Alternative Sign-in Options - Side by Side */}
-        <div className="grid grid-cols-2 gap-3">
-          {/* Face Login Button */}
-          <button
-            type="button"
-            onClick={() => setLoginMode('face')}
-            className="flex items-center justify-center gap-2 py-3 px-4 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
-          >
-            <Scan className="w-5 h-5 text-purple-600" />
-            <span className="text-sm">Face ID</span>
-          </button>
+            {/* Alternative Sign-in Options - Side by Side */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Face Login Button */}
+              <button
+                type="button"
+                onClick={() => setLoginMode('face')}
+                className="flex items-center justify-center gap-2 py-3 px-4 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
+              >
+                <Scan className="w-5 h-5 text-purple-600" />
+                <span className="text-sm">Face ID</span>
+              </button>
 
-          {/* DigiLocker Login Button */}
-          <button
-            type="button"
-            onClick={() => setLoginMode('digilocker')}
-            className="flex items-center justify-center gap-2 py-3 px-4 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
-          >
-            <img 
-              src="/images/digilocker.jpeg" 
-              alt="DigiLocker" 
-              className="w-10 h-10 object-contain"
-            />
-            <span className="text-sm">DigiLocker</span>
-          </button>
-        </div>
+              {/* DigiLocker Login Button */}
+              <button
+                type="button"
+                onClick={() => setLoginMode('digilocker')}
+                className="flex items-center justify-center gap-2 py-3 px-4 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
+              >
+                <img
+                  src="/images/digilocker.jpeg"
+                  alt="DigiLocker"
+                  className="w-10 h-10 object-contain"
+                />
+                <span className="text-sm">DigiLocker</span>
+              </button>
+            </div>
 
-        <div className="mt-6 text-center">
-          <p className="text-gray-600">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-blue-600 hover:text-blue-700 font-medium">
-              Sign up
-            </Link>
-          </p>
-        </div>
-        
-        <div className="mt-4 text-center">
-          <Link to="/" className="text-sm text-gray-500 hover:text-gray-700">
-            ← Back to Home
-          </Link>
-        </div>
+            <div className="mt-6 text-center">
+              <p className="text-gray-600">
+                Don't have an account?{' '}
+                <Link to="/register" className="text-blue-600 hover:text-blue-700 font-medium">
+                  Sign up
+                </Link>
+              </p>
+            </div>
+
+            <div className="mt-4 text-center">
+              <Link to="/" className="text-sm text-gray-500 hover:text-gray-700">
+                ← Back to Home
+              </Link>
+            </div>
           </>
         )}
       </div>

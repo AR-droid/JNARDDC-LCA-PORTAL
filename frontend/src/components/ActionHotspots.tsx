@@ -431,10 +431,10 @@ export default function ActionHotspots({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-white" />
+              <Recycle className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-white">♻️ Scrap Yard Connect</h3>
+              <h3 className="text-lg font-semibold text-white">Scrap Yard Connect</h3>
               <p className="text-sm text-purple-100">Top {hotspots.length} recycling & improvement opportunities</p>
             </div>
           </div>

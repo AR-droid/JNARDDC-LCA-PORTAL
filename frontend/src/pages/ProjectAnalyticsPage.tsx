@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getProjectAnalytics, ProjectAnalytics, projectsApi } from '../api/projects'
 import {
   GWPBreakdownChart,
@@ -11,14 +11,20 @@ import {
   ProcessTree,
   RecycledContentChart
 } from '../components/charts'
-import { AIIcon, FlaskIcon, ArrowLeftIcon } from '../components/Icons'
+import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
+import { FileSpreadsheet, Sparkles, Lock, AlertTriangle } from 'lucide-react'
+import { useAuthStore } from '../stores/authStore'
 
 export default function AnalyticsPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const { user } = useAuthStore()
   const [analytics, setAnalytics] = useState<ProjectAnalytics | null>(null)
   const [projectName, setProjectName] = useState<string>('')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  const hasCBAMAccess = user?.subscription_tier === 'pro' || user?.subscription_tier === 'enterprise'
 
   useEffect(() => {
     if (id) {
@@ -63,7 +69,9 @@ export default function AnalyticsPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <div className="flex justify-center mb-4">
+            <AlertTriangle className="w-16 h-16 text-red-500" />
+          </div>
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Analytics</h2>
           <p className="text-gray-600 mb-4">{error}</p>
           <Link to={`/projects/${id}`} className="text-blue-600 hover:text-blue-700">
@@ -92,18 +100,74 @@ export default function AnalyticsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+        {/* Secondary Navigation Bar */}
+        <div className="bg-white rounded-lg shadow mb-5">
+          <div className="flex flex-wrap items-center gap-1 p-2 border-b border-gray-100">
+            <button
+              onClick={() => navigate('/projects')}
+              className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-1.5"
+            >
+              <span className="text-base">←</span> Back
+            </button>
+            <div className="w-px h-6 bg-gray-200 mx-1"></div>
+            <button
+              onClick={() => navigate(`/projects/${id}`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              Dashboard
+            </button>
+            <button
+              className="px-4 py-2 text-sm font-medium bg-blue-50 text-blue-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <ChartIcon size={16} /> Analytics
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/lcia`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-teal-50 hover:text-teal-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AnalyticsIcon size={16} /> LCIA
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/analysis`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AnalyticsIcon size={16} /> Analysis
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/recommendations`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AIIcon size={16} /> Design Advisor
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/scenario`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <FlaskIcon size={16} /> Scenarios
+            </button>
+            {hasCBAMAccess ? (
+              <button
+                onClick={() => navigate(`/projects/${id}/cbam-export`)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-md transition-colors flex items-center gap-2"
+              >
+                <FileSpreadsheet size={16} /> CBAM
+              </button>
+            ) : (
+              <Link
+                to="/pricing"
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+                title="CBAM Export requires Pro plan"
+              >
+                <Lock size={16} /> CBAM
+              </Link>
+            )}
+          </div>
+        </div>
+
         {/* Header */}
         <div className="mb-6">
-          <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-2">
-            <Link to="/projects" className="hover:text-blue-600">Projects</Link>
-            <span>/</span>
-            <Link to={`/projects/${id}`} className="hover:text-blue-600">{projectName}</Link>
-            <span>/</span>
-            <span className="text-gray-700">Analytics</span>
-          </div>
           <h1 className="text-2xl font-bold text-gray-900">{projectName}</h1>
-<p className="text-sm text-gray-500">Environmental impact & circularity overview</p>
-
+          <p className="text-sm text-gray-500">Environmental impact & circularity overview</p>
         </div>
 
         {/* Summary Cards */}
@@ -206,27 +270,6 @@ export default function AnalyticsPage() {
           />
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-center gap-3 mt-6">
-          <Link
-            to={`/projects/${id}`}
-            className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition flex items-center gap-1.5"
-          >
-            <ArrowLeftIcon size={14} /> Back to Project
-          </Link>
-          <Link
-            to={`/projects/${id}/recommendations`}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition flex items-center gap-1.5"
-          >
-            <AIIcon size={14} /> AI Recommendations
-          </Link>
-          <Link
-            to={`/projects/${id}/scenario`}
-            className="px-4 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center gap-1.5"
-          >
-            <FlaskIcon size={14} /> What-If Scenarios
-          </Link>
-        </div>
       </div>
     </div>
   )

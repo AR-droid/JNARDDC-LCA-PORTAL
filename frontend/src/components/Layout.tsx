@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useLanguageStore, useTranslation, Language } from '../stores/languageStore';
 import AIChatPanel from './AIChatPanel';
-import { Building, Star, Globe, ChevronDown } from 'lucide-react';
+import { Building, Star, Globe, ChevronDown, Recycle } from 'lucide-react';
 
 interface NavbarProps {
   children: React.ReactNode;
@@ -98,7 +98,7 @@ export default function Layout({ children }: NavbarProps) {
                     to="/scrap-yard-connect"
                     className="text-gray-700 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1"
                   >
-                    ♻️ {t('nav.scrapYard')}
+                    <Recycle className="w-4 h-4" /> {t('nav.scrapYard')}
                     <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">{t('common.new')}</span>
                   </Link>
                   <Link

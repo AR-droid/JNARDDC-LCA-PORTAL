@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { materialsApi, MaterialLibraryItem, AddMaterialData } from '../api/materials'
-import { Plus } from 'lucide-react'
+import { Plus, FileText, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
 
 interface Props {
   projectId: string
@@ -344,7 +344,9 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
                   onChange={handleFileUpload}
                   className="hidden"
                 />
-                <div className="text-5xl mb-4">📄</div>
+                <div className="flex justify-center mb-4">
+                  <FileText className="w-16 h-16 text-gray-400" />
+                </div>
                 <p className="text-lg font-medium text-gray-700">
                   {isParsing ? 'Parsing...' : 'Click to upload CSV file'}
                 </p>
@@ -487,7 +489,7 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
                           {item.matched ? (
                             <span className="text-green-600">✓</span>
                           ) : (
-                            <span className="text-orange-500" title={item.error}>⚠</span>
+                            <AlertCircle className="w-4 h-4 text-orange-500" title={item.error} />
                           )}
                         </td>
                         <td className="py-2 px-3 text-center">
@@ -525,7 +527,10 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
 
               {parsedItems.some(i => !i.matched) && (
                 <p className="text-sm text-orange-600">
-                  ⚠ Some materials couldn't be matched automatically. Please select the correct type from the dropdown.
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    Some materials couldn't be matched automatically. Please select the correct type from the dropdown.
+                  </div>
                 </p>
               )}
             </div>
@@ -533,7 +538,9 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
 
           {step === 'done' && (
             <div className="text-center py-8">
-              <div className="text-6xl mb-4">✅</div>
+              <div className="flex justify-center mb-4">
+                <CheckCircle className="w-16 h-16 text-green-500" />
+              </div>
               <p className="text-xl font-semibold text-gray-900">{success}</p>
             </div>
           )}
@@ -556,7 +563,7 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
               >
                 {isLoading ? (
                   <>
-                    <span className="animate-spin">⏳</span> Importing...
+                    <Loader2 className="w-4 h-4 animate-spin" /> Importing...
                   </>
                 ) : (
                   <>

@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { 
   calculateProjectLCIA, 
   ProjectLCIAResult, 
   LCIACategoryMetadata 
 } from '../api/projects'
 import { 
-  ArrowLeft, 
   Droplets, 
   Wind, 
   Flame, 
@@ -18,8 +17,13 @@ import {
   Gauge,
   Info,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  FileSpreadsheet,
+  Sparkles,
+  Lock
 } from 'lucide-react'
+import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
+import { useAuthStore } from '../stores/authStore'
 
 // Icon mapping for LCIA categories
 const categoryIcons: Record<string, JSX.Element> = {
@@ -139,6 +143,8 @@ function formatValue(value: number, _unit?: string): string {
 
 export default function LCIAPage() {
   const { projectId } = useParams<{ projectId: string }>()
+  const navigate = useNavigate()
+  const { user } = useAuthStore()
   const [lciaResult, setLciaResult] = useState<ProjectLCIAResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -146,6 +152,8 @@ export default function LCIAPage() {
   const [expandedMaterials, setExpandedMaterials] = useState<Set<number>>(new Set())
   const [showTooltip, setShowTooltip] = useState<string | null>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
+  
+  const hasCBAMAccess = user?.subscription_tier === 'pro' || user?.subscription_tier === 'enterprise'
 
   // Close tooltip when clicking outside
   useEffect(() => {
@@ -234,10 +242,6 @@ const toggleFlip = (key: string) => {
     return (
       <div className="min-h-screen bg-gray-50 p-8">
         <div className="max-w-4xl mx-auto">
-          <Link to={`/projects/${projectId}`} className="flex items-center text-blue-600 hover:text-blue-700 mb-6">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Project
-          </Link>
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
             <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-red-700 mb-2">Error</h2>
@@ -260,14 +264,74 @@ const toggleFlip = (key: string) => {
   const impacts = lciaResult.total_impacts
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="w-full px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+        {/* Secondary Navigation Bar */}
+        <div className="bg-white rounded-lg shadow mb-5">
+          <div className="flex flex-wrap items-center gap-1 p-2 border-b border-gray-100">
+            <button
+              onClick={() => navigate('/projects')}
+              className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-1.5"
+            >
+              <span className="text-base">←</span> Back
+            </button>
+            <div className="w-px h-6 bg-gray-200 mx-1"></div>
+            <button
+              onClick={() => navigate(`/projects/${projectId}`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              Dashboard
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${projectId}/analytics`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <ChartIcon size={16} /> Analytics
+            </button>
+            <button
+              className="px-4 py-2 text-sm font-medium bg-teal-50 text-teal-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AnalyticsIcon size={16} /> LCIA
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${projectId}/analysis`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AnalyticsIcon size={16} /> Analysis
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${projectId}/recommendations`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AIIcon size={16} /> Design Advisor
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${projectId}/scenario`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <FlaskIcon size={16} /> Scenarios
+            </button>
+            {hasCBAMAccess ? (
+              <button
+                onClick={() => navigate(`/projects/${projectId}/cbam-export`)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-md transition-colors flex items-center gap-2"
+              >
+                <FileSpreadsheet size={16} /> CBAM
+              </button>
+            ) : (
+              <Link
+                to="/pricing"
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+                title="CBAM Export requires Pro plan"
+              >
+                <Lock size={16} /> CBAM
+              </Link>
+            )}
+          </div>
+        </div>
+
         {/* Header */}
         <div className="mb-8">
-          <Link to={`/projects/${projectId}`} className="flex items-center text-blue-600 hover:text-blue-700 mb-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Project
-          </Link>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
@@ -292,14 +356,14 @@ const toggleFlip = (key: string) => {
                     </option>
                   ))}
                 </optgroup>
-                <optgroup label="🏭 Captive Power Plants">
+                <optgroup label="Captive Power Plants">
                   {gridRegions.captive.map((region) => (
                     <option key={region.value} value={region.value}>
                       {region.label} — {region.factor} kg CO₂/kWh
                     </option>
                   ))}
                 </optgroup>
-                <optgroup label="🌱 Renewable Energy Sources">
+                <optgroup label="Renewable Energy Sources">
                   {gridRegions.renewable.map((region) => (
                     <option key={region.value} value={region.value}>
                       {region.label} — {region.factor} kg CO₂/kWh

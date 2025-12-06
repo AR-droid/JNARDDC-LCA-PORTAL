@@ -292,13 +292,13 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
             <button
               type="button"
               onClick={() => setInputMode('manual')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
+              className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${
                 inputMode === 'manual'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              📝 Manual Entry
+              <FileText className="w-4 h-4" /> Manual Entry
             </button>
             <button
               type="button"
@@ -413,10 +413,10 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
               <button
                 type="button"
                 onClick={handleNLPParse}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium disabled:bg-green-300"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium disabled:bg-green-300 flex items-center gap-2"
                 disabled={isParsingNLP || !nlpInput.trim() || isTranscribing}
               >
-                {isParsingNLP ? '⏳ Parsing...' : '✨ Parse Description'}
+                {isParsingNLP ? <><Loader2 className="w-4 h-4 animate-spin" /> Parsing...</> : <>Parse Description</>}
               </button>
             </div>
 
@@ -425,7 +425,7 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
               <div className="mt-4 space-y-3">
                 {/* Tokens */}
                 <div className="bg-white p-3 rounded-lg border border-green-200">
-                  <h4 className="font-medium text-gray-700 mb-2">📊 Parsed Tokens</h4>
+                  <h4 className="font-medium text-gray-700 mb-2">Parsed Tokens</h4>
                   <div className="flex flex-wrap gap-2">
                     {nlpResult.parsed.tokens.map((token, idx) => (
                       <span
@@ -457,7 +457,7 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
                             ? 'bg-purple-100 text-purple-700' 
                             : 'bg-gray-100 text-gray-600'
                         }`}>
-                          {nlpResult.parsed.parsing_method === 'groq_llm' ? <><img src="/images/ai.png" alt="AI" className="w-3 h-3" /> AI</> : '📝 Regex'}
+                          {nlpResult.parsed.parsing_method === 'groq_llm' ? <><img src="/images/ai.png" alt="AI" className="w-3 h-3" /> AI</> : <>Regex</>}
                         </span>
                       )}
                     </div>
@@ -474,11 +474,11 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
                                 <span className="bg-indigo-100 text-indigo-700 text-xs px-1.5 py-0.5 rounded">Composite</span>
                               )}
                             </div>
-                            <div className="flex gap-3 text-gray-600">
-                              <span className={mat.quantity ? '' : 'text-amber-600'}>
-                                {mat.quantity ? `${mat.quantity} ${mat.unit}` : '⚠️ Unknown'}
+                            <div className="flex gap-3 text-gray-600 items-center">
+                              <span className={mat.quantity ? '' : 'text-amber-600 flex items-center gap-1'}>
+                                {mat.quantity ? `${mat.quantity} ${mat.unit}` : <><AlertTriangle className="w-3 h-3 inline" /> Unknown</>}
                               </span>
-                              <span>♻️ {mat.recycled_content}%</span>
+                              <span className="flex items-center gap-1"><Recycle className="w-3 h-3" /> {mat.recycled_content}%</span>
                               <span>GWP: {mat.gwp_factor?.toFixed(2) || 'N/A'}</span>
                             </div>
                           </div>
@@ -494,7 +494,9 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
                 {/* Assumptions */}
                 {nlpResult.parsed.assumptions.length > 0 && (
                   <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                    <h4 className="font-medium text-yellow-800 mb-2">⚠️ Assumptions Made</h4>
+                    <h4 className="font-medium text-yellow-800 mb-2 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" /> Assumptions Made
+                    </h4>
                     <ul className="space-y-1 text-sm text-yellow-700">
                       {nlpResult.parsed.assumptions.map((assumption: NLPAssumption, idx: number) => (
                         <li key={idx}>
@@ -513,7 +515,7 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
           {/* Dataset Source Selection */}
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
             <label className="block text-sm font-medium text-blue-800 mb-2">
-              📊 Data Source
+              Data Source
             </label>
             <div className="flex gap-4">
               <label className="flex items-center cursor-pointer">

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { aiChat } from '../api/projects'
-import { Mic, MicOff, Loader2, MessageSquarePlus } from 'lucide-react'
+import { Mic, MicOff, Loader2, MessageSquarePlus, Sparkles, BookOpen } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
 
@@ -309,8 +309,8 @@ export default function AIChatPanel({ projectId, initialContext, isOpen, onClose
                   />
                 )}
                 {msg.source && (
-                  <p className="text-xs mt-1 opacity-60">
-                    {msg.source === 'groq_ai' ? '✨ AI Response' : '📚 Knowledge Base'}
+                  <p className="text-xs mt-1 opacity-60 flex items-center gap-1">
+                    {msg.source === 'groq_ai' ? <><Sparkles className="w-3 h-3" /> AI Response</> : <><BookOpen className="w-3 h-3" /> Knowledge Base</>}
                   </p>
                 )}
               </div>

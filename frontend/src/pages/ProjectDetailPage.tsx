@@ -10,7 +10,7 @@ import SupplyChainMap from '../components/SupplyChainMap'
 import ActionHotspots from '../components/ActionHotspots'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon, UploadIcon, PlusIcon, PackageIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
-import { FileSpreadsheet, Sparkles, MapPin, Truck, Train, Ship, Plane, Wand2, Loader2, Recycle, ArrowRight, TrendingDown } from 'lucide-react'
+import { FileSpreadsheet, Sparkles, MapPin, Truck, Train, Ship, Plane, Wand2, Loader2, Recycle, ArrowRight, TrendingDown, Lightbulb, Building2, XCircle } from 'lucide-react'
 import { Lock } from "lucide-react";
 import { Award } from "lucide-react";
 import { AlertTriangle } from "lucide-react";
@@ -229,7 +229,7 @@ export default function ProjectDetailPage() {
       const result = await materialsApi.addBatch(id, materialsToAdd)
       
       if (result.added > 0) {
-        setNotification({ type: 'success', message: `✅ Successfully generated BOM! ${result.added} materials added from your description.${result.failed > 0 ? ` ${result.failed} materials could not be added.` : ''}` })
+        setNotification({ type: 'success', message: `Successfully generated BOM! ${result.added} materials added from your description.${result.failed > 0 ? ` ${result.failed} materials could not be added.` : ''}` })
         await loadData()
       } else {
         setNotification({ type: 'error', message: 'No materials could be added. Please check the description or add materials manually.' })
@@ -637,8 +637,8 @@ export default function ProjectDetailPage() {
                     </div>
                     
                     {!project?.description && (
-                      <p className="text-sm text-gray-500 mt-4">
-                        💡 Tip: Add a product description to enable AI-powered BOM generation
+                      <p className="text-sm text-gray-500 mt-4 flex items-center gap-2">
+                        <Lightbulb className="w-4 h-4" /> Tip: Add a product description to enable AI-powered BOM generation
                       </p>
                     )}
                   </div>
@@ -878,7 +878,7 @@ export default function ProjectDetailPage() {
           <div className="flex justify-between items-start mb-4">
             <div>
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                🏛️ JNARDDC Verification
+                <Building2 className="w-5 h-5" /> JNARDDC Verification
                 {!hasVerificationAccess && (
                   <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">Enterprise</span>
                 )}
@@ -935,7 +935,8 @@ export default function ProjectDetailPage() {
 
               {verificationStatus?.verification_status === 'rejected' && (
                 <span className="px-3 py-1.5 bg-red-100 text-red-800 rounded-full text-sm font-medium flex items-center gap-1">
-                  ❌ Rejected
+                  <XCircle className="w-4 h-4" />
+                  Rejected
                 </span>
               )}
             </div>

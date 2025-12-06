@@ -6,7 +6,7 @@ import GWPBreakdownChart3D from '../components/charts/GWPBreakdownChart3D';
 import MCIGauge3D from '../components/charts/MCIGauge3D';
 
 import { PlusIcon } from '../components/Icons';
-import { Rocket, Package, Users } from 'lucide-react';
+import { Rocket, Package, Users, Sparkles, Star, Recycle } from 'lucide-react';
 import OnboardingWizard from '../components/OnboardingWizard';
 
 export default function DashboardPage() {
@@ -118,7 +118,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-                  <span className="text-2xl">✨</span>
+                  <Sparkles className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -162,7 +162,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                  <span className="text-2xl">⭐</span>
+                  <Star className="w-6 h-6 text-white fill-white" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold mb-0.5">Pro Plan</h3>
@@ -281,7 +281,7 @@ export default function DashboardPage() {
                   NEW
                 </div>
                 <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-lg flex items-center justify-center mr-4">
-                  <span className="text-2xl">♻️</span>
+                  <Recycle className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-white">Scrap Yard Connect</h3>

@@ -79,7 +79,9 @@ export default function ProjectsPage() {
           </div>
         ) : projects.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
-            <div className="text-6xl mb-4">📊</div>
+            <div className="flex justify-center mb-4">
+              <BarChart3 className="w-16 h-16 text-gray-400" />
+            </div>
             <h3 className="text-xl font-semibold mb-2">No Projects Yet</h3>
             <p className="text-gray-600 mb-6">
               Create your first LCA project to get started with circularity assessment

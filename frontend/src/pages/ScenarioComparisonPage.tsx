@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { projectsApi, Project, MCIResult } from '../api/projects'
 import { materialsApi, Material } from '../api/materials'
 import {
-  ArrowLeft,
   ArrowRight,
   Factory,
   Recycle,
@@ -19,8 +18,12 @@ import {
   XCircle,
   Scale,
   Zap,
-  Target
+  Target,
+  FileSpreadsheet,
+  Lock
 } from 'lucide-react'
+import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
+import { useAuthStore } from '../stores/authStore'
 
 interface PathwayData {
   name: string
@@ -109,6 +112,8 @@ function LifecycleFlowBar({ stages, total }: { stages: LifecycleStage[]; total: 
 
 export default function ScenarioComparisonPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const { user } = useAuthStore()
   
   const [project, setProject] = useState<Project | null>(null)
   const [materials, setMaterials] = useState<Material[]>([])
@@ -117,6 +122,8 @@ export default function ScenarioComparisonPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isCalculating, setIsCalculating] = useState(false)
   const [activeView, setActiveView] = useState<'overview' | 'detailed' | 'lifecycle'>('overview')
+  
+  const hasCBAMAccess = user?.subscription_tier === 'pro' || user?.subscription_tier === 'enterprise'
   
   // Circular pathway configuration
   const [circularConfig, setCircularConfig] = useState({
@@ -362,15 +369,73 @@ export default function ScenarioComparisonPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+        {/* Secondary Navigation Bar */}
+        <div className="bg-white rounded-lg shadow mb-5">
+          <div className="flex flex-wrap items-center gap-1 p-2 border-b border-gray-100">
+            <button
+              onClick={() => navigate('/projects')}
+              className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-1.5"
+            >
+              <span className="text-base">←</span> Back
+            </button>
+            <div className="w-px h-6 bg-gray-200 mx-1"></div>
+            <button
+              onClick={() => navigate(`/projects/${id}`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              Dashboard
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/analytics`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <ChartIcon size={16} /> Analytics
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/lcia`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-teal-50 hover:text-teal-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AnalyticsIcon size={16} /> LCIA
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/analysis`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AnalyticsIcon size={16} /> Analysis
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/recommendations`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AIIcon size={16} /> Design Advisor
+            </button>
+            <button
+              className="px-4 py-2 text-sm font-medium bg-indigo-50 text-indigo-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <FlaskIcon size={16} /> Scenarios
+            </button>
+            {hasCBAMAccess ? (
+              <button
+                onClick={() => navigate(`/projects/${id}/cbam-export`)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-md transition-colors flex items-center gap-2"
+              >
+                <FileSpreadsheet size={16} /> CBAM
+              </button>
+            ) : (
+              <Link
+                to="/pricing"
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+                title="CBAM Export requires Pro plan"
+              >
+                <Lock size={16} /> CBAM
+              </Link>
+            )}
+          </div>
+        </div>
+
         {/* Header */}
         <div className="mb-6">
-          <Link
-            to={`/projects/${id}`}
-            className="text-blue-600 hover:text-blue-700 flex items-center gap-2 mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Project
-          </Link>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">

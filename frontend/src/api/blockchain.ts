@@ -3,7 +3,7 @@
  * Simulates Web3 wallet and carbon token operations
  */
 
-const API_BASE = 'http://localhost:5000/api/v1/blockchain';
+const API_BASE = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/v1/blockchain`;
 
 export interface WalletInfo {
   address: string;

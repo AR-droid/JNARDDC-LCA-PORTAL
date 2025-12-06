@@ -49,6 +49,15 @@ except ImportError:
     DIGILOCKER_AVAILABLE = False
     print("⚠️  DigiLocker module not found. DigiLocker auth will be disabled.")
 
+# Try to import Blockchain routes
+try:
+    from blockchain_routes import blockchain_bp
+    BLOCKCHAIN_AVAILABLE = True
+    print("✅ Blockchain routes loaded")
+except ImportError as e:
+    BLOCKCHAIN_AVAILABLE = False
+    print(f"⚠️  Blockchain module not found: {e}")
+
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
@@ -8121,9 +8130,9 @@ def get_project_analytics(project_id):
         transport_percentage = (actual_transport_gwp / total_gwp * 100) if total_gwp > 0 else 10
         
         # Material extraction and processing (estimated based on virgin/recycled ratio)
-        virgin_percentage = 100 - avg_recycled_content
+        virgin_percentage = 100 - avg_recycled
         # Virgin materials: higher extraction impact
-        extraction_pct = (virgin_percentage / 100) * 40 + (avg_recycled_content / 100) * 15
+        extraction_pct = (virgin_percentage / 100) * 40 + (avg_recycled / 100) * 15
         # Processing is consistent
         processing_pct = 25
         # EOL treatment
@@ -10755,6 +10764,11 @@ def get_scrap_yard_stats():
 
 
 if __name__ == '__main__':
+    # Register Blockchain blueprint if available
+    if BLOCKCHAIN_AVAILABLE:
+        app.register_blueprint(blockchain_bp)
+        print("✅ Blockchain routes registered at /api/v1/blockchain")
+    
     # Initialize databases
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()

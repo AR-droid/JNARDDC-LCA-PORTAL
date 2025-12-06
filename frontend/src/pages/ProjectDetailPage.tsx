@@ -558,7 +558,7 @@ export default function ProjectDetailPage() {
                     <button
                       onClick={handleGenerateBOM}
                       disabled={isGeneratingBOM}
-                      className="bg-purple-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-purple-700 transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-3 py-1.5 text-sm rounded-md transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isGeneratingBOM ? (
                         <>

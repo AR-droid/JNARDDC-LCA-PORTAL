@@ -19,6 +19,7 @@ import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
 import TeamManagementPage from './pages/TeamManagementPage'
 import ScrapYardConnectPage from './pages/ScrapYardConnectPage'
+import WalletPage from './pages/WalletPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 
@@ -139,6 +140,14 @@ function App() {
           element={
             <ProtectedRoute>
               <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/wallet"
+          element={
+            <ProtectedRoute>
+              <WalletPage />
             </ProtectedRoute>
           }
         />

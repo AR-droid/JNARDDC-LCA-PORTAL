@@ -2,22 +2,23 @@
 // Provides Aadhaar-based authentication with OTP verification
 
 import { useState } from 'react';
-import { 
-  initiateDigiLockerAuth, 
-  verifyDigiLockerOTP, 
+import {
+  initiateDigiLockerAuth,
+  verifyDigiLockerOTP,
   resendDigiLockerOTP,
-  DigiLockerUser 
+  DigiLockerUser
 } from '../api/digilocker';
-import { 
-  Shield, 
-  Fingerprint, 
-  Smartphone, 
-  CheckCircle, 
+import {
+  Shield,
+  Fingerprint,
+  Smartphone,
+  CheckCircle,
   AlertCircle,
   ArrowLeft,
   Loader2,
   RefreshCw,
-  Info
+  Info,
+  Lock
 } from 'lucide-react';
 
 interface DigiLockerLoginProps {
@@ -61,7 +62,7 @@ export function DigiLockerLogin({ onSuccess, onBack }: DigiLockerLoginProps) {
 
   const handleInitiateAuth = async () => {
     const cleanAadhaar = aadhaar.replace(/\s/g, '');
-    
+
     if (cleanAadhaar.length !== 12) {
       setError('Please enter a valid 12-digit Aadhaar number');
       return;
@@ -72,7 +73,7 @@ export function DigiLockerLogin({ onSuccess, onBack }: DigiLockerLoginProps) {
 
     try {
       const response = await initiateDigiLockerAuth(cleanAadhaar);
-      
+
       if (response.success) {
         setMaskedMobile(response.masked_mobile);
         setDemoOtp(response.demo_otp || '123456');
@@ -100,14 +101,14 @@ export function DigiLockerLogin({ onSuccess, onBack }: DigiLockerLoginProps) {
     try {
       const cleanAadhaar = aadhaar.replace(/\s/g, '');
       const response = await verifyDigiLockerOTP(cleanAadhaar, otp);
-      
+
       if (response.success) {
         setUser(response.user);
         setStep('success');
-        
+
         // Store token in localStorage
         localStorage.setItem('digilocker_token', response.token);
-        
+
         // Call success callback after brief delay
         setTimeout(() => {
           onSuccess(response.user, response.token);
@@ -131,7 +132,7 @@ export function DigiLockerLogin({ onSuccess, onBack }: DigiLockerLoginProps) {
     try {
       const cleanAadhaar = aadhaar.replace(/\s/g, '');
       const response = await resendDigiLockerOTP(cleanAadhaar);
-      
+
       if (response.success) {
         setDemoOtp(response.demo_otp);
         startResendCooldown();

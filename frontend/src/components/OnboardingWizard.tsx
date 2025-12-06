@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   X, ChevronRight, ChevronLeft, Check, Sparkles,
   Factory, Cpu, HardHat, Building2, Car, Zap, Leaf,
-  MapPin, Upload, FileSpreadsheet, Pencil, BarChart3, Recycle, Target
+  MapPin, Upload, FileSpreadsheet, Pencil, BarChart3, Recycle
 } from 'lucide-react'
 import { projectsApi } from '../api/projects'
 
@@ -204,8 +204,8 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                     key={industry.id}
                     onClick={() => setSelectedIndustry(industry.id)}
                     className={`p-4 rounded-xl border-2 text-left transition-all duration-200 hover:shadow-md ${isSelected
-                        ? 'border-blue-500 bg-blue-50 shadow-md'
-                        : 'border-gray-200 hover:border-blue-300'
+                      ? 'border-blue-500 bg-blue-50 shadow-md'
+                      : 'border-gray-200 hover:border-blue-300'
                       }`}
                   >
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${isSelected ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
@@ -286,9 +286,9 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                       <span
                         key={idx}
                         className={`px-2 py-1 rounded-full text-xs font-medium ${token.type === 'material' ? 'bg-blue-100 text-blue-700' :
-                            token.type === 'process' ? 'bg-purple-100 text-purple-700' :
-                              token.type === 'quantity' ? 'bg-orange-100 text-orange-700' :
-                                'bg-gray-100 text-gray-700'
+                          token.type === 'process' ? 'bg-purple-100 text-purple-700' :
+                            token.type === 'quantity' ? 'bg-orange-100 text-orange-700' :
+                              'bg-gray-100 text-gray-700'
                           }`}
                       >
                         {token.value || token.material || token.type}
@@ -369,8 +369,8 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
               <button
                 onClick={() => setDataSource('bom')}
                 className={`p-6 rounded-xl border-2 text-left transition-all duration-200 hover:shadow-md ${dataSource === 'bom'
-                    ? 'border-blue-500 bg-blue-50 shadow-md'
-                    : 'border-gray-200 hover:border-blue-300'
+                  ? 'border-blue-500 bg-blue-50 shadow-md'
+                  : 'border-gray-200 hover:border-blue-300'
                   }`}
               >
                 <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${dataSource === 'bom' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
@@ -390,8 +390,8 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
               <button
                 onClick={() => setDataSource('manual')}
                 className={`p-6 rounded-xl border-2 text-left transition-all duration-200 hover:shadow-md ${dataSource === 'manual'
-                    ? 'border-blue-500 bg-blue-50 shadow-md'
-                    : 'border-gray-200 hover:border-blue-300'
+                  ? 'border-blue-500 bg-blue-50 shadow-md'
+                  : 'border-gray-200 hover:border-blue-300'
                   }`}
               >
                 <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${dataSource === 'manual' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
@@ -537,10 +537,10 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                   key={step}
                   onClick={() => step < currentStep && goToStep(step)}
                   className={`w-2 h-2 rounded-full transition-all duration-200 ${step === currentStep
-                      ? 'w-6 bg-blue-600'
-                      : step < currentStep
-                        ? 'bg-blue-400 cursor-pointer hover:bg-blue-500'
-                        : 'bg-gray-300'
+                    ? 'w-6 bg-blue-600'
+                    : step < currentStep
+                      ? 'bg-blue-400 cursor-pointer hover:bg-blue-500'
+                      : 'bg-gray-300'
                     }`}
                 />
               ))}

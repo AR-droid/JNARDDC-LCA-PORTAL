@@ -1,4 +1,3 @@
-import React from "react";
 import ReactECharts from "echarts-for-react";
 
 interface GWPBreakdownChart3DProps {
@@ -44,47 +43,47 @@ export default function GWPBreakdownChart3D({ title, data }: GWPBreakdownChart3D
     },
 
     series: [
-  {
-    type: "pie",
-    radius: ["38%", "70%"],
-    center: ["40%", "50%"],
+      {
+        type: "pie",
+        radius: ["38%", "70%"],
+        center: ["40%", "50%"],
 
-    // 💡 Hide labels normally
-    label: {
-      show: false,
-    },
+        // 💡 Hide labels normally
+        label: {
+          show: false,
+        },
 
-    // 💡 Show name ONLY on hover
-    emphasis: {
-      label: {
-        show: true,
-        formatter: "{b}\n{d}%",
-        fontSize: 10,
-        fontWeight: "bold",
-        color: "#000",
+        // 💡 Show name ONLY on hover
+        emphasis: {
+          label: {
+            show: true,
+            formatter: "{b}\n{d}%",
+            fontSize: 10,
+            fontWeight: "bold",
+            color: "#000",
+          },
+          scale: true,
+          scaleSize: 6,
+          itemStyle: {
+            shadowBlur: 20,
+            shadowColor: "rgba(0,0,0,0.35)",
+          },
+        },
+
+        // Connector lines appear only on hover
+        labelLine: {
+          show: false,
+          emphasis: {
+            show: true,
+            length: 10,
+            length2: 10,
+            lineStyle: { width: 1.5, color: "#444" },
+          },
+        },
+
+        data: chartData,
       },
-      scale: true,
-      scaleSize: 6,
-      itemStyle: {
-        shadowBlur: 20,
-        shadowColor: "rgba(0,0,0,0.35)",
-      },
-    },
-
-    // Connector lines appear only on hover
-    labelLine: {
-      show: false,
-      emphasis: {
-        show: true,
-        length: 10,
-        length2: 10,
-        lineStyle: { width: 1.5, color: "#444" },
-      },
-    },
-
-    data: chartData,
-  },
-]
+    ]
 
   };
 

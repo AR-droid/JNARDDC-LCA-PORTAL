@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AlertTriangle, TrendingDown, Recycle, Truck, Clock, Wrench, ChevronDown, ChevronUp, ExternalLink, Zap, Target, Award, Leaf } from 'lucide-react'
+import { TrendingDown, Recycle, Truck, Clock, Wrench, ChevronDown, ChevronUp, ExternalLink, Zap, Target, Award, Leaf } from 'lucide-react'
 
 interface HotspotImpact {
   gwp_savings_kg?: number
@@ -71,13 +71,13 @@ const SUPPLIER_DATABASE: Record<MaterialCategory, Supplier[]> = {
   ],
 }
 
-export default function ActionHotspots({ 
-  projectId: _projectId, 
-  projectName: _projectName, 
-  totalGWP, 
-  mciScore, 
+export default function ActionHotspots({
+  projectId: _projectId,
+  projectName: _projectName,
+  totalGWP,
+  mciScore,
   materials,
-  onActionClick 
+  onActionClick
 }: ActionHotspotsProps) {
   // Note: projectId and projectName are available for future API calls
   void _projectId
@@ -93,7 +93,7 @@ export default function ActionHotspots({
 
   const analyzeAndGenerateHotspots = () => {
     setIsLoading(true)
-    
+
     // Calculate material contributions
     const materialAnalysis = materials.map(mat => {
       const gwpContribution = totalGWP > 0 ? ((mat.gwp || 0) / totalGWP) * 100 : 0
@@ -114,18 +114,17 @@ export default function ActionHotspots({
       const currentRecycled = topContributor.recycled_content || 0
       const maxRecycled = getMaxRecycledContent(topContributor.material_type)
       const potentialSavings = calculatePotentialSavings(topContributor, maxRecycled)
-      
+
       generatedHotspots.push({
         id: `hotspot-${rank}`,
         rank: rank++,
         type: 'high_impact_material',
         priority: 'critical',
         title: `${topContributor.material_name || topContributor.material_type}`,
-        description: `Contributes ${topContributor.gwpContribution.toFixed(0)}% of your total carbon footprint. ${
-          currentRecycled < maxRecycled 
+        description: `Contributes ${topContributor.gwpContribution.toFixed(0)}% of your total carbon footprint. ${currentRecycled < maxRecycled
             ? `Switching to ${maxRecycled}% recycled content could reduce GWP by ${potentialSavings.toFixed(0)}%.`
             : 'Already using optimal recycled content.'
-        }`,
+          }`,
         material: topContributor.material_name,
         material_type: topContributor.material_type,
         current_value: currentRecycled,
@@ -153,11 +152,11 @@ export default function ActionHotspots({
     const lowRecycledMaterials = materialAnalysis.filter(
       mat => (mat.recycled_content || 0) < 30 && mat.gwpContribution > 10
     )
-    
+
     if (lowRecycledMaterials.length > 0) {
       const mat = lowRecycledMaterials[0]
       const maxRecycled = getMaxRecycledContent(mat.material_type)
-      
+
       generatedHotspots.push({
         id: `hotspot-${rank}`,
         rank: rank++,
@@ -317,7 +316,7 @@ export default function ActionHotspots({
   const calculatePotentialSavings = (material: any, targetRecycled: number): number => {
     const current = material.recycled_content || 0
     if (current >= targetRecycled) return 0
-    
+
     // Recycled materials have ~90% lower emissions
     const virginReduction = (targetRecycled - current) * 0.9
     return virginReduction
@@ -457,7 +456,7 @@ export default function ActionHotspots({
           return (
             <div key={hotspot.id} className={`${styles.bg} transition-all duration-200`}>
               {/* Main Row */}
-              <div 
+              <div
                 className="px-6 py-4 cursor-pointer hover:bg-white/50"
                 onClick={() => setExpandedHotspot(isExpanded ? null : hotspot.id)}
               >
@@ -483,7 +482,7 @@ export default function ActionHotspots({
                       )}
                     </div>
                     <p className="text-sm text-gray-600 line-clamp-2">{hotspot.description}</p>
-                    
+
                     {/* Impact Summary */}
                     <div className="flex items-center gap-4 mt-2">
                       {hotspot.impact.gwp_savings_percent && hotspot.impact.gwp_savings_percent > 0 && (
@@ -601,7 +600,7 @@ export default function ActionHotspots({
       {/* Footer */}
       <div className="bg-gray-50 px-6 py-3 border-t border-gray-200">
         <p className="text-xs text-gray-500 text-center">
-          Recommendations powered by AI analysis • Confidence scores indicate data quality • 
+          Recommendations powered by AI analysis • Confidence scores indicate data quality •
           <a href="#" className="text-purple-600 hover:underline ml-1">Learn more about methodology</a>
         </p>
       </div>

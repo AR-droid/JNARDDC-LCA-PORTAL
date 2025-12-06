@@ -32,14 +32,14 @@ const MATERIAL_TYPE_MAP: Record<string, string> = {
   'recycled aluminium': 'aluminium_secondary',
   'secondary aluminum': 'aluminium_secondary',
   'secondary aluminium': 'aluminium_secondary',
-  
+
   // Copper
   'copper': 'copper_primary',
   'cu': 'copper_primary',
   'copper wire': 'copper_primary',
   'recycled copper': 'copper_secondary',
   'secondary copper': 'copper_secondary',
-  
+
   // Steel
   'steel': 'steel_primary',
   'iron': 'steel_primary',
@@ -50,7 +50,7 @@ const MATERIAL_TYPE_MAP: Record<string, string> = {
   'recycled steel': 'steel_secondary',
   'secondary steel': 'steel_secondary',
   'scrap steel': 'steel_secondary',
-  
+
   // Battery metals
   'lithium': 'lithium',
   'li': 'lithium',
@@ -77,13 +77,13 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
 
   const matchMaterialType = (name: string): { type: string; gwp: number } | null => {
     const lowerName = name.toLowerCase().trim()
-    
+
     // Direct match from map
     if (MATERIAL_TYPE_MAP[lowerName]) {
       const matched = library.find(m => m.type === MATERIAL_TYPE_MAP[lowerName])
       if (matched) return { type: matched.type, gwp: matched.gwp_factor }
     }
-    
+
     // Partial match
     for (const [key, type] of Object.entries(MATERIAL_TYPE_MAP)) {
       if (lowerName.includes(key) || key.includes(lowerName)) {
@@ -91,16 +91,16 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
         if (matched) return { type: matched.type, gwp: matched.gwp_factor }
       }
     }
-    
+
     // Fuzzy match against library
     for (const item of library) {
-      if (item.name.toLowerCase().includes(lowerName) || 
-          lowerName.includes(item.name.toLowerCase()) ||
-          item.type.includes(lowerName)) {
+      if (item.name.toLowerCase().includes(lowerName) ||
+        lowerName.includes(item.name.toLowerCase()) ||
+        item.type.includes(lowerName)) {
         return { type: item.type, gwp: item.gwp_factor }
       }
     }
-    
+
     return null
   }
 
@@ -121,14 +121,14 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
       const fileName = file.name.toLowerCase()
       let content = ''
       let lines: string[] = []
-      
+
       // Handle different file types
       if (fileName.endsWith('.pdf') || fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
         // For PDF and Excel, use backend API to parse
         const formData = new FormData()
         formData.append('file', file)
         formData.append('auto_parse', 'false') // We'll parse manually
-        
+
         const token = localStorage.getItem('access_token')
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/v1/parse-document`, {
           method: 'POST',
@@ -137,14 +137,14 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
           },
           body: formData
         })
-        
+
         if (!response.ok) {
           const error = await response.json()
           setError(error.detail || 'Failed to parse file')
           setIsParsing(false)
           return
         }
-        
+
         const result = await response.json()
         content = result.extracted_text || ''
         lines = content.split('\n').filter(line => line.trim())
@@ -157,7 +157,7 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
         setIsParsing(false)
         return
       }
-      
+
       if (lines.length < 2) {
         setError('File must have at least a header row and one data row')
         setIsParsing(false)
@@ -167,24 +167,24 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
       // Parse headers - handle both CSV and table formats (with | separators)
       const separator = lines[0].includes('|') ? '|' : ','
       const headers = lines[0].split(separator).map(h => h.trim().toLowerCase().replace(/['"]/g, ''))
-      
+
       // Find column indices
-      const nameIdx = headers.findIndex(h => 
+      const nameIdx = headers.findIndex(h =>
         ['name', 'material', 'material_name', 'part', 'component', 'description', 'item'].includes(h)
       )
-      const typeIdx = headers.findIndex(h => 
+      const typeIdx = headers.findIndex(h =>
         ['type', 'material_type', 'category', 'material type'].includes(h)
       )
-      const qtyIdx = headers.findIndex(h => 
+      const qtyIdx = headers.findIndex(h =>
         ['quantity', 'qty', 'amount', 'weight', 'mass'].includes(h)
       )
-      const unitIdx = headers.findIndex(h => 
+      const unitIdx = headers.findIndex(h =>
         ['unit', 'units', 'uom'].includes(h)
       )
-      const recycledIdx = headers.findIndex(h => 
+      const recycledIdx = headers.findIndex(h =>
         ['recycled', 'recycled_content', 'recycled content', 'recycled %', 'recycled_pct'].includes(h)
       )
-      const distanceIdx = headers.findIndex(h => 
+      const distanceIdx = headers.findIndex(h =>
         ['distance', 'transport', 'transport_distance', 'km'].includes(h)
       )
 
@@ -204,7 +204,7 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
       const items: ParsedBOMItem[] = []
       for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(separator).map(v => v.trim().replace(/['"]/g, ''))
-        
+
         const materialName = values[nameIdx] || values[typeIdx] || `Material ${i}`
         const materialType = values[typeIdx] || values[nameIdx] || ''
         const quantity = parseFloat(values[qtyIdx]) || 0
@@ -248,9 +248,9 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
   const updateItem = (index: number, field: string, value: any) => {
     setParsedItems(items => items.map((item, i) => {
       if (i !== index) return item
-      
+
       const updated = { ...item, [field]: value }
-      
+
       // If material type changed, update GWP factor and recalculate
       if (field === 'material_type') {
         const matched = library.find(m => m.type === value)
@@ -260,7 +260,7 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
           updated.error = undefined
         }
       }
-      
+
       // Recalculate effective GWP when recycled_content changes
       // Primary materials have higher GWP, recycled content reduces it
       if (field === 'recycled_content' || field === 'material_type') {
@@ -271,7 +271,7 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
         const effectiveGWP = baseGWP * (1 - recycledFraction * 0.8)
         updated.gwp_factor = Math.round(effectiveGWP * 100) / 100
       }
-      
+
       return updated
     }))
   }
@@ -297,7 +297,7 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
 
   const handleImportAll = async () => {
     const validItems = parsedItems.filter(item => item.matched && item.quantity > 0)
-    
+
     if (validItems.length === 0) {
       setError('No valid materials to import. Please fix the unmatched items.')
       return
@@ -319,15 +319,15 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
 
       // Use batch API for efficiency
       const result = await materialsApi.addBatch(projectId, materialsData)
-      
+
       if (result.failed > 0) {
         setSuccess(`Imported ${result.added} materials. ${result.failed} failed.`)
       } else {
         setSuccess(`Successfully imported ${result.added} materials! Total GWP: ${result.total_gwp.toFixed(2)} kg CO₂-eq`)
       }
-      
+
       setStep('done')
-      
+
       // Auto-close after success
       setTimeout(() => {
         onSuccess()
@@ -371,7 +371,7 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
           {step === 'upload' && (
             <div className="space-y-6">
               {/* Upload Area */}
-              <div 
+              <div
                 className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
               >
@@ -395,8 +395,8 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h3 className="font-semibold text-blue-800 mb-2">📋 Supported Formats</h3>
                 <p className="text-sm text-blue-700 mb-3">
-                  <strong>PDF:</strong> BOM tables from design documents<br/>
-                  <strong>Excel (.xlsx, .xls):</strong> Spreadsheets with material data<br/>
+                  <strong>PDF:</strong> BOM tables from design documents<br />
+                  <strong>Excel (.xlsx, .xls):</strong> Spreadsheets with material data<br />
                   <strong>CSV:</strong> Comma-separated values with columns:
                 </p>
                 <div className="bg-white rounded p-3 font-mono text-xs overflow-x-auto">
@@ -521,7 +521,7 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
                           {item.gwp_factor > 0 ? `${item.gwp_factor}` : '-'}
                         </td>
                         <td className="py-2 px-3 text-right font-medium text-blue-600">
-                          {item.gwp_factor > 0 && item.quantity > 0 
+                          {item.gwp_factor > 0 && item.quantity > 0
                             ? `${(item.gwp_factor * item.quantity).toFixed(1)} kg`
                             : '-'}
                         </td>
@@ -529,7 +529,7 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
                           {item.matched ? (
                             <span className="text-green-600">✓</span>
                           ) : (
-                            <AlertCircle className="w-4 h-4 text-orange-500" title={item.error} />
+                            <AlertCircle className="w-4 h-4 text-orange-500" />
                           )}
                         </td>
                         <td className="py-2 px-3 text-center">
@@ -551,7 +551,7 @@ export default function BOMUploadModal({ projectId, onClose, onSuccess }: Props)
                         {parsedItems.reduce((sum, i) => sum + (i.quantity || 0), 0).toFixed(1)} kg
                       </td>
                       <td className="py-2 px-3 text-right text-gray-500 text-xs">
-                        Avg: {parsedItems.length > 0 
+                        Avg: {parsedItems.length > 0
                           ? (parsedItems.reduce((sum, i) => sum + (i.recycled_content || 0), 0) / parsedItems.length).toFixed(0)
                           : 0}%
                       </td>

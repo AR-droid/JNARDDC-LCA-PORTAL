@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 interface MCIGaugeProps {
   score: number; // 0 to 1

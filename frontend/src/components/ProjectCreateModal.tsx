@@ -1,6 +1,6 @@
 import { useState, FormEvent, useRef } from 'react';
 import { projectsApi, parseNLPDescription, NLPParseResult, NLPAssumption } from '../api/projects';
-import { Mic, MicOff, Loader2, Upload, FileText, X } from 'lucide-react';
+import { Mic, MicOff, Loader2, Upload, FileText, X, AlertTriangle, Recycle } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 
@@ -18,18 +18,18 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
   const [nlpInput, setNlpInput] = useState('');
   const [nlpResult, setNlpResult] = useState<NLPParseResult | null>(null);
   const [isParsingNLP, setIsParsingNLP] = useState(false);
-  
+
   // Voice Input State
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  
+
   // Document Upload State
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
-  const [uploadedDocument, setUploadedDocument] = useState<{name: string, wordCount: number} | null>(null);
+  const [uploadedDocument, setUploadedDocument] = useState<{ name: string, wordCount: number } | null>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -49,11 +49,11 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
 
     setIsParsingNLP(true);
     setError('');
-    
+
     try {
       const result = await parseNLPDescription(nlpInput);
       setNlpResult(result);
-      
+
       // Auto-fill form with parsed data
       if (result.parsed.project.product_category) {
         setFormData(prev => ({
@@ -71,7 +71,7 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
         ...prev,
         is_designed_for_disassembly: result.parsed.project.is_designed_for_disassembly,
       }));
-      
+
       // Use suggested project name from NLP parser
       if (result.parsed.suggested_name) {
         const suggestedName = result.parsed.suggested_name;
@@ -286,28 +286,26 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900">Create New Project</h2>
           <p className="text-gray-600 mt-1">Start your Life Cycle Assessment</p>
-          
+
           {/* Input Mode Toggle */}
           <div className="mt-4 flex gap-2">
             <button
               type="button"
               onClick={() => setInputMode('manual')}
-              className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${
-                inputMode === 'manual'
+              className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${inputMode === 'manual'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               <FileText className="w-4 h-4" /> Manual Entry
             </button>
             <button
               type="button"
               onClick={() => setInputMode('nlp')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                inputMode === 'nlp'
+              className={`px-4 py-2 rounded-lg font-medium transition ${inputMode === 'nlp'
                   ? 'bg-green-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               <img src="/images/ai.png" alt="AI" className="w-4 h-4 inline mr-1" /> Smart Input (NLP)
             </button>
@@ -355,7 +353,7 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
             <p className="text-sm text-green-700 mb-3">
               Describe your product in natural language, use voice input, or upload a document.
             </p>
-            
+
             {/* Uploaded Document Badge */}
             {uploadedDocument && (
               <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
@@ -372,7 +370,7 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
                 </button>
               </div>
             )}
-            
+
             <div className="space-y-3">
               <div className="relative">
                 <textarea
@@ -387,11 +385,10 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
                   type="button"
                   onClick={handleVoiceButton}
                   disabled={isParsingNLP || isTranscribing || isUploadingDocument}
-                  className={`absolute right-2 top-2 p-2 rounded-lg transition flex items-center justify-center ${
-                    isRecording 
-                      ? 'bg-red-500 text-white animate-pulse hover:bg-red-600' 
+                  className={`absolute right-2 top-2 p-2 rounded-lg transition flex items-center justify-center ${isRecording
+                      ? 'bg-red-500 text-white animate-pulse hover:bg-red-600'
                       : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                   title={isRecording ? 'Stop recording' : 'Voice input'}
                 >
                   {isTranscribing ? (
@@ -409,7 +406,7 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
                   Recording... Click mic to stop
                 </p>
               )}
-              
+
               <button
                 type="button"
                 onClick={handleNLPParse}
@@ -430,14 +427,13 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
                     {nlpResult.parsed.tokens.map((token, idx) => (
                       <span
                         key={idx}
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          token.type === 'material' ? 'bg-blue-100 text-blue-700' :
-                          token.type === 'quantity' ? 'bg-purple-100 text-purple-700' :
-                          token.type === 'lifespan' ? 'bg-orange-100 text-orange-700' :
-                          token.type === 'recycled_content' ? 'bg-green-100 text-green-700' :
-                          token.type === 'category' ? 'bg-red-100 text-red-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}
+                        className={`px-2 py-1 rounded text-xs font-medium ${token.type === 'material' ? 'bg-blue-100 text-blue-700' :
+                            token.type === 'quantity' ? 'bg-purple-100 text-purple-700' :
+                              token.type === 'lifespan' ? 'bg-orange-100 text-orange-700' :
+                                token.type === 'recycled_content' ? 'bg-green-100 text-green-700' :
+                                  token.type === 'category' ? 'bg-red-100 text-red-700' :
+                                    'bg-gray-100 text-gray-700'
+                          }`}
                       >
                         {token.type}: {token.material || token.value || token.values?.join(', ')}
                         {token.form && ` (${token.form})`}
@@ -452,11 +448,10 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-medium text-gray-700">🔩 Detected Materials</h4>
                       {nlpResult.parsed.parsing_method && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${
-                          nlpResult.parsed.parsing_method === 'groq_llm' 
-                            ? 'bg-purple-100 text-purple-700' 
+                        <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${nlpResult.parsed.parsing_method === 'groq_llm'
+                            ? 'bg-purple-100 text-purple-700'
                             : 'bg-gray-100 text-gray-600'
-                        }`}>
+                          }`}>
                           {nlpResult.parsed.parsing_method === 'groq_llm' ? <><img src="/images/ai.png" alt="AI" className="w-3 h-3" /> AI</> : <>Regex</>}
                         </span>
                       )}

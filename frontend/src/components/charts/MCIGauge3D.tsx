@@ -1,4 +1,3 @@
-import React from "react";
 import ReactECharts from "echarts-for-react";
 
 interface MCIGauge3DProps {
@@ -18,7 +17,7 @@ export default function MCIGauge3D({ score, label }: MCIGauge3DProps) {
   };
 
   const option: any = {
-   title: {
+    title: {
       text: label,
       left: "center",
       top: 0,
@@ -26,17 +25,17 @@ export default function MCIGauge3D({ score, label }: MCIGauge3DProps) {
     },
 
     graphic: {
-  type: "text",
-  left: "center",
-  top: "72%",   // 🔥 Move UP (was 82%)
-  style: {
-    text: "Ellen MacArthur Foundation",
-    fill: "#9ca3af",
-    fontSize: 10,
-    fontStyle: "italic",
-    fontWeight:"bold",
-  },
-},
+      type: "text",
+      left: "center",
+      top: "72%",   // 🔥 Move UP (was 82%)
+      style: {
+        text: "Ellen MacArthur Foundation",
+        fill: "#9ca3af",
+        fontSize: 10,
+        fontStyle: "italic",
+        fontWeight: "bold",
+      },
+    },
 
 
     series: [

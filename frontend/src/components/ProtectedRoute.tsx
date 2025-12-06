@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, checkAuth, _hasHydrated } = useAuthStore();
+  const { isAuthenticated, checkAuth, _hasHydrated } = useAuthStore();
   const [isChecking, setIsChecking] = useState(true);
   const hasChecked = useRef(false);
 
@@ -28,7 +28,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
       // Check if we have a token in localStorage
       const storedToken = localStorage.getItem('access_token');
-      
+
       if (storedToken) {
         // Validate token with server
         await checkAuth();

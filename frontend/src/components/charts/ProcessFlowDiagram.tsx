@@ -22,16 +22,7 @@ interface SankeyInputData {
   recycling_yield_pct?: number
 }
 
-// Default data for demo
-const defaultSankeyData: SankeyInputData = {
-  virgin_input_kg: 800,
-  recycled_input_kg: 200,
-  input_mass_kg: 1000,
-  process_yield_pct: 100,
-  scrap_rate_pct: 15,
-  collection_rate_pct: 85,
-  recycling_yield_pct: 90,
-}
+
 
 // Build sankey nodes and links from input data (matching sankey_generator.py logic)
 function buildSankeyFromInput(data: SankeyInputData): { nodes: { id: string; name: string }[]; links: { source: string; target: string; value: number }[] } {
@@ -231,10 +222,10 @@ const getNodeIcon = (nodeId: string): React.ReactNode => {
 export default function ProcessFlowDiagram({ nodes: propNodes, links: propLinks, title = 'Material Lifecycle Flow', data }: ProcessFlowProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [selectedNode, setSelectedNode] = useState<{ id: string; name: string; value: number } | null>(null)
-  const [hoveredLink, setHoveredLink] = useState<number | null>(null)
+  // const [hoveredLink, setHoveredLink] = useState<number | null>(null) // Unused
 
   // Use provided nodes/links or build from data
-  const { nodes, links } = data 
+  const { nodes, links } = data
     ? buildSankeyFromInput(data)
     : { nodes: propNodes || [], links: propLinks || [] }
 
@@ -295,18 +286,18 @@ export default function ProcessFlowDiagram({ nodes: propNodes, links: propLinks,
     sankeyLinkData.forEach((link: any, i: number) => {
       const sourceColor = getStageColor(link.source.id)
       const targetColor = getStageColor(link.target.id)
-      
+
       const gradient = defs.append('linearGradient')
         .attr('id', `link-gradient-${i}`)
         .attr('gradientUnits', 'userSpaceOnUse')
         .attr('x1', link.source.x1)
         .attr('x2', link.target.x0)
-      
+
       gradient.append('stop')
         .attr('offset', '0%')
         .attr('stop-color', sourceColor.secondary)
         .attr('stop-opacity', 0.5)
-      
+
       gradient.append('stop')
         .attr('offset', '100%')
         .attr('stop-color', targetColor.secondary)
@@ -316,18 +307,18 @@ export default function ProcessFlowDiagram({ nodes: propNodes, links: propLinks,
     // Create gradients for nodes
     sankeyNodes.forEach((node: any, i: number) => {
       const colors = getStageColor(node.id)
-      
+
       const gradient = defs.append('linearGradient')
         .attr('id', `node-gradient-${i}`)
         .attr('x1', '0%')
         .attr('y1', '0%')
         .attr('x2', '0%')
         .attr('y2', '100%')
-      
+
       gradient.append('stop')
         .attr('offset', '0%')
         .attr('stop-color', colors.primary)
-      
+
       gradient.append('stop')
         .attr('offset', '100%')
         .attr('stop-color', colors.secondary)
@@ -340,7 +331,7 @@ export default function ProcessFlowDiagram({ nodes: propNodes, links: propLinks,
       .attr('y', '-20%')
       .attr('width', '140%')
       .attr('height', '140%')
-    
+
     filter.append('feDropShadow')
       .attr('dx', 0)
       .attr('dy', 1)
@@ -355,7 +346,7 @@ export default function ProcessFlowDiagram({ nodes: propNodes, links: propLinks,
       .attr('y', '-20%')
       .attr('width', '140%')
       .attr('height', '140%')
-    
+
     filterHover.append('feDropShadow')
       .attr('dx', 0)
       .attr('dy', 2)
@@ -376,12 +367,12 @@ export default function ProcessFlowDiagram({ nodes: propNodes, links: propLinks,
       .attr('class', 'sankey-link')
       .style('cursor', 'pointer')
       .style('transition', 'opacity 0.3s, stroke-width 0.3s')
-      .on('mouseover', function(_event: any, d: any) {
+      .on('mouseover', function (_event: any, d: any) {
         d3.select(this)
           .attr('opacity', 1)
           .attr('stroke-width', Math.max(4, d.width + 2))
       })
-      .on('mouseout', function(_event: any, d: any) {
+      .on('mouseout', function (_event: any, d: any) {
         d3.select(this)
           .attr('opacity', 0.7)
           .attr('stroke-width', Math.max(3, d.width))
@@ -402,11 +393,11 @@ export default function ProcessFlowDiagram({ nodes: propNodes, links: propLinks,
       .attr('ry', 4)
       .style('cursor', 'pointer')
       .style('transition', 'all 0.3s')
-      .on('mouseover', function() {
+      .on('mouseover', function () {
         d3.select(this)
           .attr('filter', 'url(#node-shadow-hover)')
       })
-      .on('mouseout', function() {
+      .on('mouseout', function () {
         d3.select(this)
           .attr('filter', 'url(#node-shadow)')
       })
@@ -482,9 +473,9 @@ export default function ProcessFlowDiagram({ nodes: propNodes, links: propLinks,
         </div>
         <span className="text-xs text-gray-400">Click nodes for details</span>
       </div>
-      
+
       <svg ref={svgRef} width="100%" height="400" className="overflow-visible" />
-      
+
       {/* Selected Node Details */}
       {selectedNode && (
         <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -510,7 +501,7 @@ export default function ProcessFlowDiagram({ nodes: propNodes, links: propLinks,
           </div>
         </div>
       )}
-      
+
       {/* Legend */}
       <div className="mt-4 pt-4 border-t border-gray-100">
         <div className="flex flex-wrap justify-center gap-x-5 gap-y-2">

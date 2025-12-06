@@ -1,0 +1,14 @@
+flask
+flask-cors
+pyjwt
+groq
+python-dotenv
+google-generativeai
+google-genai
+pillow
+nest-asyncio
+qrcode
+PyPDF2
+openpyxl
+python-docx
+gunicorn

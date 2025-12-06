@@ -2556,6 +2556,92 @@ def add_materials_batch(project_id):
         print(f"Error in batch add: {e}")
         return jsonify({"detail": str(e)}), 500
 
+@app.route('/api/v1/projects/<project_id>/materials/<material_id>', methods=['PUT', 'OPTIONS'])
+def update_material(project_id, material_id):
+    """Update an existing material in a project"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        
+        data = request.get_json()
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Get existing material
+        c.execute("""
+            SELECT material_name, material_type, quantity, unit, recycled_content, transport_distance 
+            FROM project_materials WHERE id = ? AND project_id = ?
+        """, (material_id, project_id))
+        existing = c.fetchone()
+        
+        if not existing:
+            conn.close()
+            return jsonify({"detail": "Material not found"}), 404
+        
+        # Get update values (use existing if not provided)
+        material_name = data.get('material_name', existing[0])
+        material_type = data.get('material_type', existing[1])
+        quantity = data.get('quantity', existing[2])
+        unit = data.get('unit', existing[3])
+        recycled_content = data.get('recycled_content', existing[4])
+        transport_distance = data.get('transport_distance', existing[5])
+        
+        # Recalculate GWP
+        new_gwp = calculate_gwp(material_type, quantity, recycled_content, transport_distance)
+        
+        # Update material
+        c.execute("""
+            UPDATE project_materials 
+            SET material_name = ?, material_type = ?, quantity = ?, unit = ?, 
+                recycled_content = ?, transport_distance = ?, gwp = ?
+            WHERE id = ? AND project_id = ?
+        """, (material_name, material_type, quantity, unit, recycled_content, 
+              transport_distance, new_gwp, material_id, project_id))
+        conn.commit()
+        
+        # Recalculate project total GWP
+        c.execute("SELECT SUM(gwp) FROM project_materials WHERE project_id = ?", (project_id,))
+        total_gwp = c.fetchone()[0] or 0
+        
+        # Update project GWP total
+        c.execute("UPDATE projects SET gwp_total = ? WHERE id = ?", (total_gwp, project_id))
+        conn.commit()
+        
+        # Return updated material
+        c.execute("""
+            SELECT id, project_id, material_name, material_type, quantity, unit, 
+                   recycled_content, gwp, transport_distance, created_at
+            FROM project_materials WHERE id = ?
+        """, (material_id,))
+        row = c.fetchone()
+        conn.close()
+        
+        return jsonify({
+            "id": row[0],
+            "project_id": row[1],
+            "material_name": row[2],
+            "material_type": row[3],
+            "quantity": row[4],
+            "unit": row[5],
+            "recycled_content": row[6],
+            "gwp": row[7],
+            "transport_distance": row[8],
+            "created_at": row[9],
+            "new_total_gwp": total_gwp
+        }), 200
+        
+    except Exception as e:
+        print(f"Error updating material: {e}")
+        return jsonify({"detail": str(e)}), 500
+
 @app.route('/api/v1/projects/<project_id>/materials/<material_id>', methods=['DELETE', 'OPTIONS'])
 def delete_material(project_id, material_id):
     if request.method == 'OPTIONS':
@@ -8678,18 +8764,41 @@ CBAM_CATEGORIES = {
         'cn_codes': ['7401', '7402', '7403', '7404', '7405', '7406', '7407', '7408', '7409'],
         'default_cn': '7403',
         'benchmark_ef': 2.5  # tCO2/t
+    },
+    'cement': {
+        'name': 'Cement',
+        'cn_codes': ['2523'],
+        'default_cn': '2523',
+        'benchmark_ef': 0.766  # tCO2/t cement
+    },
+    'fertilizers': {
+        'name': 'Fertilizers',
+        'cn_codes': ['2808', '2814', '2834', '3102', '3105'],
+        'default_cn': '3102',
+        'benchmark_ef': 2.27  # tCO2/t ammonia equivalent
     }
 }
 
-def get_cbam_category(material_type):
-    """Determine CBAM category from material type"""
-    mat_lower = material_type.lower()
-    if 'aluminium' in mat_lower or 'aluminum' in mat_lower:
+def get_cbam_category(material_type, material_name=''):
+    """Determine CBAM category from material type and name"""
+    # Combine both for matching
+    combined = f"{material_type} {material_name}".lower()
+    
+    # Check for aluminium variants
+    if any(term in combined for term in ['aluminium', 'aluminum', 'al-', 'al6063', 'al 6063']):
         return 'aluminium'
-    elif 'steel' in mat_lower or 'iron' in mat_lower:
+    # Check for steel/iron
+    elif any(term in combined for term in ['steel', 'iron', 'stainless']):
         return 'iron_steel'
-    elif 'copper' in mat_lower:
+    # Check for copper and copper alloys  
+    elif any(term in combined for term in ['copper', 'brass', 'bronze']):
         return 'copper'
+    # Check for cement (another CBAM category)
+    elif 'cement' in combined:
+        return 'cement'
+    # Check for fertilizers
+    elif any(term in combined for term in ['fertilizer', 'ammonia', 'nitrate']):
+        return 'fertilizers'
     return None
 
 
@@ -8734,7 +8843,7 @@ def export_cbam_report(project_id):
         
         for m in materials:
             material_name, material_type, quantity, gwp, recycled_content, transport_distance = m
-            cbam_cat = get_cbam_category(material_type)
+            cbam_cat = get_cbam_category(material_type, material_name)
             
             if cbam_cat:
                 cat_info = CBAM_CATEGORIES[cbam_cat]
@@ -8795,7 +8904,9 @@ def export_cbam_report(project_id):
                 'total_embedded_emissions_tco2': round(total_embedded_emissions, 4),
                 'average_specific_emissions': round(avg_specific_emissions, 4),
                 'estimated_ets_price_eur': estimated_ets_price,
-                'estimated_cbam_liability_eur': round(estimated_cbam_liability, 2)
+                'estimated_cbam_liability_eur': round(estimated_cbam_liability, 2),
+                'estimated_cbam_liability_inr': round(estimated_cbam_liability * 91, 2),  # EUR to INR conversion
+                'eur_to_inr_rate': 91
             },
             'verification_requirements': {
                 'accredited_verifier_required': total_embedded_emissions > 500,
@@ -8918,7 +9029,7 @@ def export_cbam_csv(project_id):
         
         for m in materials:
             material_name, material_type, quantity, gwp, recycled_content = m
-            cbam_cat = get_cbam_category(material_type)
+            cbam_cat = get_cbam_category(material_type, material_name)
             if cbam_cat:
                 cat_info = CBAM_CATEGORIES[cbam_cat]
                 quantity_t = quantity / 1000
@@ -9146,7 +9257,7 @@ def export_cbam_excel(project_id):
         
         for idx, m in enumerate(materials, 1):
             material_name, material_type, quantity, gwp, recycled_content, transport_distance = m
-            cbam_cat = get_cbam_category(material_type)
+            cbam_cat = get_cbam_category(material_type, material_name)
             
             if cbam_cat:
                 cat_info = CBAM_CATEGORIES[cbam_cat]
@@ -10461,7 +10572,9 @@ def get_sourcing_plans(project_id):
         
         # Add distance to each yard
         for yard in all_yards:
-            yard['distance_km'] = calculate_distance(user_lat, user_lng, yard['latitude'], yard['longitude'])
+            raw_distance = calculate_distance(user_lat, user_lng, yard['latitude'], yard['longitude'])
+            # Minimum 25 km for local transport (pickup/delivery within city)
+            yard['distance_km'] = max(raw_distance, 25)
             yard['material_types'] = yard['material_types'].split(',')
             yard['certifications'] = yard['certifications'].split(',') if yard['certifications'] else []
         
@@ -10473,12 +10586,50 @@ def get_sourcing_plans(project_id):
             total_transport_co2 = 0
             materials_covered = 0
             
+            # Material name to scrap yard type mapping
+            material_mappings = {
+                'copper': ['copper', 'brass', 'bronze'],
+                'aluminium': ['aluminium', 'aluminum'],
+                'aluminum': ['aluminium', 'aluminum'],
+                'al-': ['aluminium'],  # For Al-6063, Al-2024, etc.
+                'steel': ['steel', 'stainless_steel'],
+                'brass': ['brass', 'copper'],
+                'zinc': ['zinc'],
+                'lead': ['lead'],
+                'nickel': ['nickel'],
+                'iron': ['steel'],
+            }
+            
             for mat in materials:
                 mat_type = mat['material_type'].lower().replace('_primary', '').replace('_secondary', '')
+                mat_name = (mat['material_name'] or '').lower()
                 qty_needed = mat['quantity'] or 0
                 
-                # Find matching yards
-                matching = [y for y in yards if any(mat_type in m.lower() for m in y['material_types'])]
+                # Extract keywords from material name and type for matching
+                search_terms = set()
+                search_terms.add(mat_type)
+                
+                # Add material name words
+                for word in mat_name.replace('-', ' ').replace('_', ' ').split():
+                    search_terms.add(word)
+                
+                # Check material mappings
+                mapped_types = set()
+                for key, values in material_mappings.items():
+                    if any(key in term for term in search_terms):
+                        mapped_types.update(values)
+                
+                # Combine search terms with mapped types
+                all_search_terms = search_terms | mapped_types
+                
+                # Find matching yards - check if any search term matches yard material types
+                matching = []
+                for yard in yards:
+                    yard_materials = [m.lower() for m in yard['material_types']]
+                    for term in all_search_terms:
+                        if any(term in ym or ym in term for ym in yard_materials):
+                            matching.append(yard)
+                            break
                 
                 if strategy == 'price':
                     matching.sort(key=lambda y: y['price_per_kg'])

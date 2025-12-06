@@ -30,6 +30,15 @@ export interface AddMaterialData {
   transport_distance?: number
 }
 
+export interface UpdateMaterialData {
+  material_name?: string
+  material_type?: string
+  quantity?: number
+  unit?: string
+  recycled_content?: number
+  transport_distance?: number
+}
+
 export interface BatchAddResult {
   added: number
   failed: number
@@ -56,6 +65,11 @@ export const materialsApi = {
 
   delete: async (projectId: string, materialId: string): Promise<{ message: string; new_total_gwp: number }> => {
     const response = await api.delete(`/projects/${projectId}/materials/${materialId}`)
+    return response.data
+  },
+
+  update: async (projectId: string, materialId: string, data: UpdateMaterialData): Promise<Material & { new_total_gwp: number }> => {
+    const response = await api.put(`/projects/${projectId}/materials/${materialId}`, data)
     return response.data
   },
 

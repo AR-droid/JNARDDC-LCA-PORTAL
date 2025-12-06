@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { getCBAMReport, getCBAMReportQr, downloadCBAMCSV, downloadCBAMExcel, downloadBRSRExcel, CBAMReport } from '../api/projects'
+import { getCBAMReport, getCBAMReportQr, downloadCBAMExcel, downloadBRSRExcel, CBAMReport } from '../api/projects'
 import { useAuthStore } from '../stores/authStore'
 import { UpgradePrompt } from '../components/FeatureGate'
-import { FileSpreadsheet, Download, FileText, Loader2, QrCode, AlertTriangle, Building2, Lock } from 'lucide-react'
+import { FileSpreadsheet, Loader2, QrCode, AlertTriangle, Building2, Lock } from 'lucide-react'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
 
 export default function CBAMExportPage() {
@@ -47,22 +47,6 @@ export default function CBAMExportPage() {
     }
   }
 
-  const handleDownloadCSV = async () => {
-    if (!id) return
-    
-    try {
-      setIsDownloading(true)
-      setDownloadingType('csv')
-      await downloadCBAMCSV(id)
-    } catch (err) {
-      console.error('Error downloading CSV:', err)
-      alert('Failed to download CSV')
-    } finally {
-      setIsDownloading(false)
-      setDownloadingType(null)
-    }
-  }
-
   const handleDownloadExcel = async () => {
     if (!id) return
     
@@ -93,20 +77,6 @@ export default function CBAMExportPage() {
       setIsDownloading(false)
       setDownloadingType(null)
     }
-  }
-
-  const handleDownloadJSON = () => {
-    if (!report) return
-    
-    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' })
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', `cbam_report_${id?.slice(0, 8)}.json`)
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    window.URL.revokeObjectURL(url)
   }
 
   const handleShowQr = async () => {
@@ -262,19 +232,6 @@ export default function CBAMExportPage() {
                 {downloadingType === 'brsr' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />} BRSR Excel
               </button>
               <button
-                onClick={handleDownloadCSV}
-                disabled={isDownloading}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 flex items-center gap-2"
-              >
-                {downloadingType === 'csv' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} CSV
-              </button>
-              <button
-                onClick={handleDownloadJSON}
-                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 flex items-center gap-2"
-              >
-                <FileText className="w-4 h-4" /> JSON
-              </button>
-              <button
                 onClick={handleShowQr}
                 disabled={isQrLoading}
                 className="px-4 py-2 bg-white text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 flex items-center gap-2"
@@ -351,6 +308,9 @@ export default function CBAMExportPage() {
           <div className="bg-white rounded-lg shadow p-4">
             <p className="text-sm text-gray-500">Est. CBAM Liability</p>
             <p className="text-2xl font-bold text-orange-600">€{report.summary.estimated_cbam_liability_eur.toFixed(2)}</p>
+            <p className="text-sm font-medium text-gray-700 mt-1">
+              ≈ ₹{(report.summary.estimated_cbam_liability_inr || report.summary.estimated_cbam_liability_eur * 91).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            </p>
             <p className="text-xs text-gray-400">@ €{report.summary.estimated_ets_price_eur}/tCO₂</p>
           </div>
         </div>

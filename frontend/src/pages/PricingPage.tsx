@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
-import { Check, X } from 'lucide-react'
+import { Check, X, CheckCircle, AlertCircle } from 'lucide-react'
 
 const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 const API_BASE = `${baseUrl.replace(/\/$/, '')}/api/v1`
@@ -9,6 +9,15 @@ const API_BASE = `${baseUrl.replace(/\/$/, '')}/api/v1`
 export default function PricingPage() {
   const { isAuthenticated, user, checkAuth, token } = useAuthStore()
   const [upgrading, setUpgrading] = useState(false)
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
+  // Auto-hide notification after 5 seconds
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [notification])
 
   // Refresh user data to get latest project count
   useEffect(() => {
@@ -34,14 +43,14 @@ export default function PricingPage() {
       const data = await res.json()
 
       if (res.ok) {
-        alert(data.message || `Successfully upgraded to ${tier}!`)
+        setNotification({ type: 'success', message: data.message || `Successfully upgraded to ${tier}!` })
         checkAuth() // Refresh user data
       } else {
-        alert(data.detail || 'Failed to upgrade')
+        setNotification({ type: 'error', message: data.detail || 'Failed to upgrade' })
       }
     } catch (error) {
       console.error('Upgrade error:', error)
-      alert('Failed to upgrade. Please try again.')
+      setNotification({ type: 'error', message: 'Failed to upgrade. Please try again.' })
     } finally {
       setUpgrading(false)
     }
@@ -49,6 +58,28 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Notification Banner */}
+      {notification && (
+        <div className={`fixed top-4 right-4 z-50 max-w-md px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-slide-in ${
+          notification.type === 'success' 
+            ? 'bg-green-50 border border-green-200 text-green-800' 
+            : 'bg-red-50 border border-red-200 text-red-800'
+        }`}>
+          {notification.type === 'success' ? (
+            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+          ) : (
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+          )}
+          <p className="text-sm font-medium">{notification.message}</p>
+          <button 
+            onClick={() => setNotification(null)}
+            className="ml-auto text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <header className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 sticky top-0 z-20">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">

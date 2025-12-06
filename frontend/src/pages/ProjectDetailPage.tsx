@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { projectsApi, Project, aiGapFill, AIGapFillResult, parseNLPDescription, scrapYardApi, ScrapYardStats } from '../api/projects'
 import { materialsApi, Material } from '../api/materials'
 import MaterialAddModal from '../components/MaterialAddModal'
+import MaterialEditModal from '../components/MaterialEditModal'
 import ProjectEditModal from '../components/ProjectEditModal'
 import BOMUploadModal from '../components/BOMUploadModal'
 import SupplyChainUploadModal from '../components/SupplyChainUploadModal'
@@ -29,7 +30,8 @@ import {
   AlertTriangle, 
   CheckCircle, 
   Bot, 
-  Package
+  Package,
+  Pencil
 } from 'lucide-react'
 import gwpImg from '/images/smoke.jpg'
 import mciImg from '/images/recycle.jpg'
@@ -92,6 +94,7 @@ export default function ProjectDetailPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [editingMaterial, setEditingMaterial] = useState<Material | null>(null)
   const [showBOMUpload, setShowBOMUpload] = useState(false)
   const [showSupplyChainUpload, setShowSupplyChainUpload] = useState(false)
   const [supplyChainEntries, setSupplyChainEntries] = useState<SupplyChainEntry[]>([])
@@ -735,13 +738,22 @@ export default function ProjectDetailPage() {
                         {material.gwp.toFixed(2)}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <button
-                          onClick={() => handleDeleteMaterial(material.id)}
-                          className="text-red-600 hover:text-red-800 text-sm font-medium"
-                          title="Delete material"
-                        >
-                          Delete
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setEditingMaterial(material)}
+                            className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition"
+                            title="Edit material"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMaterial(material.id)}
+                            className="text-red-600 hover:text-red-800 text-sm font-medium"
+                            title="Delete material"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -913,6 +925,18 @@ export default function ProjectDetailPage() {
           projectId={id!}
           onClose={() => setShowAddModal(false)}
           onSuccess={handleMaterialAdded}
+        />
+      )}
+
+      {editingMaterial && (
+        <MaterialEditModal
+          projectId={id!}
+          material={editingMaterial}
+          onClose={() => setEditingMaterial(null)}
+          onSuccess={() => {
+            setEditingMaterial(null)
+            loadData()
+          }}
         />
       )}
 

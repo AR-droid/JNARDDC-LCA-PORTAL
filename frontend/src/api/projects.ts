@@ -652,6 +652,8 @@ export interface CBAMReport {
     average_specific_emissions: number
     estimated_ets_price_eur: number
     estimated_cbam_liability_eur: number
+    estimated_cbam_liability_inr?: number
+    eur_to_inr_rate?: number
   }
   verification_requirements: {
     accredited_verifier_required: boolean

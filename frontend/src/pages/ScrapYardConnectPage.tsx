@@ -461,65 +461,78 @@ export default function ScrapYardConnectPage() {
             </div>
 
             {/* Selected Plan Details */}
-            {selectedPlan && sourcingPlans.plans[selectedPlan].sourcing.length > 0 && (
+            {selectedPlan && (
               <div className="mt-6 bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
                   <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                     {selectedPlan === 'plan_a' ? <DollarSign className="w-4 h-4 text-green-600" /> : selectedPlan === 'plan_b' ? <MapPin className="w-4 h-4 text-blue-600" /> : <Package className="w-4 h-4 text-purple-600" />} {sourcingPlans.plans[selectedPlan].name} - Sourcing Details
                   </h3>
                 </div>
-                <div className="divide-y divide-gray-100">
-                  {sourcingPlans.plans[selectedPlan].sourcing.map((item, idx) => (
-                    <div key={idx} className="px-5 py-4 flex items-center justify-between hover:bg-gray-50">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                          <Package className="w-5 h-5 text-green-600" />
+                
+                {sourcingPlans.plans[selectedPlan].sourcing.length > 0 ? (
+                  <div className="divide-y divide-gray-100">
+                    {sourcingPlans.plans[selectedPlan].sourcing.map((item, idx) => (
+                      <div key={idx} className="px-5 py-4 flex items-center justify-between hover:bg-gray-50">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                            <Package className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{item.material}</p>
+                            <p className="text-sm text-gray-500">{item.quantity_kg} kg</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{item.material}</p>
-                          <p className="text-sm text-gray-500">{item.quantity_kg} kg</p>
+                        <div className="flex items-center gap-6">
+                          <div className="text-right">
+                            <p className="font-medium text-gray-900">{item.yard.name}</p>
+                            <p className="text-sm text-gray-500">{item.yard.city}, {item.yard.state}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-green-600">₹{item.cost.toLocaleString()}</p>
+                            <p className="text-xs text-gray-400">{item.yard.distance_km} km away</p>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-6">
-                        <div className="text-right">
-                          <p className="font-medium text-gray-900">{item.yard.name}</p>
-                          <p className="text-sm text-gray-500">{item.yard.city}, {item.yard.state}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-green-600">₹{item.cost.toLocaleString()}</p>
-                          <p className="text-xs text-gray-400">{item.yard.distance_km} km away</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Apply to Project Button */}
-                <div className="px-5 py-4 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-100">
-                  <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="text-sm text-gray-600">
-                      <p className="font-medium text-gray-900 mb-1">Apply this plan to your project?</p>
-                      <p>This will update your BOM with recycled materials and recalculate GWP & MCI scores.</p>
-                    </div>
-                    <button
-                      onClick={handleApplyPlan}
-                      disabled={isApplying}
-                      className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isApplying ? (
-                        <>
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          Applying...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="w-5 h-5" />
-                          Apply to Project
-                        </>
-                      )}
-                    </button>
+                    ))}
                   </div>
-                </div>
+                ) : (
+                  <div className="px-5 py-8 text-center">
+                    <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-600 font-medium">No matching scrap yards found</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Your materials could not be matched to available scrap yards. Try browsing the marketplace below.
+                    </p>
+                  </div>
+                )}
+
+                {/* Apply to Project Button - Show if there are matched materials */}
+                {sourcingPlans.plans[selectedPlan].sourcing.length > 0 && (
+                  <div className="px-5 py-4 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-100">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                      <div className="text-sm text-gray-600">
+                        <p className="font-medium text-gray-900 mb-1">Apply this plan to your project?</p>
+                        <p>This will update your BOM with recycled materials and recalculate GWP & MCI scores.</p>
+                      </div>
+                      <button
+                        onClick={handleApplyPlan}
+                        disabled={isApplying}
+                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isApplying ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Applying...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-5 h-5" />
+                            Apply to Project
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

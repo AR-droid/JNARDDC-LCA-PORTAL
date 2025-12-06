@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { projectsApi } from '../api/projects'
 import { materialsApi } from '../api/materials'
+import { BarChart3, Lightbulb } from 'lucide-react'
 
 export default function ComparisonPage() {
   const [projects, setProjects] = useState<any[]>([])
@@ -89,7 +90,9 @@ export default function ComparisonPage() {
 
         {projects.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
-            <div className="text-6xl mb-4">📊</div>
+            <div className="flex justify-center mb-4">
+              <BarChart3 className="w-16 h-16 text-gray-400" />
+            </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No Calculated Projects</h3>
             <p className="text-gray-600">Add materials to your projects to see comparison data</p>
           </div>
@@ -209,7 +212,9 @@ export default function ComparisonPage() {
                 </div>
 
                 <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-blue-900 mb-2">💡 Insights</h4>
+                  <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                    <Lightbulb className="w-4 h-4" /> Insights
+                  </h4>
                   {comparisonData.length > 0 ? (
                     <ul className="text-sm text-blue-800 space-y-1">
                       <li>

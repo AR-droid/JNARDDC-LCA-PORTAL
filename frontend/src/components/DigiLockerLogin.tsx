@@ -378,7 +378,7 @@ export function DigiLockerLogin({ onSuccess, onBack }: DigiLockerLoginProps) {
       {/* Footer */}
       <div className="mt-8 pt-4 border-t border-gray-200 text-center">
         <p className="text-xs text-gray-500">
-          🔒 Secured by DigiLocker • Government of India
+          <Lock className="w-4 h-4 inline" /> Secured by DigiLocker • Government of India
         </p>
         <p className="text-xs text-gray-400 mt-1">
           Demo mode for SIH2025

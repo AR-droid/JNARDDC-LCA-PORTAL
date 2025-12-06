@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import api from '../api/client'
+import { Settings, Lock, AlertTriangle, Bell } from 'lucide-react'
 
 export default function SettingsPage() {
   const { user, logout } = useAuthStore()
@@ -74,11 +75,21 @@ export default function SettingsPage() {
   }
 
   const tabs = [
-    { id: 'general', label: 'General', icon: '⚙️' },
-    { id: 'security', label: 'Security', icon: '🔒' },
-    { id: 'notifications', label: 'Notifications', icon: '🔔' },
-    { id: 'danger', label: 'Danger Zone', icon: '⚠️' },
+    { id: 'general', label: 'General', icon: 'settings' },
+    { id: 'security', label: 'Security', icon: 'lock' },
+    { id: 'notifications', label: 'Notifications', icon: 'bell' },
+    { id: 'danger', label: 'Danger Zone', icon: 'warning' },
   ]
+  
+  const getIconComponent = (iconName: string) => {
+    switch (iconName) {
+      case 'settings': return <Settings className="w-5 h-5" />;
+      case 'lock': return <Lock className="w-5 h-5" />;
+      case 'bell': return <Bell className="w-5 h-5" />;
+      case 'warning': return <AlertTriangle className="w-5 h-5" />;
+      default: return null;
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -115,7 +126,7 @@ export default function SettingsPage() {
                       : 'text-gray-700 hover:bg-gray-50 border-l-4 border-transparent'
                   }`}
                 >
-                  <span>{tab.icon}</span>
+                  {getIconComponent(tab.icon)}
                   <span className="font-medium">{tab.label}</span>
                 </button>
               ))}

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Plus, X, Upload, MapPin, Truck, Package, Globe, Train, Ship, Plane, RotateCcw } from 'lucide-react'
+import { Plus, X, Upload, MapPin, Truck, Package, Globe, Train, Ship, Plane, RotateCcw, Loader2 } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
 
@@ -322,10 +322,10 @@ export default function SupplyChainUploadModal({ projectId, onClose, onSuccess }
                     <strong>🚛 Transport:</strong> road, rail, sea, air, multimodal
                   </div>
                   <div className="bg-green-100 rounded p-2">
-                    <strong>⛏️ Extraction:</strong> mining, recycling, refining, manufacturing
+                    <strong>Extraction:</strong> mining, recycling, refining, manufacturing
                   </div>
                   <div className="bg-purple-100 rounded p-2">
-                    <strong>🏭 Tier:</strong> 1 (Direct), 2 (Secondary), 3 (Tertiary)
+                    <strong>Tier:</strong> 1 (Direct), 2 (Secondary), 3 (Tertiary)
                   </div>
                 </div>
               </div>
@@ -552,7 +552,9 @@ export default function SupplyChainUploadModal({ projectId, onClose, onSuccess }
 
           {step === 'done' && (
             <div className="text-center py-8">
-              <div className="text-6xl mb-4">🗺️</div>
+              <div className="flex justify-center mb-4">
+                <MapPin className="w-16 h-16 text-gray-400" />
+              </div>
               <p className="text-xl font-semibold text-gray-900">{success}</p>
               <p className="text-sm text-gray-500 mt-2">View your supply chain on the map</p>
             </div>
@@ -580,7 +582,7 @@ export default function SupplyChainUploadModal({ projectId, onClose, onSuccess }
                   className="px-6 py-2 bg-gradient-to-r from-orange-500 to-green-600 text-white rounded-lg hover:from-orange-600 hover:to-green-700 disabled:opacity-50 flex items-center gap-2"
                 >
                   {isLoading ? (
-                    <>⏳ Importing...</>
+                    <><Loader2 size={16} className="animate-spin" /> Importing...</>
                   ) : (
                     <>
                       <Truck size={16} />

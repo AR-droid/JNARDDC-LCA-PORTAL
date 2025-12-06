@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { getCBAMReport, getCBAMReportQr, downloadCBAMCSV, downloadCBAMExcel, downloadBRSRExcel, CBAMReport, projectsApi } from '../api/projects'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { getCBAMReport, getCBAMReportQr, downloadCBAMCSV, downloadCBAMExcel, downloadBRSRExcel, CBAMReport } from '../api/projects'
 import { useAuthStore } from '../stores/authStore'
 import { UpgradePrompt } from '../components/FeatureGate'
-import { FileSpreadsheet, Download, FileText, Loader2, QrCode } from 'lucide-react'
+import { FileSpreadsheet, Download, FileText, Loader2, QrCode, AlertTriangle } from 'lucide-react'
+import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
 
 export default function CBAMExportPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const { user } = useAuthStore()
   const [report, setReport] = useState<CBAMReport | null>(null)
-  const [projectName, setProjectName] = useState<string>('')
   const [isLoading, setIsLoading] = useState(true)
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadingType, setDownloadingType] = useState<string | null>(null)
@@ -17,6 +19,8 @@ export default function CBAMExportPage() {
   const [qrData, setQrData] = useState<string | null>(null)
   const [qrUrl, setQrUrl] = useState<string | null>(null)
   const [isQrLoading, setIsQrLoading] = useState(false)
+  
+  const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
 
   useEffect(() => {
     if (id) {
@@ -31,13 +35,9 @@ export default function CBAMExportPage() {
       setIsLoading(true)
       setError(null)
       
-      const [reportData, project] = await Promise.all([
-        getCBAMReport(id),
-        projectsApi.getById(id)
-      ])
+      const reportData = await getCBAMReport(id)
       
       setReport(reportData)
-      setProjectName(project.name)
     } catch (err: any) {
       console.error('Error loading CBAM report:', err)
       setError(err.response?.data?.detail || 'Failed to generate CBAM report')
@@ -139,7 +139,9 @@ export default function CBAMExportPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <div className="flex justify-center mb-4">
+            <AlertTriangle className="w-16 h-16 text-red-500" />
+          </div>
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Generating Report</h2>
           <p className="text-gray-600 mb-4">{error}</p>
           <Link to={`/projects/${id}`} className="text-blue-600 hover:text-blue-700">
@@ -152,19 +154,11 @@ export default function CBAMExportPage() {
 
   if (!report) return null
 
-  // Check feature access
-  const { user } = useAuthStore.getState()
-  const hasAccess = user?.tier === 'pro' || user?.tier === 'enterprise' || user?.features?.cbam_export
-
-  if (!hasAccess) {
+  // Check feature access (user is already available from useAuthStore hook at the top)
+  if (!hasCBAMAccess) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <Link to={`/projects/${id}`} className="text-blue-600 hover:text-blue-700">
-              ← Back to Project
-            </Link>
-          </div>
           <UpgradePrompt feature="cbam_export" />
         </div>
       </div>
@@ -173,16 +167,63 @@ export default function CBAMExportPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+        {/* Secondary Navigation Bar */}
+        <div className="bg-white rounded-lg shadow mb-5">
+          <div className="flex flex-wrap items-center gap-1 p-2 border-b border-gray-100">
+            <button
+              onClick={() => navigate('/projects')}
+              className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-1.5"
+            >
+              <span className="text-base">←</span> Back
+            </button>
+            <div className="w-px h-6 bg-gray-200 mx-1"></div>
+            <button
+              onClick={() => navigate(`/projects/${id}`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              Dashboard
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/analytics`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <ChartIcon size={16} /> Analytics
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/lcia`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-teal-50 hover:text-teal-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AnalyticsIcon size={16} /> LCIA
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/analysis`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AnalyticsIcon size={16} /> Analysis
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/recommendations`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AIIcon size={16} /> Design Advisor
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/scenario`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <FlaskIcon size={16} /> Scenarios
+            </button>
+            <button
+              className="px-4 py-2 text-sm font-medium bg-amber-50 text-amber-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <FileSpreadsheet size={16} /> CBAM
+            </button>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-            <Link to="/projects" className="hover:text-blue-600">Projects</Link>
-            <span>/</span>
-            <Link to={`/projects/${id}`} className="hover:text-blue-600">{projectName}</Link>
-            <span>/</span>
-            <span className="text-gray-900">CBAM Export</span>
-          </div>
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Compliance Export Reports</h1>
@@ -395,7 +436,9 @@ export default function CBAMExportPage() {
 
         {/* Compliance Notes */}
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-6">
-          <h3 className="text-lg font-semibold text-amber-800 mb-3">⚠️ Compliance Notes</h3>
+          <h3 className="text-lg font-semibold text-amber-800 mb-3 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5" /> Compliance Notes
+          </h3>
           <ul className="space-y-2">
             {report.compliance_notes.map((note, i) => (
               <li key={i} className="text-sm text-amber-700 flex items-start gap-2">

@@ -1,17 +1,23 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { projectsApi, Project, MCIResult } from '../api/projects'
 import { materialsApi, Material } from '../api/materials'
+import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
+import { FileSpreadsheet, Lock, BarChart3, Recycle, Target, Wrench, Truck, Microscope } from 'lucide-react'
+import { useAuthStore } from '../stores/authStore'
 
 export default function AnalysisPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { user } = useAuthStore()
   
   const [project, setProject] = useState<Project | null>(null)
   const [materials, setMaterials] = useState<Material[]>([])
   const [mciResult, setMciResult] = useState<MCIResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isCalculatingMCI, setIsCalculatingMCI] = useState(false)
+  
+  const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
 
   useEffect(() => {
     loadData()
@@ -63,7 +69,9 @@ export default function AnalysisPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-6xl mb-4">📊</div>
+          <div className="flex justify-center mb-4">
+            <BarChart3 className="w-16 h-16 text-gray-400" />
+          </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">No Data Available</h2>
           <p className="text-gray-600 mb-4">Add materials to your project to see analysis</p>
           <button
@@ -119,7 +127,7 @@ export default function AnalysisPage() {
   
   if (avgRecycledContent < 30) {
     recommendations.push({
-      icon: '♻️',
+      icon: 'recycle',
       title: 'Increase Recycled Content',
       description: `Current average recycled content is ${avgRecycledContent.toFixed(1)}%. Aim for at least 30% to significantly reduce GWP.`,
       impact: 'high'
@@ -129,7 +137,7 @@ export default function AnalysisPage() {
   const highImpactMaterials = gwpByMaterial.filter(m => m.percentage > 20)
   if (highImpactMaterials.length > 0) {
     recommendations.push({
-      icon: '🎯',
+      icon: 'target',
       title: 'Focus on High-Impact Materials',
       description: `${highImpactMaterials[0].name} contributes ${highImpactMaterials[0].percentage.toFixed(1)}% of total GWP. Consider using recycled alternatives or material substitution.`,
       impact: 'high'
@@ -138,7 +146,7 @@ export default function AnalysisPage() {
 
   if (!project.is_designed_for_disassembly) {
     recommendations.push({
-      icon: '🔧',
+      icon: 'wrench',
       title: 'Design for Disassembly',
       description: 'Enable easy disassembly to improve end-of-life recyclability and material recovery.',
       impact: 'medium'
@@ -147,7 +155,7 @@ export default function AnalysisPage() {
 
   if (materials.some(m => m.transport_distance > 500)) {
     recommendations.push({
-      icon: '🚚',
+      icon: 'truck',
       title: 'Optimize Transport Distance',
       description: 'Some materials are transported over 500 km. Consider local sourcing to reduce transport emissions.',
       impact: 'medium'
@@ -158,13 +166,70 @@ export default function AnalysisPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
-        <button
-          onClick={() => navigate(`/projects/${id}`)}
-          className="text-blue-600 hover:text-blue-700 mb-4 flex items-center gap-2"
-        >
-          ← Back to Project
-        </button>
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+        {/* Secondary Navigation Bar */}
+        <div className="bg-white rounded-lg shadow mb-5">
+          <div className="flex flex-wrap items-center gap-1 p-2 border-b border-gray-100">
+            <button
+              onClick={() => navigate('/projects')}
+              className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-1.5"
+            >
+              <span className="text-base">←</span> Back
+            </button>
+            <div className="w-px h-6 bg-gray-200 mx-1"></div>
+            <button
+              onClick={() => navigate(`/projects/${id}`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              Dashboard
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/analytics`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <ChartIcon size={16} /> Analytics
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/lcia`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-teal-50 hover:text-teal-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AnalyticsIcon size={16} /> LCIA
+            </button>
+            <button
+              className="px-4 py-2 text-sm font-medium bg-green-50 text-green-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AnalyticsIcon size={16} /> Analysis
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/recommendations`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AIIcon size={16} /> Design Advisor
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/scenario`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <FlaskIcon size={16} /> Scenarios
+            </button>
+            {hasCBAMAccess ? (
+              <button
+                onClick={() => navigate(`/projects/${id}/cbam-export`)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-md transition-colors flex items-center gap-2"
+              >
+                <FileSpreadsheet size={16} /> CBAM
+              </button>
+            ) : (
+              <Link
+                to="/pricing"
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+                title="CBAM Export requires Pro plan"
+              >
+                <Lock size={16} /> CBAM
+              </Link>
+            )}
+          </div>
+        </div>
 
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Project Analysis</h1>
@@ -200,9 +265,9 @@ export default function AnalysisPage() {
             <div className="mt-4 flex gap-3">
               <button
                 onClick={() => navigate(`/projects/${id}/scenario`)}
-                className="px-4 py-2 bg-white text-emerald-700 rounded-lg hover:bg-emerald-50 font-medium"
+                className="px-4 py-2 bg-white text-emerald-700 rounded-lg hover:bg-emerald-50 font-medium flex items-center gap-2"
               >
-                🔬 Run What-if Scenarios
+                <Microscope className="w-4 h-4" /> Run What-if Scenarios
               </button>
             </div>
           </div>
@@ -352,31 +417,39 @@ export default function AnalysisPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Recommendations for Improvement</h2>
             <div className="space-y-4">
-              {recommendations.map((rec, index) => (
-                <div
-                  key={index}
-                  className={`border-l-4 p-4 rounded ${
-                    rec.impact === 'high' 
-                      ? 'border-red-500 bg-red-50' 
-                      : 'border-yellow-500 bg-yellow-50'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">{rec.icon}</span>
-                    <div>
-                      <h3 className="font-bold text-gray-900 mb-1">{rec.title}</h3>
-                      <p className="text-gray-700 text-sm">{rec.description}</p>
-                      <span className={`inline-block mt-2 text-xs font-semibold px-2 py-1 rounded ${
-                        rec.impact === 'high' 
-                          ? 'bg-red-200 text-red-800' 
-                          : 'bg-yellow-200 text-yellow-800'
-                      }`}>
-                        {rec.impact.toUpperCase()} IMPACT
-                      </span>
+              {recommendations.map((rec, index) => {
+                const IconComponent = 
+                  rec.icon === 'recycle' ? Recycle :
+                  rec.icon === 'target' ? Target :
+                  rec.icon === 'wrench' ? Wrench :
+                  rec.icon === 'truck' ? Truck : Recycle;
+                
+                return (
+                  <div
+                    key={index}
+                    className={`border-l-4 p-4 rounded ${
+                      rec.impact === 'high' 
+                        ? 'border-red-500 bg-red-50' 
+                        : 'border-yellow-500 bg-yellow-50'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <IconComponent className="w-6 h-6 text-gray-600 mt-1" />
+                      <div>
+                        <h3 className="font-bold text-gray-900 mb-1">{rec.title}</h3>
+                        <p className="text-gray-700 text-sm">{rec.description}</p>
+                        <span className={`inline-block mt-2 text-xs font-semibold px-2 py-1 rounded ${
+                          rec.impact === 'high' 
+                            ? 'bg-red-200 text-red-800' 
+                            : 'bg-yellow-200 text-yellow-800'
+                        }`}>
+                          {rec.impact.toUpperCase()} IMPACT
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

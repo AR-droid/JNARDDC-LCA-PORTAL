@@ -1,6 +1,6 @@
 import { useAuthStore } from '../stores/authStore';
 import { Link } from 'react-router-dom';
-import { Building, Star } from 'lucide-react';
+import { Building, Star, Lock, Zap, AlertCircle, XCircle } from 'lucide-react';
 
 type FeatureKey = 'cbam_export' | 'brsr_export' | 'scenario_compare' | 'ai_advisor' | 'verification';
 
@@ -59,7 +59,7 @@ export function UpgradePrompt({ feature, compact = false }: { feature: FeatureKe
   if (compact) {
     return (
       <div className="flex items-center gap-2 text-sm text-gray-500">
-        <span className="text-yellow-500">🔒</span>
+        <Lock className="w-4 h-4 text-yellow-500" />
         <span>{featureName} requires {requiredTier === 'enterprise' ? 'Enterprise' : 'Pro'}</span>
         <Link to="/pricing" className="text-blue-600 hover:underline font-medium">
           Upgrade
@@ -70,7 +70,9 @@ export function UpgradePrompt({ feature, compact = false }: { feature: FeatureKe
   
   return (
     <div className="bg-gradient-to-br from-gray-50 to-blue-50 border-2 border-dashed border-blue-200 rounded-xl p-8 text-center">
-      <div className="text-4xl mb-3">🔒</div>
+      <div className="flex justify-center mb-3">
+        <Lock className="w-12 h-12 text-gray-400" />
+      </div>
       <h3 className="text-xl font-bold text-gray-900 mb-2">
         {featureName}
       </h3>
@@ -89,7 +91,7 @@ export function UpgradePrompt({ feature, compact = false }: { feature: FeatureKe
             : 'bg-blue-600 hover:bg-blue-700'
         }`}
       >
-        <span>⚡</span>
+        <Zap className="w-4 h-4" />
         Upgrade to {requiredTier === 'enterprise' ? 'Enterprise' : 'Pro'}
       </Link>
       <p className="text-xs text-gray-400 mt-3">
@@ -118,7 +120,7 @@ export function ProjectLimitBanner() {
     }`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">{remaining <= 0 ? '🚫' : '⚠️'}</span>
+          {remaining <= 0 ? <XCircle className="w-6 h-6 text-red-500" /> : <AlertCircle className="w-6 h-6 text-yellow-500" />}
           <div>
             <p className={`font-medium ${remaining <= 0 ? 'text-red-700' : 'text-yellow-700'}`}>
               {remaining <= 0 

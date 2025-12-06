@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { projectsApi, Project, MCIResult } from '../api/projects'
 import { materialsApi, Material } from '../api/materials'
 import {
-  ArrowLeft,
   ArrowRight,
   Factory,
   Recycle,
@@ -19,8 +18,14 @@ import {
   XCircle,
   Scale,
   Zap,
-  Target
+  Target,
+  FileSpreadsheet,
+  Lock,
+  ArrowLeft
 } from 'lucide-react'
+import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
+import { useAuthStore } from '../stores/authStore'
+import PathwayComparisonViz from '../components/PathwayComparisonViz'
 
 interface PathwayData {
   name: string
@@ -109,7 +114,8 @@ function LifecycleFlowBar({ stages, total }: { stages: LifecycleStage[]; total: 
 
 export default function ScenarioComparisonPage() {
   const { id } = useParams<{ id: string }>()
-  
+  const navigate = useNavigate()
+  const { user } = useAuthStore()
   const [project, setProject] = useState<Project | null>(null)
   const [materials, setMaterials] = useState<Material[]>([])
   const [mciResult, setMciResult] = useState<MCIResult | null>(null)
@@ -117,7 +123,9 @@ export default function ScenarioComparisonPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isCalculating, setIsCalculating] = useState(false)
   const [activeView, setActiveView] = useState<'overview' | 'detailed' | 'lifecycle'>('overview')
-  
+
+  const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
+
   // Circular pathway configuration
   const [circularConfig, setCircularConfig] = useState({
     recycled_input_target: 80,
@@ -133,7 +141,7 @@ export default function ScenarioComparisonPage() {
 
   const loadData = async () => {
     if (!id) return
-    
+
     try {
       setIsLoading(true)
       const [projectData, materialsData] = await Promise.all([
@@ -142,7 +150,7 @@ export default function ScenarioComparisonPage() {
       ])
       setProject(projectData)
       setMaterials(materialsData)
-      
+
       if (materialsData.length > 0) {
         const mci = await projectsApi.calculateMCI(id)
         setMciResult(mci)
@@ -157,43 +165,43 @@ export default function ScenarioComparisonPage() {
 
   const calculateComparison = (proj: Project, mats: Material[], _mci: MCIResult) => {
     setIsCalculating(true)
-    
+
     // Calculate total mass
     const totalMass = mats.reduce((sum, m) => sum + m.quantity, 0)
-    
+
     // Calculate current averages
     const avgRecycled = mats.reduce((sum, m) => sum + (m.recycled_content || 0) * m.quantity, 0) / totalMass
     const avgTransport = mats.reduce((sum, m) => sum + (m.transport_distance || 0) * m.quantity, 0) / totalMass
-    
+
     // Conventional pathway (100% virgin material, linear economy)
     const conventionalGWP = mats.reduce((sum, m) => {
       // Use emission factor with 0% recycled content
       const ef = getEmissionFactor(m.material_type || 'steel', 0)
       return sum + (m.quantity * ef)
     }, 0)
-    
+
     const conventionalEnergy = totalMass * 15 // Average 15 kWh/kg for virgin metals
     const conventionalTransport = avgTransport * 0.1 * totalMass / 1000 // kg CO2 per ton-km
-    
+
     // Circular pathway (maximized recycled content, local sourcing, design for recycling)
     const targetRecycled = circularConfig.recycled_input_target
     const circularGWP = mats.reduce((sum, m) => {
       const ef = getEmissionFactor(m.material_type || 'steel', targetRecycled)
       return sum + (m.quantity * ef)
     }, 0)
-    
+
     const circularEnergy = totalMass * 5 // 5 kWh/kg average for recycled metals (much lower)
     const localDistance = circularConfig.local_sourcing ? avgTransport * 0.3 : avgTransport
     const circularTransport = localDistance * 0.1 * totalMass / 1000
-    
+
     // Lifespan adjustment
     const baseLifespan = proj.target_lifespan || 10
     const extendedLifespan = circularConfig.extended_lifespan ? baseLifespan * 1.5 : baseLifespan
-    
+
     // End of life recovery rates
     const conventionalRecovery = 30 // 30% typically recovered in linear model
     const circularRecovery = circularConfig.closed_loop_recycling ? 95 : 70
-    
+
     const conventional: PathwayData = {
       name: 'Conventional (Linear) Pathway',
       description: 'Traditional manufacturing with virgin materials, standard transport, and limited end-of-life recovery',
@@ -208,7 +216,7 @@ export default function ScenarioComparisonPage() {
       lifespan_years: baseLifespan,
       end_of_life_recovery: conventionalRecovery
     }
-    
+
     const circular: PathwayData = {
       name: 'Circular (Sustainable) Pathway',
       description: 'Maximized recycled content, local sourcing, design for disassembly, and closed-loop recycling',
@@ -223,7 +231,7 @@ export default function ScenarioComparisonPage() {
       lifespan_years: Math.round(extendedLifespan),
       end_of_life_recovery: circularRecovery
     }
-    
+
     // Calculate savings
     const savings = {
       gwp_kg: Math.round(conventional.gwp_total - circular.gwp_total),
@@ -232,7 +240,7 @@ export default function ScenarioComparisonPage() {
       virgin_material_kg: Math.round(totalMass * (conventional.virgin_material - circular.virgin_material) / 100),
       waste_kg: Math.round(conventional.waste_generated - circular.waste_generated)
     }
-    
+
     // Generate recommendations
     const recommendations: string[] = []
     if (avgRecycled < 50) {
@@ -246,14 +254,14 @@ export default function ScenarioComparisonPage() {
     }
     recommendations.push(`Extend product lifespan by ${Math.round(extendedLifespan - baseLifespan)} years through modular design`)
     recommendations.push('Partner with certified recyclers for closed-loop material recovery')
-    
+
     setComparison({
       conventional,
       circular,
       savings,
       recommendations
     })
-    
+
     setIsCalculating(false)
   }
 
@@ -271,7 +279,7 @@ export default function ScenarioComparisonPage() {
       'magnesium': 18.0,
       'default': 5.0
     }
-    
+
     const recycledFactors: Record<string, number> = {
       'aluminium': 0.7,
       'aluminum': 0.7,
@@ -284,11 +292,11 @@ export default function ScenarioComparisonPage() {
       'magnesium': 2.5,
       'default': 1.0
     }
-    
+
     const type = materialType.toLowerCase()
     const virgin = virginFactors[type] || virginFactors['default']
     const recycled = recycledFactors[type] || recycledFactors['default']
-    
+
     return virgin * (1 - recycledPercent / 100) + recycled * (recycledPercent / 100)
   }
 
@@ -362,15 +370,73 @@ export default function ScenarioComparisonPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+        {/* Secondary Navigation Bar */}
+        <div className="bg-white rounded-lg shadow mb-5">
+          <div className="flex flex-wrap items-center gap-1 p-2 border-b border-gray-100">
+            <button
+              onClick={() => navigate('/projects')}
+              className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-1.5"
+            >
+              <span className="text-base">←</span> Back
+            </button>
+            <div className="w-px h-6 bg-gray-200 mx-1"></div>
+            <button
+              onClick={() => navigate(`/projects/${id}`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              Dashboard
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/analytics`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <ChartIcon size={16} /> Analytics
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/lcia`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-teal-50 hover:text-teal-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AnalyticsIcon size={16} /> LCIA
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/analysis`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AnalyticsIcon size={16} /> Analysis
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/recommendations`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AIIcon size={16} /> Design Advisor
+            </button>
+            <button
+              className="px-4 py-2 text-sm font-medium bg-indigo-50 text-indigo-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <FlaskIcon size={16} /> Scenarios
+            </button>
+            {hasCBAMAccess ? (
+              <button
+                onClick={() => navigate(`/projects/${id}/cbam-export`)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-md transition-colors flex items-center gap-2"
+              >
+                <FileSpreadsheet size={16} /> CBAM
+              </button>
+            ) : (
+              <Link
+                to="/pricing"
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+                title="CBAM Export requires Pro plan"
+              >
+                <Lock size={16} /> CBAM
+              </Link>
+            )}
+          </div>
+        </div>
+
         {/* Header */}
         <div className="mb-6">
-          <Link
-            to={`/projects/${id}`}
-            className="text-blue-600 hover:text-blue-700 flex items-center gap-2 mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Project
-          </Link>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
@@ -384,11 +450,10 @@ export default function ScenarioComparisonPage() {
                 <button
                   key={view}
                   onClick={() => setActiveView(view as any)}
-                  className={`px-4 py-2 rounded-lg font-medium transition ${
-                    activeView === view
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white text-gray-600 hover:bg-gray-100'
-                  }`}
+                  className={`px-4 py-2 rounded-lg font-medium transition ${activeView === view
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-100'
+                    }`}
                 >
                   {view.charAt(0).toUpperCase() + view.slice(1)}
                 </button>
@@ -404,8 +469,8 @@ export default function ScenarioComparisonPage() {
             <div>
               <h3 className="font-semibold text-blue-900">What is Pathway Comparison?</h3>
               <p className="text-sm text-blue-700 mt-1">
-                This tool compares the environmental impact of manufacturing your product using a 
-                <strong> conventional linear approach</strong> (virgin materials, standard logistics, limited recycling) 
+                This tool compares the environmental impact of manufacturing your product using a
+                <strong> conventional linear approach</strong> (virgin materials, standard logistics, limited recycling)
                 versus a <strong>circular sustainable approach</strong> (recycled inputs, local sourcing, design for disassembly, closed-loop recycling).
                 This aligns with India's Circular Economy Mission and CBAM requirements.
               </p>
@@ -549,46 +614,22 @@ export default function ScenarioComparisonPage() {
                 </div>
               </div>
             )}
+            {/* Pathway Visualization */}
+            {activeView === 'overview' && (
+              <div className="mb-6">
+                <PathwayComparisonViz
+                  conventionalRecycled={mciResult?.avg_recycled_content || 0}
+                  circularRecycled={circularConfig.recycled_input_target}
+                  conventionalRecovery={comparison.conventional.end_of_life_recovery}
+                  circularRecovery={circularConfig.closed_loop_recycling ? 95 : 70}
+                  showControls={false}
+                  onRecycledChange={(val) => setCircularConfig(prev => ({ ...prev, recycled_input_target: val }))}
+                />
+              </div>
+            )}
 
-            {/* Savings Summary */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg p-6 mb-6 text-white">
-              <div className="flex items-center gap-3 mb-4">
-                <Sparkles className="w-6 h-6" />
-                <h2 className="text-xl font-bold">Potential Savings with Circular Pathway</h2>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <SavingsCard
-                  label="CO₂ Reduction"
-                  value={comparison.savings.gwp_kg}
-                  unit="kg"
-                  percent={comparison.savings.gwp_percent}
-                />
-                <SavingsCard
-                  label="Energy Saved"
-                  value={comparison.savings.energy_kwh}
-                  unit="kWh"
-                  percent={Math.round((comparison.savings.energy_kwh / comparison.conventional.energy_consumption) * 100)}
-                />
-                <SavingsCard
-                  label="Virgin Material"
-                  value={comparison.savings.virgin_material_kg}
-                  unit="kg"
-                  percent={Math.round(comparison.circular.recycled_input)}
-                />
-                <SavingsCard
-                  label="Waste Avoided"
-                  value={comparison.savings.waste_kg}
-                  unit="kg"
-                  percent={Math.round((comparison.savings.waste_kg / comparison.conventional.waste_generated) * 100)}
-                />
-                <SavingsCard
-                  label="Lifespan Increase"
-                  value={comparison.circular.lifespan_years - comparison.conventional.lifespan_years}
-                  unit="years"
-                  percent={Math.round(((comparison.circular.lifespan_years - comparison.conventional.lifespan_years) / comparison.conventional.lifespan_years) * 100)}
-                />
-              </div>
-            </div>
+
+
 
             {/* Detailed View */}
             {activeView === 'detailed' && (
@@ -871,6 +912,46 @@ export default function ScenarioComparisonPage() {
                 ))}
               </div>
             </div>
+
+            {/* Savings Summary (Moved to Bottom) */}
+            <div className="bg-green-600 rounded-xl shadow-xl p-6 text-white mt-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Sparkles className="w-6 h-6 text-green-100" />
+                <h2 className="text-xl font-bold">Potential Savings with Circular Pathway</h2>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <SavingsCard
+                  label="CO₂ Reduction"
+                  value={comparison.savings.gwp_kg}
+                  unit="kg"
+                  percent={comparison.savings.gwp_percent}
+                />
+                <SavingsCard
+                  label="Energy Saved"
+                  value={comparison.savings.energy_kwh}
+                  unit="kWh"
+                  percent={Math.round((comparison.savings.energy_kwh / comparison.conventional.energy_consumption) * 100)}
+                />
+                <SavingsCard
+                  label="Virgin Material"
+                  value={comparison.savings.virgin_material_kg}
+                  unit="kg"
+                  percent={Math.round(comparison.circular.recycled_input)}
+                />
+                <SavingsCard
+                  label="Waste Avoided"
+                  value={comparison.savings.waste_kg}
+                  unit="kg"
+                  percent={Math.round((comparison.savings.waste_kg / comparison.conventional.waste_generated) * 100)}
+                />
+                <SavingsCard
+                  label="Lifespan Increase"
+                  value={comparison.circular.lifespan_years - comparison.conventional.lifespan_years}
+                  unit="years"
+                  percent={Math.round(((comparison.circular.lifespan_years - comparison.conventional.lifespan_years) / comparison.conventional.lifespan_years) * 100)}
+                />
+              </div>
+            </div>
           </>
         )}
       </div>
@@ -913,10 +994,10 @@ function SavingsCard({ label, value, unit, percent }: {
 }) {
   return (
     <div className="bg-white/20 rounded-lg p-3 text-center">
-      <p className="text-blue-100 text-xs mb-1">{label}</p>
+      <p className="text-green-50 text-xs mb-1">{label}</p>
       <p className="text-2xl font-bold">{value.toLocaleString()}</p>
-      <p className="text-blue-100 text-xs">{unit}</p>
-      <p className="text-green-300 text-sm font-semibold mt-1">↓ {percent}%</p>
+      <p className="text-green-50 text-xs">{unit}</p>
+      <p className="text-white text-sm font-bold mt-1">↓ {percent}%</p>
     </div>
   )
 }
@@ -930,16 +1011,15 @@ function ComparisonRow({ label, conventional, circular, higherIsBetter = false }
   const diff = higherIsBetter ? circular - conventional : conventional - circular
   const percentChange = conventional !== 0 ? Math.round((diff / conventional) * 100) : 0
   const isImproved = diff > 0
-  
+
   return (
     <tr className="border-b border-gray-100 hover:bg-gray-50">
       <td className="py-3 px-4 text-gray-700">{label}</td>
       <td className="py-3 px-4 text-center text-red-600 font-medium">{conventional.toLocaleString()}</td>
       <td className="py-3 px-4 text-center text-green-600 font-medium">{circular.toLocaleString()}</td>
       <td className="py-3 px-4 text-center">
-        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-          isImproved ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-        }`}>
+        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${isImproved ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+          }`}>
           {isImproved ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
           {Math.abs(percentChange)}%
         </span>
@@ -958,7 +1038,7 @@ function LifecycleStep({ step, title, description, impact, color }: {
   const bgColor = color === 'green' ? 'bg-green-100' : color === 'orange' ? 'bg-orange-100' : 'bg-red-100'
   const textColor = color === 'green' ? 'text-green-700' : color === 'orange' ? 'text-orange-700' : 'text-red-700'
   const borderColor = color === 'green' ? 'border-green-300' : color === 'orange' ? 'border-orange-300' : 'border-red-300'
-  
+
   return (
     <div className={`p-4 rounded-lg border-2 ${bgColor} ${borderColor}`}>
       <div className="flex items-center gap-3 mb-2">

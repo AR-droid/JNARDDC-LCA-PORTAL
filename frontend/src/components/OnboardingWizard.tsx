@@ -160,12 +160,16 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
             </p>
             <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto text-sm">
               <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="text-2xl mb-2">📊</div>
+                <div className="flex justify-center mb-2">
+                  <BarChart3 className="w-8 h-8 text-gray-600" />
+                </div>
                 <div className="font-medium text-blue-900">Carbon Footprint</div>
                 <div className="text-blue-600">GWP Analysis</div>
               </div>
               <div className="bg-green-50 p-4 rounded-lg">
-                <div className="text-2xl mb-2">♻️</div>
+                <div className="flex justify-center mb-2">
+                  <Recycle className="w-8 h-8 text-gray-600" />
+                </div>
                 <div className="font-medium text-green-900">Circularity</div>
                 <div className="text-green-600">MCI Scoring</div>
               </div>
@@ -422,7 +426,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
               <Check className="w-10 h-10 text-white" />
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              You're all set! 🎉
+              You're all set!
             </h2>
             <p className="text-lg text-gray-600 mb-6 max-w-md mx-auto">
               Your project "<strong>{projectName}</strong>" is ready. Let's start your LCA journey!

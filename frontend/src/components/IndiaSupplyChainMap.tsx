@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Truck, Ship, Train, Plane, Info } from 'lucide-react'
+import { Truck, Ship, Train, Plane, Info, Factory, Globe } from 'lucide-react'
 
 interface SupplyChainEntry {
   id: string
@@ -219,14 +219,16 @@ export default function IndiaSupplyChainMap({ entries, destinationName = 'Manufa
                 strokeWidth="3"
                 className="drop-shadow-lg"
               />
-              <text
-                x={destSvg.x}
-                y={destSvg.y + 4}
-                textAnchor="middle"
-                className="text-xs font-bold fill-white"
+              <foreignObject
+                x={destSvg.x - 10}
+                y={destSvg.y - 10}
+                width="20"
+                height="20"
               >
-                🏭
-              </text>
+                <div className="flex items-center justify-center w-full h-full">
+                  <Factory className="w-4 h-4 text-white" />
+                </div>
+              </foreignObject>
               <text
                 x={destSvg.x}
                 y={destSvg.y + 25}
@@ -240,9 +242,14 @@ export default function IndiaSupplyChainMap({ entries, destinationName = 'Manufa
             {/* International sources indicator */}
             {showInternational && internationalEntries.length > 0 && (
               <g>
-                <rect x="10" y="10" width="100" height="30" fill="white" rx="5" opacity="0.9" />
-                <text x="20" y="28" className="text-xs fill-gray-600">
-                  🌍 {internationalEntries.length} imports
+                <rect x="10" y="10" width="120" height="30" fill="white" rx="5" opacity="0.9" />
+                <foreignObject x="15" y="15" width="20" height="20">
+                  <div className="flex items-center justify-center w-full h-full">
+                    <Globe className="w-4 h-4 text-blue-600" />
+                  </div>
+                </foreignObject>
+                <text x="40" y="28" className="text-xs fill-gray-600">
+                  {internationalEntries.length} imports
                 </text>
               </g>
             )}

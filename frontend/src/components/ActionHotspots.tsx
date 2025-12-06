@@ -427,14 +427,14 @@ export default function ActionHotspots({
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4">
+      <div className="bg-purple-600 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-white" />
+              <Recycle className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-white">♻️ Scrap Yard Connect</h3>
+              <h3 className="text-lg font-semibold text-white">Scrap Yard Connect</h3>
               <p className="text-sm text-purple-100">Top {hotspots.length} recycling & improvement opportunities</p>
             </div>
           </div>

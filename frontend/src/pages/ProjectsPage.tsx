@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { projectsApi } from '../api/projects';
-import { Plus } from 'lucide-react';
+import { BarChart3, Plus } from 'lucide-react';
 
 interface Project {
   id: string;
@@ -79,7 +79,9 @@ export default function ProjectsPage() {
           </div>
         ) : projects.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
-            <div className="text-6xl mb-4">📊</div>
+            <div className="flex justify-center mb-4">
+              <BarChart3 className="w-16 h-16 text-gray-400" />
+            </div>
             <h3 className="text-xl font-semibold mb-2">No Projects Yet</h3>
             <p className="text-gray-600 mb-6">
               Create your first LCA project to get started with circularity assessment

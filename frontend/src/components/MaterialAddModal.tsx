@@ -117,12 +117,12 @@ export default function MaterialAddModal({ projectId, onClose, onSuccess }: Prop
                     <option key={m.id} value={m.type}>{m.name} ({m.gwp_factor} kg CO₂-eq/kg)</option>
                   ))}
                 </optgroup>
-                <optgroup label="⚡ Rare Earth Elements">
+                <optgroup label="Rare Earth Elements">
                   {library.filter(m => ['neodymium', 'dysprosium', 'praseodymium', 'rare_earth'].some(t => m.type.includes(t))).map(m => (
                     <option key={m.id} value={m.type}>{m.name} ({m.gwp_factor} kg CO₂-eq/kg)</option>
                   ))}
                 </optgroup>
-                <optgroup label="🔧 Other Critical Minerals">
+                <optgroup label="Other Critical Minerals">
                   {library.filter(m => ['tungsten', 'vanadium', 'titanium', 'tantalum'].some(t => m.type.includes(t))).map(m => (
                     <option key={m.id} value={m.type}>{m.name} ({m.gwp_factor} kg CO₂-eq/kg)</option>
                   ))}

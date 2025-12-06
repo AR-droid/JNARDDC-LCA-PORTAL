@@ -10,7 +10,7 @@ import SupplyChainMap from '../components/SupplyChainMap'
 import ActionHotspots from '../components/ActionHotspots'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon, UploadIcon, PlusIcon, PackageIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
-import { FileSpreadsheet, Sparkles, MapPin, Truck, Train, Ship, Plane, Wand2, Loader2, Recycle, ArrowRight, TrendingDown } from 'lucide-react'
+import { FileSpreadsheet, Sparkles, MapPin, Truck, Train, Ship, Plane, Wand2, Loader2, Recycle, ArrowRight, TrendingDown, Lightbulb, Building2, XCircle } from 'lucide-react'
 import { Lock } from "lucide-react";
 import { Award } from "lucide-react";
 import { AlertTriangle } from "lucide-react";
@@ -229,7 +229,7 @@ export default function ProjectDetailPage() {
       const result = await materialsApi.addBatch(id, materialsToAdd)
       
       if (result.added > 0) {
-        setNotification({ type: 'success', message: `✅ Successfully generated BOM! ${result.added} materials added from your description.${result.failed > 0 ? ` ${result.failed} materials could not be added.` : ''}` })
+        setNotification({ type: 'success', message: `Successfully generated BOM! ${result.added} materials added from your description.${result.failed > 0 ? ` ${result.failed} materials could not be added.` : ''}` })
         await loadData()
       } else {
         setNotification({ type: 'error', message: 'No materials could be added. Please check the description or add materials manually.' })
@@ -558,7 +558,7 @@ export default function ProjectDetailPage() {
                     <button
                       onClick={handleGenerateBOM}
                       disabled={isGeneratingBOM}
-                      className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-3 py-1.5 text-sm rounded-md hover:from-purple-700 hover:to-indigo-700 transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="bg-purple-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-purple-700 transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isGeneratingBOM ? (
                         <>
@@ -575,7 +575,7 @@ export default function ProjectDetailPage() {
                     onClick={() => setShowBOMUpload(true)}
                     className="bg-green-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-green-700 transition-colors flex items-center gap-1.5"
                   >
-                    <UploadIcon size={14} /> Upload CSV
+                    <UploadIcon size={14} /> Upload BOM
                   </button>
                   <button
                     onClick={() => setShowAddModal(true)}
@@ -600,7 +600,7 @@ export default function ProjectDetailPage() {
                     <p className="text-gray-600 mb-6 max-w-md mx-auto">
                       {project?.description 
                         ? "Use AI to automatically extract materials from your product description, or add them manually."
-                        : "Add your product's materials to calculate its environmental impact. Upload a CSV or add materials one by one."
+                        : "Add your product's materials to calculate its environmental impact. Upload a PDF/Excel BOM or add materials one by one."
                       }
                     </p>
                     
@@ -609,7 +609,7 @@ export default function ProjectDetailPage() {
                         <button
                           onClick={handleGenerateBOM}
                           disabled={isGeneratingBOM}
-                          className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-2.5 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all flex items-center justify-center gap-2 font-medium shadow-lg shadow-purple-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="bg-purple-600 text-white px-6 py-2.5 rounded-lg hover:bg-purple-700 transition-all flex items-center justify-center gap-2 font-medium shadow-lg shadow-purple-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isGeneratingBOM ? (
                             <>
@@ -626,7 +626,7 @@ export default function ProjectDetailPage() {
                         onClick={() => setShowBOMUpload(true)}
                         className="bg-white text-green-700 border-2 border-green-200 px-5 py-2.5 rounded-lg hover:bg-green-50 hover:border-green-300 transition-all flex items-center justify-center gap-2 font-medium"
                       >
-                        <UploadIcon size={18} /> Upload CSV
+                        <UploadIcon size={18} /> Upload BOM
                       </button>
                       <button
                         onClick={() => setShowAddModal(true)}
@@ -637,8 +637,8 @@ export default function ProjectDetailPage() {
                     </div>
                     
                     {!project?.description && (
-                      <p className="text-sm text-gray-500 mt-4">
-                        💡 Tip: Add a product description to enable AI-powered BOM generation
+                      <p className="text-sm text-gray-500 mt-4 flex items-center gap-2">
+                        <Lightbulb className="w-4 h-4" /> Tip: Add a product description to enable AI-powered BOM generation
                       </p>
                     )}
                   </div>
@@ -878,7 +878,7 @@ export default function ProjectDetailPage() {
           <div className="flex justify-between items-start mb-4">
             <div>
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                🏛️ JNARDDC Verification
+                <Building2 className="w-5 h-5" /> JNARDDC Verification
                 {!hasVerificationAccess && (
                   <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">Enterprise</span>
                 )}
@@ -935,7 +935,8 @@ export default function ProjectDetailPage() {
 
               {verificationStatus?.verification_status === 'rejected' && (
                 <span className="px-3 py-1.5 bg-red-100 text-red-800 rounded-full text-sm font-medium flex items-center gap-1">
-                  ❌ Rejected
+                  <XCircle className="w-4 h-4" />
+                  Rejected
                 </span>
               )}
             </div>

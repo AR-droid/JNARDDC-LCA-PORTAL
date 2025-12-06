@@ -8,7 +8,7 @@ import {
   NLPParsedMaterial,
 } from '../api/projects';
 import { useAuthStore } from '../stores/authStore';
-import { Mic, MicOff, Loader2, FileText, X, Sparkles, UploadCloud, Ban, BarChart3, Recycle, Nut, AlertTriangle, CheckCircle, ArrowLeft, Plus, ChevronDown, Settings, Pencil } from 'lucide-react';
+import { Mic, MicOff, Loader2, FileText, X, Sparkles, UploadCloud, Ban, BarChart3, Recycle, Nut, AlertTriangle, CheckCircle, ArrowLeft, Plus, ChevronDown, Settings, Pencil, Zap } from 'lucide-react';
 
 
 
@@ -50,7 +50,7 @@ export default function CreateProjectPage() {
           </div>
           <div className="space-y-3">
             <Link to="/pricing" className="block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
-              ⚡ Upgrade to Pro
+              <Zap className="w-4 h-4 inline" /> Upgrade to Pro
             </Link>
             <Link to="/dashboard" className="block w-full border border-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-50 transition">
               Back to Dashboard

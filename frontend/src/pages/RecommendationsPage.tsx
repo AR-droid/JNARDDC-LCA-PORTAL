@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { projectsApi, DesignRecommendation, DesignRecommendationsResult, AIDesignInsight } from '../api/projects'
 import { API_URL } from '../api/client'
 import { 
   FiRefreshCw, FiTruck, FiAlertTriangle, FiClock, FiTool,
-  FiChevronRight, FiEye, FiExternalLink, FiCheckCircle, FiInfo, FiArrowLeft
-} from 'react-icons/fi'
+  FiChevronRight, FiEye, FiExternalLink, FiCheckCircle, FiInfo} from 'react-icons/fi'
 import { HiOutlineSparkles, HiOutlineLightBulb } from 'react-icons/hi'
 import { BiLeaf, BiTargetLock, BiRecycle } from 'react-icons/bi'
 import { TbArrowNarrowRight } from 'react-icons/tb'
+import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
+import { FileSpreadsheet, Lock } from 'lucide-react'
+import { useAuthStore } from '../stores/authStore'
 
 interface RecommendationImages {
   before_image?: string
@@ -106,6 +108,7 @@ function ImageModal({
 export default function RecommendationsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { user } = useAuthStore()
   
   const [recommendations, setRecommendations] = useState<DesignRecommendationsResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -114,6 +117,8 @@ export default function RecommendationsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isGeneratingImages, setIsGeneratingImages] = useState(false)
   const [showAiInsights, setShowAiInsights] = useState(false)
+  
+  const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
 
   useEffect(() => {
     loadRecommendations()
@@ -315,7 +320,71 @@ export default function RecommendationsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+        {/* Secondary Navigation Bar */}
+        <div className="bg-white rounded-lg shadow mb-5">
+          <div className="flex flex-wrap items-center gap-1 p-2 border-b border-gray-100">
+            <button
+              onClick={() => navigate('/projects')}
+              className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-1.5"
+            >
+              <span className="text-base">←</span> Back
+            </button>
+            <div className="w-px h-6 bg-gray-200 mx-1"></div>
+            <button
+              onClick={() => navigate(`/projects/${id}`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              Dashboard
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/analytics`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <ChartIcon size={16} /> Analytics
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/lcia`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-teal-50 hover:text-teal-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AnalyticsIcon size={16} /> LCIA
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/analysis`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AnalyticsIcon size={16} /> Analysis
+            </button>
+            <button
+              className="px-4 py-2 text-sm font-medium bg-purple-50 text-purple-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <AIIcon size={16} /> Design Advisor
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/scenario`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <FlaskIcon size={16} /> Scenarios
+            </button>
+            {hasCBAMAccess ? (
+              <button
+                onClick={() => navigate(`/projects/${id}/cbam-export`)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-md transition-colors flex items-center gap-2"
+              >
+                <FileSpreadsheet size={16} /> CBAM
+              </button>
+            ) : (
+              <Link
+                to="/pricing"
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+                title="CBAM Export requires Pro plan"
+              >
+                <Lock size={16} /> CBAM
+              </Link>
+            )}
+          </div>
+        </div>
+
         {/* Page header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
@@ -323,33 +392,6 @@ export default function RecommendationsPage() {
             <p className="text-sm text-gray-600 mt-1">
               Data-driven guidance to improve circularity, climate impact and material risk for this project.
             </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => navigate(`/projects/${id}`)}
-              className="px-3 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 inline-flex items-center gap-1.5"
-            >
-              <FiArrowLeft className="w-4 h-4" />
-              Back
-            </button>
-            <button
-              onClick={() => navigate(`/projects/${id}/analysis`)}
-              className="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100"
-            >
-              View analysis
-            </button>
-            <button
-              onClick={() => navigate(`/projects/${id}/scenario`)}
-              className="px-4 py-2 rounded-md bg-gray-900 text-sm font-medium text-white hover:bg-gray-800"
-            >
-              Scenario modelling
-            </button>
-            <button
-              onClick={loadRecommendations}
-              className="px-3 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100"
-            >
-              Refresh
-            </button>
           </div>
         </div>
 

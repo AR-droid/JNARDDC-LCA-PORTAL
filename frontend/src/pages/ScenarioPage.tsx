@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { Microscope, BarChart3, Lightbulb } from 'lucide-react'
 import { projectsApi, Project, MCIResult, ScenarioResult } from '../api/projects'
 import { materialsApi, Material } from '../api/materials'
 
@@ -101,7 +102,9 @@ export default function ScenarioPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-6xl mb-4">🔬</div>
+          <div className="flex justify-center mb-4">
+            <Microscope className="w-16 h-16 text-gray-400" />
+          </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">No Data Available</h2>
           <p className="text-gray-600 mb-4">Add materials to your project to use scenario analysis</p>
           <button
@@ -141,7 +144,9 @@ export default function ScenarioPage() {
             <div className="space-y-6">
               {/* Current Values Summary */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-2">
-                <h3 className="text-sm font-semibold text-blue-800 mb-2">📊 Current Product Values</h3>
+                <h3 className="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" /> Current Product Values
+                </h3>
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div>
                     <p className="text-xs text-blue-600">Avg Recycled Content</p>
@@ -330,7 +335,9 @@ export default function ScenarioPage() {
 
                 {/* Improvement Summary */}
                 <div className="mt-4 p-4 bg-gradient-to-r from-green-100 to-emerald-100 rounded-lg">
-                  <h4 className="font-bold text-green-800 mb-2">💡 Impact Summary</h4>
+                  <h4 className="font-bold text-green-800 mb-2 flex items-center gap-2">
+                    <Lightbulb className="w-4 h-4" /> Impact Summary
+                  </h4>
                   <div className="space-y-1 text-sm text-green-700">
                     <p>
                       <strong>GWP Reduction:</strong> {scenarioResult.improvements.gwp_reduction_kg} kg CO₂-eq 
@@ -350,7 +357,9 @@ export default function ScenarioPage() {
 
             {!scenarioResult && (
               <div className="bg-gray-100 rounded-lg p-6 text-center">
-                <div className="text-4xl mb-3">🔬</div>
+                <div className="flex justify-center mb-3">
+                  <Microscope className="w-10 h-10 text-gray-400" />
+                </div>
                 <p className="text-gray-600">
                   Adjust the parameters on the left and click "Calculate Scenario" to see the projected impact.
                 </p>

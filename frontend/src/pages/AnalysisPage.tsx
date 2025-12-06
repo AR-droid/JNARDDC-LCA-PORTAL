@@ -3,20 +3,45 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { projectsApi, Project, MCIResult } from '../api/projects'
 import { materialsApi, Material } from '../api/materials'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
-import { FileSpreadsheet, Lock, BarChart3, Recycle, Target, Wrench, Truck, Microscope } from 'lucide-react'
+import { FileSpreadsheet, Lock, BarChart3, Recycle, Target, Wrench, Truck, Microscope, Building2 } from 'lucide-react'
+
+// ... existing code ...
+
+const hasVerificationAccess = user?.tier === 'enterprise'
+
+// ... existing code ...
+
+{
+  hasVerificationAccess ? (
+    <button
+      onClick={() => navigate(`/projects/${id}/verification`)}
+      className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
+    >
+      <Building2 size={16} /> Verification
+    </button>
+  ) : (
+    <Link
+      to="/pricing"
+      className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+      title="JNARDDC Verification requires Enterprise plan"
+    >
+      <Lock size={16} /> Verification
+    </Link>
+  )
+}
 import { useAuthStore } from '../stores/authStore'
 
 export default function AnalysisPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  
+
   const [project, setProject] = useState<Project | null>(null)
   const [materials, setMaterials] = useState<Material[]>([])
   const [mciResult, setMciResult] = useState<MCIResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isCalculatingMCI, setIsCalculatingMCI] = useState(false)
-  
+
   const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
 
   useEffect(() => {
@@ -25,7 +50,7 @@ export default function AnalysisPage() {
 
   const loadData = async () => {
     if (!id) return
-    
+
     try {
       setIsLoading(true)
       const [projectData, materialsData] = await Promise.all([
@@ -34,7 +59,7 @@ export default function AnalysisPage() {
       ])
       setProject(projectData)
       setMaterials(materialsData)
-      
+
       // Calculate MCI if materials exist
       if (materialsData.length > 0) {
         setIsCalculatingMCI(true)
@@ -89,7 +114,7 @@ export default function AnalysisPage() {
   const totalGWP = materials.reduce((sum, m) => sum + m.gwp, 0)
   const totalMass = materials.reduce((sum, m) => sum + m.quantity, 0)
   const avgRecycledContent = materials.reduce((sum, m) => sum + m.recycled_content, 0) / materials.length
-  
+
   // GWP breakdown by material
   const gwpByMaterial = materials.map(m => ({
     name: m.material_name,
@@ -124,7 +149,7 @@ export default function AnalysisPage() {
 
   // Recommendations
   const recommendations = []
-  
+
   if (avgRecycledContent < 30) {
     recommendations.push({
       icon: 'recycle',
@@ -217,35 +242,35 @@ export default function AnalysisPage() {
                 onClick={() => navigate(`/projects/${id}/cbam-export`)}
                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-md transition-colors flex items-center gap-2"
               >
-              <FileSpreadsheet size={16} /> CBAM
-            </button>
-          ) : (
-            <Link
-              to="/pricing"
-              className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
-              title="CBAM Export requires Pro plan"
-            >
-              <Lock size={16} /> CBAM
-            </Link>
-          )}
-          {hasVerificationAccess ? (
-            <button
-              onClick={() => navigate(`/projects/${projectId}/verification`)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
-            >
-              <Building2 size={16} /> Verification
-            </button>
-          ) : (
-            <Link
-              to="/pricing"
-              className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
-              title="JNARDDC Verification requires Enterprise plan"
-            >
-              <Lock size={16} /> Verification
-            </Link>
-          )}
-        </div>
-      </div>        <div className="mb-6">
+                <FileSpreadsheet size={16} /> CBAM
+              </button>
+            ) : (
+              <Link
+                to="/pricing"
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+                title="CBAM Export requires Pro plan"
+              >
+                <Lock size={16} /> CBAM
+              </Link>
+            )}
+            {hasVerificationAccess ? (
+              <button
+                onClick={() => navigate(`/projects/${projectId}/verification`)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
+              >
+                <Building2 size={16} /> Verification
+              </button>
+            ) : (
+              <Link
+                to="/pricing"
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+                title="JNARDDC Verification requires Enterprise plan"
+              >
+                <Lock size={16} /> Verification
+              </Link>
+            )}
+          </div>
+        </div>        <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Project Analysis</h1>
           <p className="text-gray-600">{project.name}</p>
         </div>
@@ -432,31 +457,29 @@ export default function AnalysisPage() {
             <h2 className="text-xl font-bold text-gray-900 mb-4">Recommendations for Improvement</h2>
             <div className="space-y-4">
               {recommendations.map((rec, index) => {
-                const IconComponent = 
+                const IconComponent =
                   rec.icon === 'recycle' ? Recycle :
-                  rec.icon === 'target' ? Target :
-                  rec.icon === 'wrench' ? Wrench :
-                  rec.icon === 'truck' ? Truck : Recycle;
-                
+                    rec.icon === 'target' ? Target :
+                      rec.icon === 'wrench' ? Wrench :
+                        rec.icon === 'truck' ? Truck : Recycle;
+
                 return (
                   <div
                     key={index}
-                    className={`border-l-4 p-4 rounded ${
-                      rec.impact === 'high' 
-                        ? 'border-red-500 bg-red-50' 
+                    className={`border-l-4 p-4 rounded ${rec.impact === 'high'
+                        ? 'border-red-500 bg-red-50'
                         : 'border-yellow-500 bg-yellow-50'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-start gap-3">
                       <IconComponent className="w-6 h-6 text-gray-600 mt-1" />
                       <div>
                         <h3 className="font-bold text-gray-900 mb-1">{rec.title}</h3>
                         <p className="text-gray-700 text-sm">{rec.description}</p>
-                        <span className={`inline-block mt-2 text-xs font-semibold px-2 py-1 rounded ${
-                          rec.impact === 'high' 
-                            ? 'bg-red-200 text-red-800' 
+                        <span className={`inline-block mt-2 text-xs font-semibold px-2 py-1 rounded ${rec.impact === 'high'
+                            ? 'bg-red-200 text-red-800'
                             : 'bg-yellow-200 text-yellow-800'
-                        }`}>
+                          }`}>
                           {rec.impact.toUpperCase()} IMPACT
                         </span>
                       </div>

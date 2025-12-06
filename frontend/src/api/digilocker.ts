@@ -1,7 +1,8 @@
 // DigiLocker Authentication API Client
 // Frontend API calls for DigiLocker mock integration
 
-const API_BASE = 'http://localhost:5000/api/v1/digilocker';
+const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE = `${baseUrl.replace(/\/$/, '')}/api/v1/digilocker`;
 
 export interface DigiLockerUser {
   name: string;

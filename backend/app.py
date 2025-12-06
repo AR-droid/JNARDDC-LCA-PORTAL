@@ -59,7 +59,7 @@ except ImportError as e:
     print(f"⚠️  Blockchain module not found: {e}")
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True, allow_headers=["Content-Type", "Authorization", "X-DigiLocker-Token"], methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"])
 
 SECRET_KEY = "supersecret123"
 DATABASE = os.getenv('DATABASE_PATH', 'users.db')

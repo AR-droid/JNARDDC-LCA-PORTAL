@@ -115,6 +115,14 @@ export const translations: Record<Language, Record<string, string>> = {
     'lca.environmentalImpact': 'Environmental Impact',
     'lca.recommendations': 'Recommendations',
     
+    // Homepage
+    'home.hero.title': 'AI-Powered LCA for the Indian Metal Sector',
+    'home.hero.subtitle': 'Measure, model, and minimize the environmental footprint of metals. From MSMEs to large enterprises, democratizing Life Cycle Assessment through Natural Language Processing.',
+    'home.getStarted': 'Get Started Free',
+    'home.learnMore': 'Learn More',
+    'home.features.title': 'Why Choose JNARDDC LCA Portal?',
+    'home.features.subtitle': 'Built specifically for Indian metal manufacturing sector',
+    
     // Common
     'common.loading': 'Loading...',
     'common.error': 'An error occurred',
@@ -234,6 +242,14 @@ export const translations: Record<Language, Record<string, string>> = {
     'lca.circularDesignScore': 'सर्कुलर डिज़ाइन स्कोर',
     'lca.environmentalImpact': 'पर्यावरणीय प्रभाव',
     'lca.recommendations': 'सिफारिशें',
+    
+    // Homepage
+    'home.hero.title': 'भारतीय धातु क्षेत्र के लिए AI-संचालित LCA',
+    'home.hero.subtitle': 'धातुओं के पर्यावरणीय प्रभाव को मापें, मॉडल करें और कम करें। MSMEs से लेकर बड़े उद्यमों तक, प्राकृतिक भाषा प्रसंस्करण के माध्यम से जीवन चक्र मूल्यांकन को लोकतांत्रिक बनाना।',
+    'home.getStarted': 'मुफ्त में शुरू करें',
+    'home.learnMore': 'और जानें',
+    'home.features.title': 'JNARDDC LCA पोर्टल क्यों चुनें?',
+    'home.features.subtitle': 'भारतीय धातु विनिर्माण क्षेत्र के लिए विशेष रूप से निर्मित',
     
     // Common
     'common.loading': 'लोड हो रहा है...',

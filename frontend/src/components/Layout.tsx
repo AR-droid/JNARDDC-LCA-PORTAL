@@ -62,32 +62,6 @@ export default function Layout({ children }: NavbarProps) {
     setIsDarkMode(!isDarkMode);
   };
 
-  // Trigger Google Translate without page reload (safer for React Router)
-  const triggerGoogleTranslate = (langCode: string) => {
-    const applyTranslation = () => {
-      const select = document.querySelector('.goog-te-combo') as HTMLSelectElement;
-      if (select) {
-        select.value = langCode === 'en' ? 'en' : 'hi';
-        select.dispatchEvent(new Event('change'));
-        return true;
-      }
-      return false;
-    };
-    
-    // Try immediately
-    if (applyTranslation()) return;
-    
-    // If not loaded yet, wait for it
-    const checkInterval = setInterval(() => {
-      if (applyTranslation()) {
-        clearInterval(checkInterval);
-      }
-    }, 500);
-    
-    // Clear interval after 10 seconds
-    setTimeout(() => clearInterval(checkInterval), 10000);
-  };
-
   // Don't show nav on homepage, login, or register pages
   const hideNav = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/register';
 
@@ -319,7 +293,6 @@ export default function Layout({ children }: NavbarProps) {
                             onClick={() => {
                               setLanguage(lang.code);
                               setIsLanguageOpen(false);
-                              triggerGoogleTranslate(lang.code);
                             }}
                             className={`w-full px-3 py-2 text-left text-sm flex items-center space-x-3 hover:bg-gray-50 transition ${language === lang.code ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
                               }`}
@@ -364,7 +337,6 @@ export default function Layout({ children }: NavbarProps) {
                             onClick={() => {
                               setLanguage(lang.code);
                               setIsLanguageOpen(false);
-                              triggerGoogleTranslate(lang.code);
                             }}
                             className={`w-full px-3 py-2 text-left text-sm flex items-center space-x-3 hover:bg-gray-50 transition ${language === lang.code ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
                               }`}

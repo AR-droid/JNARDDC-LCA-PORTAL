@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
+import { useTranslation } from '../stores/languageStore';
 import { Link } from 'react-router-dom';
 import { projectsApi, getDashboardAnalytics, DashboardAnalytics } from '../api/projects';
 import GWPBreakdownChart3D from '../components/charts/GWPBreakdownChart3D';
@@ -11,6 +12,7 @@ import OnboardingWizard from '../components/OnboardingWizard';
 
 export default function DashboardPage() {
   const { user, checkAuth } = useAuthStore();
+  const { t } = useTranslation();
   const [projects, setProjects] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
   const [stats, setStats] = useState({
@@ -96,7 +98,7 @@ export default function DashboardPage() {
           <div className="relative z-10 flex items-center justify-between p-6">
             <div>
               <h1 className="text-3xl font-bold mb-2 text-white">
-                Welcome back, {user?.full_name || user?.email?.split('@')[0] || 'User'}!
+                {t('dashboard.welcome')}, {user?.full_name || user?.email?.split('@')[0] || 'User'}!
               </h1>
               <p className="text-gray-200">
                 {user?.organization_name && `${user.organization_name} • `}
@@ -107,7 +109,7 @@ export default function DashboardPage() {
               to="/projects/new"
               className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition font-medium shadow-sm"
             >
-              <PlusIcon size={18} /> New Project
+              <PlusIcon size={18} /> {t('projects.newProject')}
             </Link>
           </div>
         </div>
@@ -189,7 +191,7 @@ export default function DashboardPage() {
             {/* Dark overlay for readability */}
             <div className="absolute inset-0 bg-black/50"></div>
             <div className="relative z-10">
-              <h3 className="text-lg font-semibold mb-2 text-white">Total Projects</h3>
+              <h3 className="text-lg font-semibold mb-2 text-white">{t('dashboard.totalProjects')}</h3>
               <p className="text-4xl font-bold text-blue-400">{stats.total}</p>
               <p className="text-sm text-gray-200 mt-2">
                 {stats.total === 0 ? 'Get started by creating a project' : `${stats.calculated} calculated`}
@@ -234,7 +236,7 @@ export default function DashboardPage() {
         {/* Quick Actions & Recent Projects - Now on top */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
+            <h2 className="text-xl font-bold mb-4">{t('dashboard.quickActions')}</h2>
             <div className="space-y-3">
               <Link
                 to="/projects/new"
@@ -244,7 +246,7 @@ export default function DashboardPage() {
                   <Rocket className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Create New Project</h3>
+                  <h3 className="font-semibold text-gray-900">{t('dashboard.createProject')}</h3>
                   <p className="text-sm text-gray-600">Start a new LCA assessment with NLP or manual entry</p>
                 </div>
               </Link>
@@ -256,7 +258,7 @@ export default function DashboardPage() {
                   <Package className="w-6 h-6 text-green-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">View All Projects</h3>
+                  <h3 className="font-semibold text-gray-900">{t('dashboard.viewAll')} {t('nav.projects')}</h3>
                   <p className="text-sm text-gray-600">Manage your LCA portfolio</p>
                 </div>
               </Link>
@@ -295,16 +297,16 @@ export default function DashboardPage() {
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4">Recent Projects</h2>
+            <h2 className="text-xl font-bold mb-4">{t('dashboard.recentProjects')}</h2>
             {isLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
               </div>
             ) : projects.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                <p>No projects yet</p>
+                <p>{t('dashboard.noProjects')}</p>
                 <Link to="/projects" className="text-blue-600 hover:text-blue-700 text-sm mt-2 inline-block">
-                  Create your first project →
+                  {t('dashboard.startFirst')} →
                 </Link>
               </div>
             ) : (

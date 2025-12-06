@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Leaf, Target, Award, Menu, X, ChevronLeft, ChevronRight, Quote, BarChart3, Globe, FileCheck, Star, Briefcase, User, LayoutDashboard, LogOut } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
+import { useTranslation } from '../stores/languageStore'
 
 // Custom hook for scroll-triggered animations using Intersection Observer
 function useInView(threshold = 0.1) {
@@ -113,6 +114,7 @@ export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [currentTestimonial, setCurrentTestimonial] = useState(0)
   const { isAuthenticated, user, logout } = useAuthStore()
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   const handleLogout = () => {
@@ -319,11 +321,10 @@ export default function HomePage() {
         <div className="relative z-20 container mx-auto px-4 text-center">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-5xl md:text-6xl font-bold text-white mb-6 drop-shadow-lg animate-fade-in-up opacity-0" style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
-              AI-Powered LCA for the Indian Metal Sector
+              {t('home.hero.title')}
             </h2>
             <p className="text-xl md:text-2xl text-gray-200 mb-8 drop-shadow animate-fade-in-up opacity-0" style={{ animationDelay: '0.4s', animationFillMode: 'forwards' }}>
-              Measure, model, and minimize the environmental footprint of metals.
-              From MSMEs to large enterprises, democratizing Life Cycle Assessment through Natural Language Processing.
+              {t('home.hero.subtitle')}
             </p>
 
             <div className="flex flex-col sm:flex-row justify-center gap-4 animate-fade-in-up opacity-0" style={{ animationDelay: '0.6s', animationFillMode: 'forwards' }}>
@@ -346,7 +347,7 @@ export default function HomePage() {
                 href="#features"
                 className="bg-white/20 backdrop-blur-sm border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white/30 transition-all hover:scale-105"
               >
-                Learn More
+                {t('home.learnMore')}
               </a>
             </div>
           </div>

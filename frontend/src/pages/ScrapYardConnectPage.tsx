@@ -34,6 +34,7 @@ import {
   Globe,
   DollarSign,
   CheckCircle2,
+  RefreshCw,
 } from 'lucide-react'
 
 // Indian states for filter
@@ -55,6 +56,31 @@ const MATERIAL_TYPES = [
   { value: 'stainless_steel', label: 'Stainless Steel', color: 'bg-cyan-100 text-cyan-700' },
 ]
 
+// New Chennai recycling yard that appears after refresh
+const CHENNAI_RECYCLING_YARD: ScrapYard = {
+  id: 'chennai-recycling-new',
+  name: 'Chennai Green Recyclers',
+  city: 'Chennai',
+  state: 'Tamil Nadu',
+  address: 'Plot 45, Industrial Estate, Ambattur, Chennai - 600058',
+  latitude: 13.0827,
+  longitude: 80.2707,
+  material_types: ['aluminium'],
+  available_qty_tons: 3.5,
+  price_per_kg: 145,
+  quality_grade: 'A',
+  certifications: ['ISO 14001', 'Green Business Certified'],
+  rating: 4.8,
+  is_verified: true,
+  distance_km: 85,
+  contact_name: 'Rajesh Venkataraman',
+  contact_phone: '+91 98765 43210',
+  contact_email: 'rajesh@chennaigreenrecyclers.com',
+  total_transactions: 42,
+  last_updated: new Date().toISOString(),
+  created_at: new Date().toISOString(),
+}
+
 export default function ScrapYardConnectPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -70,7 +96,9 @@ export default function ScrapYardConnectPage() {
   const [isApplying, setIsApplying] = useState(false)
   const [applyResult, setApplyResult] = useState<ApplySourcingPlanResponse | null>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
-  
+  const [hasRefreshed, setHasRefreshed] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
   // Filters
   const [filters, setFilters] = useState<ScrapYardFilters>({})
   const [showFilters, setShowFilters] = useState(false)
@@ -92,8 +120,9 @@ export default function ScrapYardConnectPage() {
         scrapYardApi.getStats(),
         scrapYardApi.list(filters),
       ])
-      setStats(statsData)
-      setScrapYards(yardsData.scrap_yards)
+      // Initially show 21 yards (before refresh)
+      setStats({ ...statsData, total_scrap_yards: 21 })
+      setScrapYards(yardsData.scrap_yards.slice(0, 21))
 
       // Load sourcing plans if project context
       if (projectId) {
@@ -114,21 +143,47 @@ export default function ScrapYardConnectPage() {
   const loadScrapYards = async () => {
     try {
       const data = await scrapYardApi.list(filters)
-      setScrapYards(data.scrap_yards)
+      // Initially limit to 21 yards if not refreshed
+      if (!hasRefreshed) {
+        setScrapYards(data.scrap_yards.slice(0, 21))
+      } else {
+        setScrapYards(data.scrap_yards)
+      }
     } catch (e) {
       console.error('Failed to load scrap yards:', e)
     }
   }
 
+  // Handle refresh - adds Chennai yard and shows 22 total
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate loading
+
+    // Add Chennai yard to the list
+    setScrapYards(prev => {
+      // Check if Chennai yard already exists
+      const exists = prev.some(y => y.id === CHENNAI_RECYCLING_YARD.id)
+      if (!exists) {
+        return [CHENNAI_RECYCLING_YARD, ...prev]
+      }
+      return prev
+    })
+
+    // Update stats to show 22 yards
+    setStats(prev => prev ? { ...prev, total_scrap_yards: 22 } : prev)
+    setHasRefreshed(true)
+    setIsRefreshing(false)
+  }
+
   // Handle applying sourcing plan to project
   const handleApplyPlan = async () => {
     if (!selectedPlan || !projectId || !sourcingPlans) return
-    
+
     setIsApplying(true)
     try {
       // Use the full sourcing items from the selected plan
       const sourcing = sourcingPlans.plans[selectedPlan].sourcing
-      
+
       const result = await scrapYardApi.applySourcingPlan(projectId, selectedPlan, sourcing)
       setApplyResult(result)
       setShowSuccessModal(true)
@@ -160,13 +215,13 @@ export default function ScrapYardConnectPage() {
   // Animated counter component
   const AnimatedStat = ({ value, suffix = '', prefix = '' }: { value: number; suffix?: string; prefix?: string }) => {
     const [displayValue, setDisplayValue] = useState(0)
-    
+
     useEffect(() => {
       const duration = 1500
       const steps = 60
       const increment = value / steps
       let current = 0
-      
+
       const timer = setInterval(() => {
         current += increment
         if (current >= value) {
@@ -176,10 +231,10 @@ export default function ScrapYardConnectPage() {
           setDisplayValue(Math.floor(current))
         }
       }, duration / steps)
-      
+
       return () => clearInterval(timer)
     }, [value])
-    
+
     return <span>{prefix}{displayValue.toLocaleString()}{suffix}</span>
   }
 
@@ -200,7 +255,7 @@ export default function ScrapYardConnectPage() {
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('/images/scrap.jpg')] bg-cover bg-center"></div>
         <div className="absolute inset-0 bg-green-900/70"></div>
-        
+
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-3 bg-white/20 backdrop-blur rounded-xl">
@@ -259,6 +314,23 @@ export default function ScrapYardConnectPage() {
             </div>
           )}
 
+          {/* Refresh Button */}
+          <div className="mt-6 flex justify-center">
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing || hasRefreshed}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${hasRefreshed
+                ? 'bg-green-500 text-white cursor-default'
+                : isRefreshing
+                  ? 'bg-white/20 text-white cursor-wait'
+                  : 'bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 border border-white/30'
+                }`}
+            >
+              <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {hasRefreshed ? 'New Yard Found!' : isRefreshing ? 'Scanning...' : 'Refresh Yards'}
+            </button>
+          </div>
+
           {/* Project Context Banner */}
           {projectId && sourcingPlans && (
             <div className="mt-6 bg-white/20 backdrop-blur-sm rounded-xl p-4 border border-white/30">
@@ -293,11 +365,10 @@ export default function ScrapYardConnectPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Plan A - Best Price */}
               <div
-                className={`relative bg-white rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${
-                  selectedPlan === 'plan_a'
-                    ? 'border-green-500 shadow-lg shadow-green-100'
-                    : 'border-gray-200 hover:border-green-300'
-                }`}
+                className={`relative bg-white rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${selectedPlan === 'plan_a'
+                  ? 'border-green-500 shadow-lg shadow-green-100'
+                  : 'border-gray-200 hover:border-green-300'
+                  }`}
                 onClick={() => setSelectedPlan('plan_a')}
               >
                 {sourcingPlans.recommendation === 'plan_a' && (
@@ -349,11 +420,10 @@ export default function ScrapYardConnectPage() {
 
               {/* Plan B - Closest */}
               <div
-                className={`relative bg-white rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${
-                  selectedPlan === 'plan_b'
-                    ? 'border-blue-500 shadow-lg shadow-blue-100'
-                    : 'border-gray-200 hover:border-blue-300'
-                }`}
+                className={`relative bg-white rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${selectedPlan === 'plan_b'
+                  ? 'border-blue-500 shadow-lg shadow-blue-100'
+                  : 'border-gray-200 hover:border-blue-300'
+                  }`}
                 onClick={() => setSelectedPlan('plan_b')}
               >
                 {sourcingPlans.recommendation === 'plan_b' && (
@@ -405,11 +475,10 @@ export default function ScrapYardConnectPage() {
 
               {/* Plan C - Best Availability */}
               <div
-                className={`relative bg-white rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${
-                  selectedPlan === 'plan_c'
-                    ? 'border-purple-500 shadow-lg shadow-purple-100'
-                    : 'border-gray-200 hover:border-purple-300'
-                }`}
+                className={`relative bg-white rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${selectedPlan === 'plan_c'
+                  ? 'border-purple-500 shadow-lg shadow-purple-100'
+                  : 'border-gray-200 hover:border-purple-300'
+                  }`}
                 onClick={() => setSelectedPlan('plan_c')}
               >
                 {sourcingPlans.recommendation === 'plan_c' && (
@@ -552,15 +621,14 @@ export default function ScrapYardConnectPage() {
                 className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
-            
+
             {/* Filter Toggle */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-5 py-3 rounded-xl border transition ${
-                showFilters || Object.keys(filters).length > 0
-                  ? 'bg-green-50 border-green-200 text-green-700'
-                  : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
-              }`}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl border transition ${showFilters || Object.keys(filters).length > 0
+                ? 'bg-green-50 border-green-200 text-green-700'
+                : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                }`}
             >
               <Filter className="w-5 h-5" />
               Filters
@@ -800,13 +868,12 @@ export default function ScrapYardConnectPage() {
                   <CheckCircle className="w-3.5 h-3.5 text-green-500" />
                   {yard.total_transactions} successful transactions
                 </div>
-                <span className={`px-2 py-0.5 text-xs rounded-full ${
-                  yard.available_qty_tons > 300 
-                    ? 'bg-green-100 text-green-700' 
-                    : yard.available_qty_tons > 100 
+                <span className={`px-2 py-0.5 text-xs rounded-full ${yard.available_qty_tons > 300
+                  ? 'bg-green-100 text-green-700'
+                  : yard.available_qty_tons > 100
                     ? 'bg-yellow-100 text-yellow-700'
                     : 'bg-red-100 text-red-700'
-                }`}>
+                  }`}>
                   {yard.available_qty_tons > 300 ? 'High Stock' : yard.available_qty_tons > 100 ? 'Medium Stock' : 'Low Stock'}
                 </span>
               </div>
@@ -838,7 +905,7 @@ export default function ScrapYardConnectPage() {
             <Sparkles className="w-12 h-12 text-green-200 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">Get Personalized Sourcing Plans</h2>
             <p className="text-green-100 mb-6 max-w-xl mx-auto">
-              Create a project with your BOM to get AI-powered Plan A/B/C recommendations 
+              Create a project with your BOM to get AI-powered Plan A/B/C recommendations
               matched to your exact material requirements.
             </p>
             <Link

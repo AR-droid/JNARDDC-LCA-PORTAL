@@ -62,6 +62,26 @@ export default function Layout({ children }: NavbarProps) {
     setIsDarkMode(!isDarkMode);
   };
 
+  // Trigger Google Translate with page reload
+  const triggerGoogleTranslate = (langCode: string) => {
+    // Map language codes to Google Translate codes
+    const gtLangCode = langCode === 'en' ? 'en' : 'hi';
+    
+    // Clear existing googtrans cookies first
+    document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`;
+    document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${window.location.hostname}`;
+    
+    if (langCode !== 'en') {
+      // Set new translation cookie
+      document.cookie = `googtrans=/en/${gtLangCode}; path=/`;
+      document.cookie = `googtrans=/en/${gtLangCode}; path=/; domain=${window.location.hostname}`;
+    }
+    
+    // Reload page to apply translation
+    window.location.reload();
+  };
+
   // Don't show nav on homepage, login, or register pages
   const hideNav = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/register';
 
@@ -293,6 +313,7 @@ export default function Layout({ children }: NavbarProps) {
                             onClick={() => {
                               setLanguage(lang.code);
                               setIsLanguageOpen(false);
+                              triggerGoogleTranslate(lang.code);
                             }}
                             className={`w-full px-3 py-2 text-left text-sm flex items-center space-x-3 hover:bg-gray-50 transition ${language === lang.code ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
                               }`}
@@ -337,6 +358,7 @@ export default function Layout({ children }: NavbarProps) {
                             onClick={() => {
                               setLanguage(lang.code);
                               setIsLanguageOpen(false);
+                              triggerGoogleTranslate(lang.code);
                             }}
                             className={`w-full px-3 py-2 text-left text-sm flex items-center space-x-3 hover:bg-gray-50 transition ${language === lang.code ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
                               }`}

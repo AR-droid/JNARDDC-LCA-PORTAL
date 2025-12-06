@@ -205,3 +205,37 @@ body {
 .preserve-3d {
   transform-style: preserve-3d;
 }
+
+/* Hide Google Translate UI elements */
+.goog-te-banner-frame,
+.goog-te-balloon-frame,
+#goog-gt-tt,
+.goog-te-spinner-pos,
+.goog-tooltip,
+.goog-tooltip:hover {
+  display: none !important;
+}
+
+.goog-text-highlight {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Prevent body shift from Google Translate */
+body {
+  top: 0 !important;
+}
+
+/* Hide the floating translate widget */
+#google_translate_element,
+.skiptranslate {
+  display: none !important;
+}
+
+/* But keep the iframe functional */
+.skiptranslate iframe {
+  display: block !important;
+  visibility: hidden !important;
+  position: absolute !important;
+  top: -9999px !important;
+}

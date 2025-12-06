@@ -10,7 +10,31 @@ import SupplyChainMap from '../components/SupplyChainMap'
 import ActionHotspots from '../components/ActionHotspots'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon, UploadIcon, PlusIcon, PackageIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
-import { FileSpreadsheet, Sparkles, MapPin, Truck, Train, Ship, Plane, Wand2, Loader2, Recycle, ArrowRight, TrendingDown, Lightbulb, Building2, Lock, AlertTriangle, CheckCircle, Bot, Package } from 'lucide-react'
+import { 
+  FileSpreadsheet, 
+  Sparkles, 
+  MapPin, 
+  Truck, 
+  Train, 
+  Ship, 
+  Plane, 
+  Wand2, 
+  Loader2, 
+  Recycle, 
+  ArrowRight, 
+  TrendingDown, 
+  Lightbulb, 
+  Building2, 
+  Lock, 
+  AlertTriangle, 
+  CheckCircle, 
+  Bot, 
+  Package
+} from 'lucide-react'
+import gwpImg from '/images/smoke.jpg'
+import mciImg from '/images/recycle.jpg'
+import materialsImg from '/images/fossil.jpg'
+import categoryImg from '/images/materials.jpg'
 
 
 
@@ -468,28 +492,60 @@ export default function ProjectDetailPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-5">
-            <div className="bg-blue-50 p-3 rounded-md">
-              <p className="text-xs text-blue-600 font-medium">Total GWP</p>
-              <p className="text-xl font-semibold text-blue-900">{totalGWP.toFixed(2)}</p>
-              <p className="text-2xs text-blue-500">kg CO₂-eq</p>
-              <p className="text-2xs text-blue-400 italic mt-1">IPCC AR6, Ecoinvent 3.9</p>
-            </div>
-            <div className="bg-teal-50 p-3 rounded-md">
-              <p className="text-xs text-teal-600 font-medium">MCI Score</p>
-              <p className="text-xl font-semibold text-teal-900">{mciScore}</p>
-              <p className="text-2xs text-teal-500">Material Circularity</p>
-              <p className="text-2xs text-teal-400 italic mt-1">Ellen MacArthur Foundation</p>
-            </div>
-            <div className="bg-green-50 p-3 rounded-md">
-              <p className="text-xs text-green-600 font-medium">Materials</p>
-              <p className="text-xl font-semibold text-green-900">{materials.length}</p>
-              <p className="text-2xs text-green-500">items added</p>
-            </div>
-            <div className="bg-purple-50 p-3 rounded-md">
-              <p className="text-xs text-purple-600 font-medium">Category</p>
-              <p className="text-base font-semibold text-purple-900">{project.product_category || 'Not set'}</p>
-              <p className="text-2xs text-purple-500">product type</p>
-            </div>
+          
+
+
+        <div className="relative rounded-md overflow-hidden bg-blue-50">
+  <img 
+    src={gwpImg}
+    className="absolute inset-0 w-full h-full object-cover opacity-30"
+  />
+  <div className="relative p-3">
+    <p className="text-xs font-medium text-blue-700">Total GWP</p>
+    <p className="text-xl font-semibold text-blue-900">{totalGWP.toFixed(2)}</p>
+    <p className="text-2xs text-blue-600">kg CO₂-eq</p>
+    <p className="text-2xs text-blue-500 italic mt-1">IPCC AR6, Ecoinvent 3.9</p>
+  </div>
+</div>
+
+<div className="relative rounded-md overflow-hidden bg-teal-50">
+  <img 
+    src={mciImg}
+    className="absolute inset-0 w-full h-full object-cover opacity-30"
+  />
+  <div className="relative p-3">
+    <p className="text-xs font-medium text-teal-700">MCI Score</p>
+    <p className="text-xl font-semibold text-teal-900">{mciScore}</p>
+    <p className="text-2xs text-teal-600">Material Circularity</p>
+    <p className="text-2xs text-teal-500 italic mt-1">Ellen MacArthur Foundation</p>
+  </div>
+</div>
+<div className="relative rounded-md overflow-hidden bg-green-50">
+  <img 
+    src={materialsImg}
+    className="absolute inset-0 w-full h-full object-cover opacity-30"
+  />
+  <div className="relative p-3">
+    <p className="text-xs font-medium text-green-700">Materials</p>
+    <p className="text-xl font-semibold text-green-900">{materials.length}</p>
+    <p className="text-2xs text-green-600">items added</p>
+  </div>
+</div>
+
+
+           <div className="relative rounded-md overflow-hidden bg-purple-50">
+  <img 
+    src={categoryImg}
+    className="absolute inset-0 w-full h-full object-cover opacity-30"
+  />
+  <div className="relative p-3">
+    <p className="text-xs font-medium text-purple-700">Category</p>
+    <p className="text-base font-semibold text-purple-900">
+      {project.product_category || 'Not set'}
+    </p>
+    <p className="text-2xs text-purple-600">product type</p>
+  </div>
+</div>
           </div>
         </div>
 

@@ -18,7 +18,7 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Google Translate -->
+    <!-- Google Translate - Delayed initialization to prevent routing issues -->
     <script type="text/javascript">
       // Clear any existing googtrans cookies on page load to prevent auto-translation
       (function() {
@@ -27,6 +27,9 @@
         document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.' + window.location.hostname;
       })();
       
+      // Flag to track if Google Translate has been initialized
+      window.googleTranslateLoaded = false;
+      
       function googleTranslateElementInit() {
         new google.translate.TranslateElement({
           pageLanguage: 'en',
@@ -34,8 +37,27 @@
           layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
           autoDisplay: false
         }, 'google_translate_element');
+        window.googleTranslateLoaded = true;
+      }
+      
+      // Load Google Translate script only after React app has mounted (delay 2 seconds)
+      function loadGoogleTranslate() {
+        if (document.getElementById('google-translate-script')) return;
+        var script = document.createElement('script');
+        script.id = 'google-translate-script';
+        script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+        script.async = true;
+        document.body.appendChild(script);
+      }
+      
+      // Wait for DOM to be fully loaded, then delay Google Translate loading
+      if (document.readyState === 'complete') {
+        setTimeout(loadGoogleTranslate, 2000);
+      } else {
+        window.addEventListener('load', function() {
+          setTimeout(loadGoogleTranslate, 2000);
+        });
       }
     </script>
-    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
   </body>
 </html>

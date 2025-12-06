@@ -64,27 +64,28 @@ export default function Layout({ children }: NavbarProps) {
 
   // Trigger Google Translate without page reload (safer for React Router)
   const triggerGoogleTranslate = (langCode: string) => {
-    // Find the Google Translate select element
-    const select = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+    const applyTranslation = () => {
+      const select = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+      if (select) {
+        select.value = langCode === 'en' ? 'en' : 'hi';
+        select.dispatchEvent(new Event('change'));
+        return true;
+      }
+      return false;
+    };
     
-    if (select) {
-      // Map to Google Translate language code
-      select.value = langCode === 'en' ? 'en' : 'hi';
-      select.dispatchEvent(new Event('change'));
-    } else {
-      // If Google Translate widget not loaded yet, store preference and retry
-      const checkInterval = setInterval(() => {
-        const sel = document.querySelector('.goog-te-combo') as HTMLSelectElement;
-        if (sel) {
-          sel.value = langCode === 'en' ? 'en' : 'hi';
-          sel.dispatchEvent(new Event('change'));
-          clearInterval(checkInterval);
-        }
-      }, 500);
-      
-      // Clear interval after 5 seconds to prevent infinite loop
-      setTimeout(() => clearInterval(checkInterval), 5000);
-    }
+    // Try immediately
+    if (applyTranslation()) return;
+    
+    // If not loaded yet, wait for it
+    const checkInterval = setInterval(() => {
+      if (applyTranslation()) {
+        clearInterval(checkInterval);
+      }
+    }, 500);
+    
+    // Clear interval after 10 seconds
+    setTimeout(() => clearInterval(checkInterval), 10000);
   };
 
   // Don't show nav on homepage, login, or register pages

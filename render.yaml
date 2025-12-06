@@ -1,6 +1,7 @@
 services:
   # Backend Service
   - type: web
+    name: jnarddc-lca-backend
     env: python
     region: singapore
     buildCommand: cd backend && pip install -r requirements.txt

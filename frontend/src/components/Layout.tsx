@@ -146,11 +146,10 @@ export default function Layout({ children }: NavbarProps) {
                               <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                             </div>
                             {/* Tier Badge */}
-                            <span className={`px-2 py-1 text-xs font-bold rounded-full flex items-center gap-1 ${
-                              user?.tier === 'enterprise' ? 'bg-purple-100 text-purple-700' :
+                            <span className={`px-2 py-1 text-xs font-bold rounded-full flex items-center gap-1 ${user?.tier === 'enterprise' ? 'bg-purple-100 text-purple-700' :
                               user?.tier === 'pro' ? 'bg-blue-100 text-blue-700' :
-                              'bg-gray-100 text-gray-600'
-                            }`}>
+                                'bg-gray-100 text-gray-600'
+                              }`}>
                               {user?.tier === 'enterprise' ? (
                                 <><Building className="w-3 h-3" /> Enterprise</>
                               ) : user?.tier === 'pro' ? (
@@ -166,8 +165,8 @@ export default function Layout({ children }: NavbarProps) {
                                 <span>{user?.project_count || 0} / {user?.project_limit || 3}</span>
                               </div>
                               <div className="w-full bg-gray-200 rounded-full h-1.5">
-                                <div 
-                                  className="bg-blue-600 h-1.5 rounded-full" 
+                                <div
+                                  className="bg-blue-600 h-1.5 rounded-full"
                                   style={{ width: `${Math.min(((user?.project_count || 0) / (user?.project_limit || 3)) * 100, 100)}%` }}
                                 ></div>
                               </div>
@@ -283,9 +282,8 @@ export default function Layout({ children }: NavbarProps) {
                               setLanguage(lang.code);
                               setIsLanguageOpen(false);
                             }}
-                            className={`w-full px-3 py-2 text-left text-sm flex items-center space-x-3 hover:bg-gray-50 transition ${
-                              language === lang.code ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-                            }`}
+                            className={`w-full px-3 py-2 text-left text-sm flex items-center space-x-3 hover:bg-gray-50 transition ${language === lang.code ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                              }`}
                           >
                             <span className="text-lg">{lang.flag}</span>
                             <div className="flex-1">
@@ -328,9 +326,8 @@ export default function Layout({ children }: NavbarProps) {
                               setLanguage(lang.code);
                               setIsLanguageOpen(false);
                             }}
-                            className={`w-full px-3 py-2 text-left text-sm flex items-center space-x-3 hover:bg-gray-50 transition ${
-                              language === lang.code ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-                            }`}
+                            className={`w-full px-3 py-2 text-left text-sm flex items-center space-x-3 hover:bg-gray-50 transition ${language === lang.code ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                              }`}
                           >
                             <span className="text-lg">{lang.flag}</span>
                             <div className="flex-1">
@@ -366,29 +363,29 @@ export default function Layout({ children }: NavbarProps) {
         </div>
       </nav>
       <main className="flex-1">{children}</main>
-      
+
       {/* Footer Strip - hide on profile and settings pages */}
       {location.pathname !== '/profile' && location.pathname !== '/settings' && (
         <footer className="mt-auto">
-          <img 
-            src="/images/footer.jpeg" 
-            alt="JNARDDC Footer" 
+          <img
+            src="/images/footer.jpeg"
+            alt="JNARDDC Footer"
             className="w-full h-auto object-cover"
           />
         </footer>
       )}
-      
+
       {/* Floating Chat Button - only for authenticated users */}
       {isAuthenticated && (
         <>
           <button
             onClick={() => setIsChatOpen(true)}
-            className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center z-40 hover:scale-110"
+            className="fixed bottom-6 right-6 w-16 h-16 bg-white text-emerald-600 rounded-full shadow-2xl hover:shadow-emerald-500/20 hover:scale-105 transition-all duration-300 flex items-center justify-center z-40 border border-gray-100"
             title="AI Assistant"
           >
-            <img src="/images/chatbot.png" alt="AI" className="w-8 h-8" />
+            <img src="/images/ai.png" alt="AI" className="w-10 h-10 object-contain drop-shadow-sm" />
           </button>
-          
+
           <AIChatPanel
             isOpen={isChatOpen}
             onClose={() => setIsChatOpen(false)}

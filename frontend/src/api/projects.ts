@@ -577,7 +577,10 @@ export interface AIChatRequest {
 export interface AIChatResponse {
   response: string
   model: string
-  source: 'groq_ai' | 'fallback'
+  source: 'groq_ai' | 'fallback' | 'backend_calculator' | 'backend_compliance' | 'backend_visualization'
+  type?: 'text' | 'image' | 'card_impact' | 'card_comparison' | 'card_mci' | 'card_cbam'
+  data?: any
+  image_source?: string
 }
 
 export interface AIAnalysisResponse extends AIChatResponse {
@@ -680,7 +683,7 @@ export const downloadCBAMCSV = async (projectId: string): Promise<void> => {
   const response = await api.get(`/projects/${projectId}/cbam-export/csv`, {
     responseType: 'blob'
   })
-  
+
   // Create download link
   const url = window.URL.createObjectURL(new Blob([response.data]))
   const link = document.createElement('a')
@@ -699,7 +702,7 @@ export const downloadCBAMExcel = async (projectId: string): Promise<void> => {
   const response = await api.get(`/projects/${projectId}/cbam-export/excel`, {
     responseType: 'blob'
   })
-  
+
   // Get filename from content-disposition header or use default
   const contentDisposition = response.headers['content-disposition']
   let filename = `CBAM_Report_${projectId.slice(0, 8)}.xlsx`
@@ -707,7 +710,7 @@ export const downloadCBAMExcel = async (projectId: string): Promise<void> => {
     const match = contentDisposition.match(/filename="?(.+)"?/)
     if (match) filename = match[1]
   }
-  
+
   // Create download link
   const url = window.URL.createObjectURL(new Blob([response.data]))
   const link = document.createElement('a')
@@ -734,14 +737,14 @@ export const downloadBRSRExcel = async (projectId: string): Promise<void> => {
   const response = await api.get(`/projects/${projectId}/brsr-export/excel`, {
     responseType: 'blob'
   })
-  
+
   const contentDisposition = response.headers['content-disposition']
   let filename = `BRSR_Report_${projectId.slice(0, 8)}.xlsx`
   if (contentDisposition) {
     const match = contentDisposition.match(/filename="?(.+)"?/)
     if (match) filename = match[1]
   }
-  
+
   const url = window.URL.createObjectURL(new Blob([response.data]))
   const link = document.createElement('a')
   link.href = url
@@ -840,7 +843,7 @@ export const getLCIACategories = async (): Promise<LCIACategoriesResponse> => {
  * Calculate LCIA for a project
  */
 export const calculateProjectLCIA = async (
-  projectId: string, 
+  projectId: string,
   gridRegion: string = 'national_average'
 ): Promise<ProjectLCIAResult> => {
   const response = await api.post(`/projects/${projectId}/calculate-lcia`, {
@@ -1089,7 +1092,7 @@ export const scrapYardApi = {
     if (filters?.min_qty) params.append('min_qty', filters.min_qty.toString())
     if (filters?.max_price) params.append('max_price', filters.max_price.toString())
     if (filters?.verified_only) params.append('verified_only', 'true')
-    
+
     const response = await api.get(`/scrap-yards?${params.toString()}`)
     return response.data
   },

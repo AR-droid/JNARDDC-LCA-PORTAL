@@ -1,0 +1,16 @@
+{
+  "login.title": "Welcome Back",
+  "login.subtitle": "Sign in to JNARDDC LCA Portal",
+  "login.emailLabel": "Email Address",
+  "login.emailPlaceholder": "you@example.com",
+  "login.passwordLabel": "Password",
+  "login.passwordPlaceholder": "••••••••",
+  "login.signIn": "Sign In",
+  "login.signingIn": "Signing in...",
+  "login.or": "or sign in with",
+  "login.faceId": "Face ID",
+  "login.digilocker": "DigiLocker",
+  "login.noAccount": "Don't have an account?",
+  "login.signUp": "Sign up",
+  "login.backHome": "Back to Home"
+}

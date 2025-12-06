@@ -2,14 +2,10 @@ services:
   # Backend Service
   - type: web
     name: jnarddc-lca-backend
-    env: python
+    env: docker
     region: singapore
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    dockerfilePath: Dockerfile
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.10.0
       - key: FLASK_ENV
         value: production
       - key: GROQ_API_KEY
@@ -18,7 +14,6 @@ services:
         generateValue: true
       - key: DATABASE_PATH
         value: /data/users.db
-
     disk:
       name: sqlite-data
       mountPath: /data

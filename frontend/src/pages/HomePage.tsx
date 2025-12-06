@@ -292,18 +292,25 @@ export default function HomePage() {
 
       {/* Hero Section with Video Background */}
       <section className="relative h-[85vh] flex items-center justify-center overflow-hidden">
-        {/* YouTube Video Background */}
-        <iframe
-          src="https://www.youtube.com/embed/71CrTNx0hec?autoplay=1&mute=1&loop=1&playlist=71CrTNx0hec&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1"
-          allow="autoplay; encrypted-media"
-          className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
-          style={{
-            transform: 'scale(1.2)',
-            transformOrigin: 'center center',
-            border: 'none'
-          }}
-          title="Mining Background Video"
-        />
+        {/* YouTube Video Background - Full Width Container */}
+        <div className="absolute inset-0 w-full h-full overflow-hidden z-0">
+          <iframe
+            src="https://www.youtube.com/embed/71CrTNx0hec?autoplay=1&mute=1&loop=1&playlist=71CrTNx0hec&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1"
+            allow="autoplay; encrypted-media"
+            className="absolute pointer-events-none"
+            style={{
+              top: '50%',
+              left: '50%',
+              width: '100vw',
+              height: '56.25vw', /* 16:9 aspect ratio */
+              minHeight: '100%',
+              minWidth: '177.78vh', /* 16:9 aspect ratio */
+              transform: 'translate(-50%, -50%)',
+              border: 'none'
+            }}
+            title="Mining Background Video"
+          />
+        </div>
 
         {/* Dark Overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70 z-10"></div>

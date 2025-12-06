@@ -22,6 +22,7 @@ import ScrapYardConnectPage from './pages/ScrapYardConnectPage'
 import WalletPage from './pages/WalletPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
+import VerificationPage from './pages/VerificationPage'
 
 function App() {
   return (
@@ -164,6 +165,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ScrapYardConnectPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="projects/:id/verification"
+          element={
+            <ProtectedRoute>
+              <VerificationPage />
             </ProtectedRoute>
           }
         />

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { projectsApi } from '../api/projects'
 import { materialsApi } from '../api/materials'
-import { BarChart3, Lightbulb } from 'lucide-react'
+import ComparisonLineChart from '../components/charts/ComparisionLineChart'
+
 
 export default function ComparisonPage() {
   const [projects, setProjects] = useState<any[]>([])
@@ -90,9 +91,7 @@ export default function ComparisonPage() {
 
         {projects.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
-            <div className="flex justify-center mb-4">
-              <BarChart3 className="w-16 h-16 text-gray-400" />
-            </div>
+            <div className="text-6xl mb-4">📊</div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No Calculated Projects</h3>
             <p className="text-gray-600">Add materials to your projects to see comparison data</p>
           </div>
@@ -133,88 +132,164 @@ export default function ComparisonPage() {
                   </div>
                 ) : (
                   <>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                  <div>
-                    <h3 className="font-semibold text-gray-700 mb-3">Total GWP Comparison</h3>
-                    <div className="space-y-3">
-                      {comparisonData.map((item) => {
-                        const maxGwp = Math.max(...comparisonData.map((d) => d.totalGwp))
-                        const percentage = maxGwp > 0 ? (item.totalGwp / maxGwp) * 100 : 0
-                        
-                        return (
-                          <div key={item.project.id}>
-                            <div className="flex justify-between mb-1">
-                              <span className="text-sm font-medium">{item.project.name}</span>
-                              <span className="text-sm text-gray-600">{item.totalGwp.toFixed(2)} kg CO₂-eq</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-3">
-                              <div
-                                className="bg-blue-600 h-3 rounded-full"
-                                style={{ width: `${percentage}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
 
-                  <div>
-                    <h3 className="font-semibold text-gray-700 mb-3">Avg Recycled Content</h3>
-                    <div className="space-y-3">
-                      {comparisonData.map((item) => (
-                        <div key={item.project.id}>
-                          <div className="flex justify-between mb-1">
-                            <span className="text-sm font-medium">{item.project.name}</span>
-                            <span className="text-sm text-gray-600">{item.avgRecycledContent.toFixed(1)}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-3">
-                            <div
-                              className="bg-green-600 h-3 rounded-full"
-                              style={{ width: `${item.avgRecycledContent}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+  {/* LEFT SIDE: 2 CARDS */}
+  <div className="space-y-6">
+
+    {/* ⚡ GWP COMPARISON CARD */}
+    <div className="bg-white rounded-xl shadow p-5 border border-gray-200">
+      <h3 className="font-bold text-lg text-gray-800 mb-4 flex items-center gap-2">
+        <span className="text-blue-600 text-xl">⚡</span>
+        Total GWP Comparison
+      </h3>
+
+      <div className="space-y-5">
+        {comparisonData.map((item) => {
+          const max = Math.max(...comparisonData.map((d) => d.totalGwp));
+          const perc = (item.totalGwp / max) * 100;
+
+          return (
+            <div key={item.project.id}>
+              <div className="flex justify-between mb-1">
+                <span className="font-medium text-gray-700">{item.project.name}</span>
+                <span className="text-sm font-semibold bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                  {item.totalGwp.toFixed(2)} kg CO₂-eq
+                </span>
+              </div>
+
+              <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-4 rounded-full bg-gradient-to-r from-blue-500 to-blue-700"
+                  style={{ width: `${perc}%` }}
+                ></div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+
+    {/* ♻ RECYCLED CONTENT CARD */}
+    <div className="bg-white rounded-xl shadow p-5 border border-gray-200">
+      <h3 className="font-bold text-lg text-gray-800 mb-4 flex items-center gap-2">
+        <span className="text-green-600 text-xl">♻️</span>
+        Avg Recycled Content
+      </h3>
+
+      <div className="space-y-5">
+        {comparisonData.map((item) => (
+          <div key={item.project.id}>
+            <div className="flex justify-between mb-1">
+              <span className="font-medium text-gray-700">{item.project.name}</span>
+              <span className="text-sm font-semibold bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                {item.avgRecycledContent.toFixed(1)}%
+              </span>
+            </div>
+
+            <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="h-4 rounded-full bg-gradient-to-r from-green-500 to-green-700"
+                style={{ width: `${item.avgRecycledContent}%` }}
+              ></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  {/* RIGHT SIDE: LINE CHART */}
+  <div>
+    <ComparisonLineChart
+      data={comparisonData.map((item, idx) => ({
+        project: item.project,
+        monthlyValues: [
+          item.totalGwp * 0.8,
+          item.totalGwp * 0.9,
+          item.totalGwp * 1.1,
+          item.totalGwp * 1.0,
+          item.totalGwp * 1.2,
+          item.totalGwp * 0.7,
+          item.totalGwp * 0.5,
+          item.totalGwp * 0.6,
+          item.totalGwp * 1.3,
+          item.totalGwp * 1.5,
+          item.totalGwp * 1.2,
+        ],
+        color: ["#2563eb", "#16a34a", "#ef4444", "#f59e0b"][idx]
+      }))}
+    />
+  </div>
+
+</div>
+
 
                 <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Project</th>
-                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Materials</th>
-                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Total GWP</th>
-                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Avg Recycled %</th>
-                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Category</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {comparisonData.map((item) => (
-                        <tr key={item.project.id} className="border-b hover:bg-gray-50">
-                          <td className="py-3 px-4 font-medium">{item.project.name}</td>
-                          <td className="py-3 px-4 text-right">{item.materials.length}</td>
-                          <td className="py-3 px-4 text-right font-semibold text-blue-600">
-                            {item.totalGwp.toFixed(2)} kg CO₂-eq
-                          </td>
-                          <td className="py-3 px-4 text-right text-green-600 font-semibold">
-                            {item.avgRecycledContent.toFixed(1)}%
-                          </td>
-                          <td className="py-3 px-4 text-right text-gray-600">
-                            {item.project.product_category || 'N/A'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="overflow-x-auto">
+  <table className="w-full table-fixed border-collapse">
+    <thead>
+      <tr className="border-b bg-gray-100/60">
+        <th className="w-[32%] text-left py-3 px-4 font-semibold text-gray-700">
+          Project
+        </th>
+        <th className="w-[10%] text-right py-3 px-4 font-semibold text-gray-700">
+          Materials
+        </th>
+        <th className="w-[22%] text-right py-3 px-4 font-semibold text-gray-700">
+          Total GWP
+        </th>
+        <th className="w-[16%] text-right py-3 px-4 font-semibold text-gray-700">
+          Avg Recycled %
+        </th>
+        <th className="w-[20%] text-right py-3 px-4 font-semibold text-gray-700">
+          Category
+        </th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {comparisonData.map((item) => (
+        <tr
+          key={item.project.id}
+          className="border-b hover:bg-gray-50 align-top"
+        >
+          {/* Project Name */}
+          <td className="py-3 px-4 font-medium whitespace-normal break-words">
+            {item.project.name}
+          </td>
+
+          {/* Material Count */}
+          <td className="py-3 px-4 text-right whitespace-nowrap">
+            {item.materials.length}
+          </td>
+
+          {/* Total GWP */}
+          <td className="py-3 px-4 text-right font-semibold text-blue-600 whitespace-nowrap">
+            {item.totalGwp.toFixed(2)} kg CO₂-eq
+          </td>
+
+          {/* Recycled % */}
+          <td className="py-3 px-4 text-right font-semibold text-green-600 whitespace-nowrap">
+            {item.avgRecycledContent.toFixed(1)}%
+          </td>
+
+          {/* Category */}
+          <td className="py-3 px-4 text-right whitespace-nowrap">
+            <span className="px-2 py-1 bg-gray-200 rounded-full text-xs font-semibold">
+              {item.project.product_category || "N/A"}
+            </span>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
                 </div>
 
                 <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                    <Lightbulb className="w-4 h-4" /> Insights
-                  </h4>
+                  <h4 className="font-semibold text-blue-900 mb-2">💡 Insights</h4>
                   {comparisonData.length > 0 ? (
                     <ul className="text-sm text-blue-800 space-y-1">
                       <li>

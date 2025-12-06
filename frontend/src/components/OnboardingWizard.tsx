@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { 
-  X, ChevronRight, ChevronLeft, Check, Sparkles, 
+import {
+  X, ChevronRight, ChevronLeft, Check, Sparkles,
   Factory, Cpu, HardHat, Building2, Car, Zap, Leaf,
-  MapPin, Upload, FileSpreadsheet, Pencil
+  MapPin, Upload, FileSpreadsheet, Pencil, BarChart3, Recycle, Target
 } from 'lucide-react'
 import { projectsApi } from '../api/projects'
 
@@ -37,7 +37,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
   const [currentStep, setCurrentStep] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [isCreatingProject, setIsCreatingProject] = useState(false)
-  
+
   // Collected data
   const [selectedIndustry, setSelectedIndustry] = useState<string | null>(null)
   const [productDescription, setProductDescription] = useState('')
@@ -45,7 +45,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
   const [selectedState, setSelectedState] = useState('')
   const [selectedCity, setSelectedCity] = useState('')
   const [dataSource, setDataSource] = useState<'bom' | 'manual' | null>(null)
-  
+
   // NLP parsing result
   const [parsedData, setParsedData] = useState<any>(null)
   const [isParsing, setIsParsing] = useState(false)
@@ -75,7 +75,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
   // Parse product description with NLP
   const parseDescription = async () => {
     if (!productDescription.trim()) return
-    
+
     setIsParsing(true)
     try {
       const token = localStorage.getItem('access_token')
@@ -87,7 +87,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
         },
         body: JSON.stringify({ description: productDescription })
       })
-      
+
       if (response.ok) {
         const data = await response.json()
         setParsedData(data)
@@ -110,7 +110,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
   // Create project and complete onboarding
   const handleComplete = async () => {
     setIsCreatingProject(true)
-    
+
     try {
       // Create the project
       const project = await projectsApi.create({
@@ -120,14 +120,14 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
         target_lifespan: 10,
         is_designed_for_disassembly: false
       })
-      
+
       // Mark onboarding as complete
       localStorage.setItem('onboarding_completed', 'true')
       localStorage.setItem('user_industry', selectedIndustry || '')
       localStorage.setItem('user_state', selectedState)
-      
+
       onComplete()
-      
+
       // Navigate based on data source choice
       if (dataSource === 'bom') {
         navigate(`/projects/${project.id}?showBOM=true`)
@@ -203,15 +203,13 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                   <button
                     key={industry.id}
                     onClick={() => setSelectedIndustry(industry.id)}
-                    className={`p-4 rounded-xl border-2 text-left transition-all duration-200 hover:shadow-md ${
-                      isSelected
+                    className={`p-4 rounded-xl border-2 text-left transition-all duration-200 hover:shadow-md ${isSelected
                         ? 'border-blue-500 bg-blue-50 shadow-md'
                         : 'border-gray-200 hover:border-blue-300'
-                    }`}
+                      }`}
                   >
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${
-                      isSelected ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
-                    }`}>
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${isSelected ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
+                      }`}>
                       <Icon className="w-5 h-5" />
                     </div>
                     <div className="font-medium text-gray-900">{industry.name}</div>
@@ -238,7 +236,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
             <p className="text-gray-600 mb-6 text-center">
               Our AI will extract materials and processes automatically
             </p>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -252,7 +250,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Product Description *
@@ -287,12 +285,11 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                     {parsedData.tokens.slice(0, 8).map((token: any, idx: number) => (
                       <span
                         key={idx}
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          token.type === 'material' ? 'bg-blue-100 text-blue-700' :
-                          token.type === 'process' ? 'bg-purple-100 text-purple-700' :
-                          token.type === 'quantity' ? 'bg-orange-100 text-orange-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${token.type === 'material' ? 'bg-blue-100 text-blue-700' :
+                            token.type === 'process' ? 'bg-purple-100 text-purple-700' :
+                              token.type === 'quantity' ? 'bg-orange-100 text-orange-700' :
+                                'bg-gray-100 text-gray-700'
+                          }`}
                       >
                         {token.value || token.material || token.type}
                       </span>
@@ -314,7 +311,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
             <p className="text-gray-600 mb-6 text-center">
               This helps us use correct grid emission factors for your region
             </p>
-            
+
             <div className="max-w-md mx-auto space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -332,7 +329,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                   ))}
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   City (Optional)
@@ -367,19 +364,17 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
             <p className="text-gray-600 mb-6 text-center">
               You can always change this later
             </p>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
               <button
                 onClick={() => setDataSource('bom')}
-                className={`p-6 rounded-xl border-2 text-left transition-all duration-200 hover:shadow-md ${
-                  dataSource === 'bom'
+                className={`p-6 rounded-xl border-2 text-left transition-all duration-200 hover:shadow-md ${dataSource === 'bom'
                     ? 'border-blue-500 bg-blue-50 shadow-md'
                     : 'border-gray-200 hover:border-blue-300'
-                }`}
+                  }`}
               >
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${
-                  dataSource === 'bom' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
-                }`}>
+                <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${dataSource === 'bom' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
+                  }`}>
                   <FileSpreadsheet className="w-6 h-6" />
                 </div>
                 <div className="font-semibold text-gray-900 text-lg mb-1">Upload BOM</div>
@@ -394,15 +389,13 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
 
               <button
                 onClick={() => setDataSource('manual')}
-                className={`p-6 rounded-xl border-2 text-left transition-all duration-200 hover:shadow-md ${
-                  dataSource === 'manual'
+                className={`p-6 rounded-xl border-2 text-left transition-all duration-200 hover:shadow-md ${dataSource === 'manual'
                     ? 'border-blue-500 bg-blue-50 shadow-md'
                     : 'border-gray-200 hover:border-blue-300'
-                }`}
+                  }`}
               >
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${
-                  dataSource === 'manual' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
-                }`}>
+                <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${dataSource === 'manual' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
+                  }`}>
                   <Pencil className="w-6 h-6" />
                 </div>
                 <div className="font-semibold text-gray-900 text-lg mb-1">Enter Manually</div>
@@ -431,7 +424,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
             <p className="text-lg text-gray-600 mb-6 max-w-md mx-auto">
               Your project "<strong>{projectName}</strong>" is ready. Let's start your LCA journey!
             </p>
-            
+
             <div className="bg-gray-50 rounded-lg p-4 max-w-sm mx-auto mb-6 text-left">
               <div className="text-sm space-y-2">
                 <div className="flex justify-between">
@@ -477,7 +470,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      
+
       {/* Modal */}
       <div className="relative w-full max-w-3xl mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
@@ -495,7 +488,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
               <X className="w-5 h-5" />
             </button>
           </div>
-          
+
           {/* Progress bar */}
           <div className="mt-4">
             <div className="flex items-center justify-between mb-2">
@@ -503,7 +496,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
               <span className="text-sm text-white/80">{Math.round((currentStep / totalSteps) * 100)}% complete</span>
             </div>
             <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-white rounded-full transition-all duration-500"
                 style={{ width: `${(currentStep / totalSteps) * 100}%` }}
               />
@@ -536,20 +529,19 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                 </button>
               )}
             </div>
-            
+
             <div className="flex items-center gap-2">
               {/* Progress dots */}
               {[0, 1, 2, 3, 4].map((step) => (
                 <button
                   key={step}
                   onClick={() => step < currentStep && goToStep(step)}
-                  className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                    step === currentStep
+                  className={`w-2 h-2 rounded-full transition-all duration-200 ${step === currentStep
                       ? 'w-6 bg-blue-600'
                       : step < currentStep
-                      ? 'bg-blue-400 cursor-pointer hover:bg-blue-500'
-                      : 'bg-gray-300'
-                  }`}
+                        ? 'bg-blue-400 cursor-pointer hover:bg-blue-500'
+                        : 'bg-gray-300'
+                    }`}
                 />
               ))}
             </div>

@@ -34,14 +34,14 @@ function useAnimatedCounter(target: number, duration: number = 2000, startAnimat
 
   useEffect(() => {
     if (!startAnimation) return
-    
+
     let startTime: number
     let animationFrame: number
 
     const animate = (currentTime: number) => {
       if (!startTime) startTime = currentTime
       const progress = Math.min((currentTime - startTime) / duration, 1)
-      
+
       // Easing function for smooth animation
       const easeOutQuart = 1 - Math.pow(1 - progress, 4)
       setCount(Math.floor(easeOutQuart * target))
@@ -61,9 +61,9 @@ function useAnimatedCounter(target: number, duration: number = 2000, startAnimat
 // Animated section wrapper component
 function AnimatedSection({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
   const { ref, isInView } = useInView(0.1)
-  
+
   return (
-    <div 
+    <div
       ref={ref}
       className={`transition-all duration-700 ease-out ${className}`}
       style={{
@@ -119,7 +119,7 @@ export default function HomePage() {
     logout()
     navigate('/')
   }
-  
+
   // Auto-rotate testimonials
   useEffect(() => {
     const interval = setInterval(() => {
@@ -186,7 +186,7 @@ export default function HomePage() {
             <img src="/images/logo.png" alt="JNARDDC" className="h-12 md:h-14 w-auto object-contain" />
             <h1 className="text-lg md:text-2xl font-bold text-gray-900 hidden sm:block">JNARDDC LCA Portal</h1>
           </div>
-          
+
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center space-x-6">
             <a href="#features" className="text-gray-600 hover:text-blue-600 transition">Features</a>
@@ -194,19 +194,19 @@ export default function HomePage() {
             <a href="#pricing" className="text-gray-600 hover:text-blue-600 transition">Pricing</a>
             <a href="#testimonials" className="text-gray-600 hover:text-blue-600 transition">Testimonials</a>
           </nav>
-          
+
           <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated ? (
               <>
-                <Link 
-                  to="/dashboard" 
+                <Link
+                  to="/dashboard"
                   className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition"
                 >
                   <LayoutDashboard className="w-4 h-4" />
                   <span>Dashboard</span>
                 </Link>
-                <Link 
-                  to="/profile" 
+                <Link
+                  to="/profile"
                   className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition"
                 >
                   <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-sm font-bold text-blue-600">
@@ -225,8 +225,8 @@ export default function HomePage() {
             ) : (
               <>
                 <Link to="/login" className="text-gray-600 hover:text-blue-600 transition">Login</Link>
-                <Link 
-                  to="/register" 
+                <Link
+                  to="/register"
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition transform hover:scale-105"
                 >
                   Get Started
@@ -234,16 +234,16 @@ export default function HomePage() {
               </>
             )}
           </div>
-          
+
           {/* Mobile Menu Button */}
-          <button 
+          <button
             className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
-        
+
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t bg-white animate-slide-down">
@@ -259,8 +259,8 @@ export default function HomePage() {
                     <LayoutDashboard className="w-5 h-5" />
                     <span>Dashboard</span>
                   </Link>
-                  <Link 
-                    to="/profile" 
+                  <Link
+                    to="/profile"
                     className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 py-2"
                   >
                     <User className="w-5 h-5" />
@@ -277,8 +277,8 @@ export default function HomePage() {
               ) : (
                 <>
                   <Link to="/login" className="text-gray-600 hover:text-blue-600 py-2">Login</Link>
-                  <Link 
-                    to="/register" 
+                  <Link
+                    to="/register"
                     className="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition text-center font-semibold"
                   >
                     Get Started
@@ -292,20 +292,22 @@ export default function HomePage() {
 
       {/* Hero Section with Video Background */}
       <section className="relative h-[85vh] flex items-center justify-center overflow-hidden">
-        {/* Video Background */}
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover z-0"
-        >
-          <source src="/videos/mining.mp4" type="video/mp4" />
-        </video>
-        
+        {/* YouTube Video Background */}
+        <iframe
+          src="https://www.youtube.com/embed/71CrTNx0hec?autoplay=1&mute=1&loop=1&playlist=71CrTNx0hec&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1"
+          allow="autoplay; encrypted-media"
+          className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+          style={{
+            transform: 'scale(1.2)',
+            transformOrigin: 'center center',
+            border: 'none'
+          }}
+          title="Mining Background Video"
+        />
+
         {/* Dark Overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70 z-10"></div>
-        
+
         {/* Content */}
         <div className="relative z-20 container mx-auto px-4 text-center">
           <div className="max-w-4xl mx-auto">
@@ -313,28 +315,28 @@ export default function HomePage() {
               AI-Powered LCA for the Indian Metal Sector
             </h2>
             <p className="text-xl md:text-2xl text-gray-200 mb-8 drop-shadow animate-fade-in-up opacity-0" style={{ animationDelay: '0.4s', animationFillMode: 'forwards' }}>
-              Measure, model, and minimize the environmental footprint of metals. 
+              Measure, model, and minimize the environmental footprint of metals.
               From MSMEs to large enterprises, democratizing Life Cycle Assessment through Natural Language Processing.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row justify-center gap-4 animate-fade-in-up opacity-0" style={{ animationDelay: '0.6s', animationFillMode: 'forwards' }}>
               {isAuthenticated ? (
-                <Link 
-                  to="/dashboard" 
+                <Link
+                  to="/dashboard"
                   className="group bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-all flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
                   <LayoutDashboard className="mr-2 w-5 h-5" /> Go to Dashboard <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               ) : (
-                <Link 
-                  to="/register" 
+                <Link
+                  to="/register"
                   className="group bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-all flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
                   Start Free Assessment <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               )}
-              <a 
-                href="#features" 
+              <a
+                href="#features"
                 className="bg-white/20 backdrop-blur-sm border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white/30 transition-all hover:scale-105"
               >
                 Learn More
@@ -342,7 +344,7 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-        
+
         {/* Scroll Indicator */}
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 animate-bounce">
           <div className="w-8 h-12 border-2 border-white/50 rounded-full flex items-start justify-center p-2">
@@ -386,7 +388,7 @@ export default function HomePage() {
             />
           </AnimatedSection>
         </div>
-        
+
         {/* Additional Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
           <AnimatedSection delay={400}>
@@ -439,18 +441,18 @@ export default function HomePage() {
           <h3 className="text-3xl font-bold text-center mb-4">What Our Users Say</h3>
           <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">Trusted by leading metal manufacturers across India</p>
         </AnimatedSection>
-        
+
         <AnimatedSection delay={200}>
           <div className="max-w-4xl mx-auto relative">
             {/* Main Testimonial Card */}
             <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 border border-gray-100 relative overflow-hidden">
               <Quote className="absolute top-6 left-6 w-12 h-12 text-blue-100" />
-              
+
               <div className="relative z-10">
                 <p className="text-xl md:text-2xl text-gray-700 italic mb-8 leading-relaxed">
                   "{testimonials[currentTestimonial].quote}"
                 </p>
-                
+
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-bold text-gray-900">{testimonials[currentTestimonial].author}</p>
@@ -465,32 +467,31 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-            
+
             {/* Navigation Arrows */}
-            <button 
+            <button
               onClick={() => setCurrentTestimonial((prev) => (prev - 1 + testimonials.length) % testimonials.length)}
               className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-6 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition transform hover:scale-110"
             >
               <ChevronLeft className="w-6 h-6 text-gray-600" />
             </button>
-            <button 
+            <button
               onClick={() => setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)}
               className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-6 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition transform hover:scale-110"
             >
               <ChevronRight className="w-6 h-6 text-gray-600" />
             </button>
-            
+
             {/* Dot Indicators */}
             <div className="flex justify-center gap-2 mt-6">
               {testimonials.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentTestimonial(index)}
-                  className={`w-3 h-3 rounded-full transition-all ${
-                    index === currentTestimonial 
-                      ? 'bg-blue-600 w-8' 
+                  className={`w-3 h-3 rounded-full transition-all ${index === currentTestimonial
+                      ? 'bg-blue-600 w-8'
                       : 'bg-gray-300 hover:bg-gray-400'
-                  }`}
+                    }`}
                 />
               ))}
             </div>
@@ -507,179 +508,179 @@ export default function HomePage() {
               <p className="text-xl text-gray-600">Choose the plan that fits your organization's needs</p>
             </div>
           </AnimatedSection>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {/* Free Tier */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 relative">
-            <div className="text-center mb-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Free</h3>
-              <p className="text-gray-500 text-sm">For MSMEs & Individual Users</p>
-              <div className="mt-4">
-                <span className="text-4xl font-bold text-gray-900">₹0</span>
-                <span className="text-gray-500">/month</span>
-              </div>
-            </div>
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-start gap-2">
-                <span className="text-green-500 mt-0.5">✓</span>
-                <span className="text-gray-600">Up to 3 projects</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-500 mt-0.5">✓</span>
-                <span className="text-gray-600">Basic LCA calculator</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-500 mt-0.5">✓</span>
-                <span className="text-gray-600">Natural language input</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-500 mt-0.5">✓</span>
-                <span className="text-gray-600">Watermarked reports</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-500 mt-0.5">✓</span>
-                <span className="text-gray-600">Community support</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-gray-300 mt-0.5">✗</span>
-                <span className="text-gray-400">CBAM & ISO reports</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-gray-300 mt-0.5">✗</span>
-                <span className="text-gray-400">Scenario comparison</span>
-              </li>
-            </ul>
-            <Link 
-              to="/register" 
-              className="block w-full text-center py-3 px-4 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition"
-            >
-              Get Started Free
-            </Link>
-          </div>
 
-          {/* Pro Tier */}
-          <div className="bg-gradient-to-b from-blue-600 to-blue-700 rounded-2xl shadow-xl p-8 relative transform scale-105">
-            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-              <span className="bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full">MOST POPULAR</span>
-            </div>
-            <div className="text-center mb-6">
-              <h3 className="text-xl font-bold text-white mb-2">Pro</h3>
-              <p className="text-blue-100 text-sm">For Exporters & Growing Businesses</p>
-              <div className="mt-4">
-                <span className="text-4xl font-bold text-white">₹15,000</span>
-                <span className="text-blue-200">/month</span>
-              </div>
-              <p className="text-blue-200 text-xs mt-1">or $180/month</p>
-            </div>
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-start gap-2">
-                <span className="text-green-300 mt-0.5">✓</span>
-                <span className="text-white">Unlimited projects</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-300 mt-0.5">✓</span>
-                <span className="text-white">CBAM & ISO 14040 reports</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-300 mt-0.5">✓</span>
-                <span className="text-white">Scenario comparison tool</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-300 mt-0.5">✓</span>
-                <span className="text-white">Premium Indian datasets</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-300 mt-0.5">✓</span>
-                <span className="text-white">AI Design Advisor</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-300 mt-0.5">✓</span>
-                <span className="text-white">BRSR export</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-300 mt-0.5">✓</span>
-                <span className="text-white">Email support</span>
-              </li>
-            </ul>
-            <Link 
-              to="/register" 
-              className="block w-full text-center py-3 px-4 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition"
-            >
-              Start 14-Day Trial
-            </Link>
-          </div>
-
-          {/* Enterprise Tier */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 relative">
-            <div className="text-center mb-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Enterprise</h3>
-              <p className="text-gray-500 text-sm">For Large Organizations & PSUs</p>
-              <div className="mt-4">
-                <span className="text-4xl font-bold text-gray-900">Custom</span>
-              </div>
-              <p className="text-gray-500 text-xs mt-1">Contact for pricing</p>
-            </div>
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-start gap-2">
-                <span className="text-green-500 mt-0.5">✓</span>
-                <span className="text-gray-600">Everything in Pro</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-500 mt-0.5">✓</span>
-                <span className="text-gray-600">Team management (unlimited)</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-500 mt-0.5">✓</span>
-                <span className="text-gray-600">API access</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-500 mt-0.5">✓</span>
-                <span className="text-gray-600">Private dataset uploads</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-500 mt-0.5">✓</span>
-                <span className="text-gray-600">JNARDDC verification</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-500 mt-0.5">✓</span>
-                <span className="text-gray-600">Dedicated account manager</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-500 mt-0.5">✓</span>
-                <span className="text-gray-600">White-label options</span>
-              </li>
-            </ul>
-            <a 
-              href="mailto:contact@JNARDDC.gov.in" 
-              className="block w-full text-center py-3 px-4 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition"
-            >
-              Contact Sales
-            </a>
-          </div>
-        </div>
-
-        {/* Consultant License */}
-        <div className="mt-12 max-w-3xl mx-auto">
-          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200 p-6">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                  <Briefcase className="w-6 h-6 text-purple-600" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-gray-900">Consultant License</h4>
-                  <p className="text-sm text-gray-600">Multi-client management with verified badge • ₹25,000/month</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {/* Free Tier */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 relative">
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Free</h3>
+                <p className="text-gray-500 text-sm">For MSMEs & Individual Users</p>
+                <div className="mt-4">
+                  <span className="text-4xl font-bold text-gray-900">₹0</span>
+                  <span className="text-gray-500">/month</span>
                 </div>
               </div>
-              <a 
-                href="mailto:consultants@JNARDDC.gov.in" 
-                className="px-6 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition whitespace-nowrap"
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span className="text-gray-600">Up to 3 projects</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span className="text-gray-600">Basic LCA calculator</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span className="text-gray-600">Natural language input</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span className="text-gray-600">Watermarked reports</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span className="text-gray-600">Community support</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-gray-300 mt-0.5">✗</span>
+                  <span className="text-gray-400">CBAM & ISO reports</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-gray-300 mt-0.5">✗</span>
+                  <span className="text-gray-400">Scenario comparison</span>
+                </li>
+              </ul>
+              <Link
+                to="/register"
+                className="block w-full text-center py-3 px-4 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition"
               >
-                Apply Now
+                Get Started Free
+              </Link>
+            </div>
+
+            {/* Pro Tier */}
+            <div className="bg-gradient-to-b from-blue-600 to-blue-700 rounded-2xl shadow-xl p-8 relative transform scale-105">
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                <span className="bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full">MOST POPULAR</span>
+              </div>
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-bold text-white mb-2">Pro</h3>
+                <p className="text-blue-100 text-sm">For Exporters & Growing Businesses</p>
+                <div className="mt-4">
+                  <span className="text-4xl font-bold text-white">₹15,000</span>
+                  <span className="text-blue-200">/month</span>
+                </div>
+                <p className="text-blue-200 text-xs mt-1">or $180/month</p>
+              </div>
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-start gap-2">
+                  <span className="text-green-300 mt-0.5">✓</span>
+                  <span className="text-white">Unlimited projects</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-300 mt-0.5">✓</span>
+                  <span className="text-white">CBAM & ISO 14040 reports</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-300 mt-0.5">✓</span>
+                  <span className="text-white">Scenario comparison tool</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-300 mt-0.5">✓</span>
+                  <span className="text-white">Premium Indian datasets</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-300 mt-0.5">✓</span>
+                  <span className="text-white">AI Design Advisor</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-300 mt-0.5">✓</span>
+                  <span className="text-white">BRSR export</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-300 mt-0.5">✓</span>
+                  <span className="text-white">Email support</span>
+                </li>
+              </ul>
+              <Link
+                to="/register"
+                className="block w-full text-center py-3 px-4 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition"
+              >
+                Start 14-Day Trial
+              </Link>
+            </div>
+
+            {/* Enterprise Tier */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 relative">
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Enterprise</h3>
+                <p className="text-gray-500 text-sm">For Large Organizations & PSUs</p>
+                <div className="mt-4">
+                  <span className="text-4xl font-bold text-gray-900">Custom</span>
+                </div>
+                <p className="text-gray-500 text-xs mt-1">Contact for pricing</p>
+              </div>
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span className="text-gray-600">Everything in Pro</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span className="text-gray-600">Team management (unlimited)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span className="text-gray-600">API access</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span className="text-gray-600">Private dataset uploads</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span className="text-gray-600">JNARDDC verification</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span className="text-gray-600">Dedicated account manager</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span className="text-gray-600">White-label options</span>
+                </li>
+              </ul>
+              <a
+                href="mailto:contact@JNARDDC.gov.in"
+                className="block w-full text-center py-3 px-4 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition"
+              >
+                Contact Sales
               </a>
             </div>
           </div>
-        </div>
+
+          {/* Consultant License */}
+          <div className="mt-12 max-w-3xl mx-auto">
+            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200 p-6">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                    <Briefcase className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-900">Consultant License</h4>
+                    <p className="text-sm text-gray-600">Multi-client management with verified badge • ₹25,000/month</p>
+                  </div>
+                </div>
+                <a
+                  href="mailto:consultants@JNARDDC.gov.in"
+                  className="px-6 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition whitespace-nowrap"
+                >
+                  Apply Now
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -691,8 +692,8 @@ export default function HomePage() {
             <p className="text-xl text-gray-600 mb-8">
               Join the National Circularity Platform and contribute to India's sustainable metal sector
             </p>
-            <Link 
-              to="/register" 
+            <Link
+              to="/register"
               className="group bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-all inline-flex items-center transform hover:scale-105 shadow-lg hover:shadow-xl"
             >
               Get Started Free <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -717,9 +718,9 @@ export default function HomePage() {
       <footer className="bg-gray-900 text-gray-300">
         {/* Footer Strip Image */}
         <div className="w-full">
-          <img 
-            src="/images/footer.jpeg" 
-            alt="JNARDDC Footer Banner" 
+          <img
+            src="/images/footer.jpeg"
+            alt="JNARDDC Footer Banner"
             className="w-full h-auto object-cover"
           />
         </div>
@@ -801,12 +802,12 @@ function StatsSection() {
 }
 
 // Enhanced Feature Card with hover animations
-function FeatureCard({ 
-  icon, 
-  title, 
+function FeatureCard({
+  icon,
+  title,
   description,
   color = 'blue'
-}: { 
+}: {
   icon: React.ReactNode
   title: string
   description: string

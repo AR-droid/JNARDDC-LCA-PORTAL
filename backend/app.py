@@ -2432,53 +2432,11 @@ def delete_material(project_id, material_id):
 def calculate_gwp(material_type, quantity, recycled_content, transport_distance):
     """Calculate GWP based on material type and parameters"""
     
-    # Emission factors (kg CO2-eq per kg material) - includes critical minerals
-    emission_factors = {
-        # Base Metals
-        'aluminium_primary': 12.5,
-        'aluminium_secondary': 0.6,
-        'copper_primary': 3.5,
-        'copper_secondary': 0.5,
-        'steel_primary': 2.1,
-        'steel_secondary': 0.4,
-        # Battery Minerals
-        'lithium': 15.0,
-        'lithium_carbonate': 15.0,
-        'lithium_hydroxide': 18.0,
-        'cobalt': 10.0,
-        'cobalt_sulfate': 10.0,
-        'nickel': 8.5,
-        'nickel_class1': 12.5,
-        'nickel_ferronickel': 8.5,
-        'manganese': 2.8,
-        'graphite': 4.2,
-        # Rare Earths
-        'neodymium': 35.0,
-        'dysprosium': 45.0,
-        'praseodymium': 32.0,
-        'terbium': 50.0,
-        'rare_earth_mixed': 38.0,
-        # Other Critical Minerals
-        'tungsten': 22.0,
-        'vanadium': 28.0,
-        'titanium': 8.1,
-        'tantalum': 48.0,
-        'indium': 142.0,
-        'gallium': 185.0,
-        'germanium': 165.0,
-        # Precious Metals
-        'platinum': 12500.0,
-        'palladium': 9800.0,
-        'silver': 104.0,
-        'gold': 31500.0,
-        # Joining/Brazing Materials
-        'solder_lead_free': 25.0,
-        'brazing_alloy': 85.0,  # Silver-based brazing alloy
-        'flux': 3.0,
-    }
-    
-    # Get base emission factor
-    base_ef = emission_factors.get(material_type, 5.0)  # Default if not found
+    # Get base emission factor from global EMISSION_FACTORS
+    if material_type in EMISSION_FACTORS:
+        base_ef = EMISSION_FACTORS[material_type]['virgin']
+    else:
+        base_ef = 5.0  # Default if not found
     
     # Calculate virgin and recycled portions
     virgin_fraction = (100 - recycled_content) / 100
@@ -2487,8 +2445,9 @@ def calculate_gwp(material_type, quantity, recycled_content, transport_distance)
     # Calculate material emissions
     virgin_emissions = quantity * base_ef * virgin_fraction
     
-    # Recycled material has ~90% lower emissions
-    recycled_emissions = quantity * (base_ef * 0.1) * recycled_fraction
+    # Use material-specific recycled emission factor
+    recycled_ef = EMISSION_FACTORS.get(material_type, {}).get('recycled', base_ef * 0.1)
+    recycled_emissions = quantity * recycled_ef * recycled_fraction
     
     # Transport emissions (kg CO2-eq per ton-km)
     transport_emissions = (quantity / 1000) * transport_distance * 0.062
@@ -2599,6 +2558,60 @@ EMISSION_FACTORS = {
     'solder_lead_free': {'virgin': 25.0, 'recycled': 4.0, 'scarcity_score': 25},
     'brazing_alloy': {'virgin': 85.0, 'recycled': 12.0, 'scarcity_score': 50},
     'flux': {'virgin': 3.0, 'recycled': 3.0, 'scarcity_score': 5},
+}
+
+# Material-specific recyclability factors (max % that can be recovered at end-of-life)
+# Based on current recycling technology and infrastructure
+MATERIAL_RECYCLABILITY = {
+    # Base Metals - high recyclability
+    'aluminium_primary': 95,
+    'aluminium_secondary': 95,
+    'copper_primary': 90,
+    'copper_secondary': 95,
+    'steel_primary': 85,
+    'steel_secondary': 90,
+    
+    # Critical Minerals - Battery Metals (lower due to complex chemistry)
+    'lithium': 70,
+    'lithium_carbonate': 70,
+    'lithium_hydroxide': 70,
+    'cobalt': 85,
+    'cobalt_sulfate': 85,
+    'nickel': 80,
+    'nickel_class1': 80,
+    'nickel_ferronickel': 75,
+    'manganese': 65,
+    'graphite': 60,
+    
+    # Rare Earths - very low recyclability (complex separation)
+    'neodymium': 45,
+    'dysprosium': 40,
+    'praseodymium': 45,
+    'terbium': 40,
+    'rare_earth_mixed': 42,
+    
+    # Other Critical Minerals
+    'tungsten': 75,
+    'vanadium': 70,
+    'titanium': 80,
+    'platinum': 95,
+    'palladium': 95,
+    'indium': 55,
+    'gallium': 50,
+    'germanium': 55,
+    'tantalum': 65,
+    
+    # Precious Metals - very high recyclability
+    'silver': 90,
+    'gold': 98,
+    
+    # Joining Materials
+    'solder_lead_free': 70,
+    'brazing_alloy': 85,
+    'flux': 10,  # Flux is consumed in process
+    
+    # Default for unknown materials
+    'default': 60
 }
 
 # Waste generation factors per material type (percentage of material input that becomes waste)
@@ -7125,8 +7138,22 @@ def calculate_project_mci(project_id):
         benchmark = INDUSTRY_BENCHMARKS.get(product_category, INDUSTRY_BENCHMARKS['other'])
         industry_avg_lifespan = benchmark['avg_lifespan']
         
-        # Assume recycled content output = recycled content input * 0.85 (some loss)
-        recycled_content_output = avg_recycled_content * 0.85
+        # Calculate weighted average recyclability based on material composition
+        weighted_recyclability = 0
+        for m in materials:
+            mat_type = m[2]  # material_type
+            mat_mass = m[3]  # quantity
+            mat_recyclability = MATERIAL_RECYCLABILITY.get(mat_type, MATERIAL_RECYCLABILITY['default'])
+            weighted_recyclability += (mat_recyclability * mat_mass)
+        
+        avg_recyclability = weighted_recyclability / total_mass if total_mass > 0 else 60
+        
+        # Calculate recycled content output based on material-specific recyclability
+        # Apply collection rate (assume 80% collection in India)
+        collection_rate = 0.80
+        recycled_content_output = avg_recyclability * collection_rate
+        
+        # Boost for design for disassembly (easier to separate materials)
         if is_designed_for_disassembly:
             recycled_content_output = min(100, recycled_content_output * 1.15)
         
@@ -7927,13 +7954,28 @@ def get_project_analytics(project_id):
                 'recyclability': round(recyclability * 100, 0)
             })
         
-        # Lifecycle stage breakdown (estimated distribution)
+        # Lifecycle stage breakdown (calculated from actual data)
+        # Calculate actual transport emissions
+        actual_transport_gwp = sum([(m[3] / 1000) * m[7] * 0.062 for m in materials])
+        transport_percentage = (actual_transport_gwp / total_gwp * 100) if total_gwp > 0 else 10
+        
+        # Material extraction and processing (estimated based on virgin/recycled ratio)
+        virgin_percentage = 100 - avg_recycled_content
+        # Virgin materials: higher extraction impact
+        extraction_pct = (virgin_percentage / 100) * 40 + (avg_recycled_content / 100) * 15
+        # Processing is consistent
+        processing_pct = 25
+        # EOL treatment
+        eol_pct = 8
+        # Use phase (remainder)
+        use_pct = max(0, 100 - extraction_pct - processing_pct - transport_percentage - eol_pct)
+        
         lifecycle_stages = [
-            {'stage': 'Raw Material Extraction', 'gwp': round(total_gwp * 0.35, 2), 'percentage': 35},
-            {'stage': 'Processing & Manufacturing', 'gwp': round(total_gwp * 0.30, 2), 'percentage': 30},
-            {'stage': 'Transport', 'gwp': round(total_gwp * 0.10, 2), 'percentage': 10},
-            {'stage': 'Use Phase', 'gwp': round(total_gwp * 0.15, 2), 'percentage': 15},
-            {'stage': 'End of Life', 'gwp': round(total_gwp * 0.10, 2), 'percentage': 10}
+            {'stage': 'Raw Material Extraction', 'gwp': round(total_gwp * extraction_pct / 100, 2), 'percentage': round(extraction_pct, 1)},
+            {'stage': 'Processing & Manufacturing', 'gwp': round(total_gwp * processing_pct / 100, 2), 'percentage': round(processing_pct, 1)},
+            {'stage': 'Transport', 'gwp': round(actual_transport_gwp, 2), 'percentage': round(transport_percentage, 1)},
+            {'stage': 'Use Phase', 'gwp': round(total_gwp * use_pct / 100, 2), 'percentage': round(use_pct, 1)},
+            {'stage': 'End of Life', 'gwp': round(total_gwp * eol_pct / 100, 2), 'percentage': round(eol_pct, 1)}
         ]
         
         # Process flow data for Sankey diagram
@@ -9508,13 +9550,31 @@ def get_action_hotspots(project_id):
             top = material_analysis[0]
             max_recycled = max_recycled_limits.get(top['type'], 50)
             current_recycled = top['recycled_content']
-            potential_savings = (max_recycled - current_recycled) * 0.9 if current_recycled < max_recycled else 0
             
-            # Build description based on recycled content potential
-            if current_recycled < max_recycled:
-                savings_text = f"Switching to {max_recycled}% recycled content could reduce GWP by {potential_savings:.0f}%."
+            # Calculate actual GWP savings using emission factors
+            if current_recycled < max_recycled and top['type'] in EMISSION_FACTORS:
+                virgin_ef = EMISSION_FACTORS[top['type']]['virgin']
+                recycled_ef = EMISSION_FACTORS[top['type']]['recycled']
+                
+                # Current emissions
+                current_virgin_frac = (100 - current_recycled) / 100
+                current_recycled_frac = current_recycled / 100
+                current_emissions = (virgin_ef * current_virgin_frac + recycled_ef * current_recycled_frac)
+                
+                # Potential emissions with max recycled
+                new_virgin_frac = (100 - max_recycled) / 100
+                new_recycled_frac = max_recycled / 100
+                new_emissions = (virgin_ef * new_virgin_frac + recycled_ef * new_recycled_frac)
+                
+                # Calculate actual savings percentage
+                potential_savings_pct = ((current_emissions - new_emissions) / current_emissions * 100) if current_emissions > 0 else 0
+                gwp_savings_kg = top['gwp'] * (potential_savings_pct / 100)
+                
+                savings_text = f"Switching to {max_recycled}% recycled content could reduce GWP by {potential_savings_pct:.1f}%."
             else:
-                savings_text = "Already using good recycled content."
+                potential_savings_pct = 0
+                gwp_savings_kg = 0
+                savings_text = "Already using good recycled content." if current_recycled >= max_recycled else "Material-specific data unavailable."
             
             hotspots.append({
                 'id': f'hotspot-{rank}',
@@ -9529,8 +9589,8 @@ def get_action_hotspots(project_id):
                 'recommended_value': max_recycled,
                 'contribution_percent': top['gwp_contribution'],
                 'impact': {
-                    'gwp_savings_kg': top['gwp'] * (potential_savings / 100) if potential_savings > 0 else 0,
-                    'gwp_savings_percent': potential_savings,
+                    'gwp_savings_kg': round(gwp_savings_kg, 2),
+                    'gwp_savings_percent': round(potential_savings_pct, 1),
                     'cost_impact': 'neutral_to_positive'
                 },
                 'confidence': 0.92,
@@ -10456,7 +10516,11 @@ def get_scrap_yard_stats():
         conn.close()
         
         # Estimate potential savings (comparing recycled vs virgin material)
-        potential_savings_crores = round((total_tons * 1000 * (200 - avg_price)) / 10000000, 1)  # In crores
+        # Weighted average virgin material price in India: ₹180/kg for metals
+        # Steel virgin: ₹60/kg, Aluminium virgin: ₹220/kg, Copper virgin: ₹650/kg
+        # Using conservative estimate of ₹180/kg average
+        avg_virgin_price = 180
+        potential_savings_crores = round((total_tons * 1000 * (avg_virgin_price - avg_price)) / 10000000, 1)  # In crores
         
         return jsonify({
             'total_scrap_yards': total_yards,

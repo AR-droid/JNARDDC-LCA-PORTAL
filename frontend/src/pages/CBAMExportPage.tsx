@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { getCBAMReport, getCBAMReportQr, downloadCBAMCSV, downloadCBAMExcel, downloadBRSRExcel, CBAMReport, projectsApi } from '../api/projects'
+import { getCBAMReport, getCBAMReportQr, downloadCBAMCSV, downloadCBAMExcel, downloadBRSRExcel, CBAMReport } from '../api/projects'
 import { useAuthStore } from '../stores/authStore'
 import { UpgradePrompt } from '../components/FeatureGate'
-import { FileSpreadsheet, Download, FileText, Loader2, QrCode, Lock, Sparkles, AlertTriangle } from 'lucide-react'
+import { FileSpreadsheet, Download, FileText, Loader2, QrCode, AlertTriangle } from 'lucide-react'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
 
 export default function CBAMExportPage() {
@@ -11,7 +11,6 @@ export default function CBAMExportPage() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const [report, setReport] = useState<CBAMReport | null>(null)
-  const [projectName, setProjectName] = useState<string>('')
   const [isLoading, setIsLoading] = useState(true)
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadingType, setDownloadingType] = useState<string | null>(null)
@@ -21,7 +20,7 @@ export default function CBAMExportPage() {
   const [qrUrl, setQrUrl] = useState<string | null>(null)
   const [isQrLoading, setIsQrLoading] = useState(false)
   
-  const hasCBAMAccess = user?.subscription_tier === 'pro' || user?.subscription_tier === 'enterprise'
+  const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
 
   useEffect(() => {
     if (id) {
@@ -36,13 +35,9 @@ export default function CBAMExportPage() {
       setIsLoading(true)
       setError(null)
       
-      const [reportData, project] = await Promise.all([
-        getCBAMReport(id),
-        projectsApi.getById(id)
-      ])
+      const reportData = await getCBAMReport(id)
       
       setReport(reportData)
-      setProjectName(project.name)
     } catch (err: any) {
       console.error('Error loading CBAM report:', err)
       setError(err.response?.data?.detail || 'Failed to generate CBAM report')

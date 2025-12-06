@@ -20,7 +20,8 @@ import {
   Zap,
   Target,
   FileSpreadsheet,
-  Lock
+  Lock,
+  ArrowLeft
 } from 'lucide-react'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
@@ -123,7 +124,7 @@ export default function ScenarioComparisonPage() {
   const [isCalculating, setIsCalculating] = useState(false)
   const [activeView, setActiveView] = useState<'overview' | 'detailed' | 'lifecycle'>('overview')
   
-  const hasCBAMAccess = user?.subscription_tier === 'pro' || user?.subscription_tier === 'enterprise'
+  const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
   
   // Circular pathway configuration
   const [circularConfig, setCircularConfig] = useState({

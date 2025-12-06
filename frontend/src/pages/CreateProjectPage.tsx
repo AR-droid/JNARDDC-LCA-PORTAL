@@ -8,7 +8,7 @@ import {
   NLPParsedMaterial,
 } from '../api/projects';
 import { useAuthStore } from '../stores/authStore';
-import { Mic, MicOff, Loader2, FileText, X, Sparkles, UploadCloud, Ban, BarChart3, Recycle, Nut, AlertTriangle, CheckCircle, ArrowLeft, Plus, ChevronDown, Settings, Pencil } from 'lucide-react';
+import { Mic, MicOff, Loader2, FileText, X, Sparkles, UploadCloud, Ban, BarChart3, Recycle, Nut, AlertTriangle, CheckCircle, ArrowLeft, Plus, ChevronDown, Settings, Pencil, Zap } from 'lucide-react';
 
 
 

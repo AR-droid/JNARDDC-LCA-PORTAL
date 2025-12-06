@@ -19,7 +19,6 @@ import {
   ChevronDown,
   ChevronUp,
   FileSpreadsheet,
-  Sparkles,
   Lock
 } from 'lucide-react'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
@@ -153,7 +152,7 @@ export default function LCIAPage() {
   const [showTooltip, setShowTooltip] = useState<string | null>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
   
-  const hasCBAMAccess = user?.subscription_tier === 'pro' || user?.subscription_tier === 'enterprise'
+  const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
 
   // Close tooltip when clicking outside
   useEffect(() => {

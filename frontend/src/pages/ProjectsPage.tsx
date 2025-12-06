@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { projectsApi } from '../api/projects';
-import { Plus } from 'lucide-react';
+import { BarChart3, Plus } from 'lucide-react';
 
 interface Project {
   id: string;

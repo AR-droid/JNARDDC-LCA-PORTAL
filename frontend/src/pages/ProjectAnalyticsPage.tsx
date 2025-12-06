@@ -12,7 +12,7 @@ import {
   RecycledContentChart
 } from '../components/charts'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
-import { FileSpreadsheet, Sparkles, Lock, AlertTriangle } from 'lucide-react'
+import { FileSpreadsheet, Lock, AlertTriangle } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 
 export default function AnalyticsPage() {
@@ -24,7 +24,7 @@ export default function AnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
-  const hasCBAMAccess = user?.subscription_tier === 'pro' || user?.subscription_tier === 'enterprise'
+  const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
 
   useEffect(() => {
     if (id) {

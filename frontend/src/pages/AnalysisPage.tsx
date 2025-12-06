@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { projectsApi, Project, MCIResult } from '../api/projects'
 import { materialsApi, Material } from '../api/materials'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
-import { FileSpreadsheet, Sparkles, Lock, BarChart3, Recycle, Target, Wrench, Truck, Microscope } from 'lucide-react'
+import { FileSpreadsheet, Lock, BarChart3, Recycle, Target, Wrench, Truck, Microscope } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 
 export default function AnalysisPage() {
@@ -17,7 +17,7 @@ export default function AnalysisPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isCalculatingMCI, setIsCalculatingMCI] = useState(false)
   
-  const hasCBAMAccess = user?.subscription_tier === 'pro' || user?.subscription_tier === 'enterprise'
+  const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
 
   useEffect(() => {
     loadData()

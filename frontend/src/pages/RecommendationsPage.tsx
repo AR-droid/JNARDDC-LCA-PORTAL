@@ -119,7 +119,7 @@ export default function RecommendationsPage() {
   const [isGeneratingImages, setIsGeneratingImages] = useState(false)
   const [showAiInsights, setShowAiInsights] = useState(false)
   
-  const hasCBAMAccess = user?.subscription_tier === 'pro' || user?.subscription_tier === 'enterprise'
+  const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
 
   useEffect(() => {
     loadRecommendations()

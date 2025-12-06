@@ -62,7 +62,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 SECRET_KEY = "supersecret123"
-DATABASE = "users.db"
+DATABASE = os.getenv('DATABASE_PATH', 'users.db')
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 
@@ -10763,7 +10763,7 @@ def get_scrap_yard_stats():
         return jsonify({'detail': str(e)}), 500
 
 
-if __name__ == '__main__':
+def init_db():
     # Register Blockchain blueprint if available
     if BLOCKCHAIN_AVAILABLE:
         app.register_blueprint(blockchain_bp)
@@ -10978,5 +10978,10 @@ if __name__ == '__main__':
     conn.close()
     
     print("✅ Database initialized")
+
+# Run initialization for Gunicorn/Main
+init_db()
+
+if __name__ == '__main__':
     print("🚀 Starting backend on http://127.0.0.1:5000")
     app.run(host='0.0.0.0', port=5000, debug=True)

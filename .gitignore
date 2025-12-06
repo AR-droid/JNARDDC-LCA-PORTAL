@@ -58,3 +58,13 @@ build/
 # Temporary files
 tmp/
 temp/
+
+# Ignored assets
+*.jpg
+*.png
+*.xlsx
+backend/test.py
+
+# Ignore root package files (monorepo debris)
+/package.json
+/package-lock.json

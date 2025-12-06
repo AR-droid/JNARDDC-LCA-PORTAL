@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosError } from 'axios'
 
-export const API_URL = 'http://localhost:5000/api/v1'
+const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+export const API_URL = `${baseUrl.replace(/\/$/, '')}/api/v1`
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -43,10 +44,10 @@ api.interceptors.response.use(
           const response = await axios.post(`${API_URL}/auth/refresh`, {
             refresh_token: refreshToken,
           })
-          
+
           const { access_token } = response.data
           localStorage.setItem('access_token', access_token)
-          
+
           // Retry original request with new token
           originalRequest.headers.Authorization = `Bearer ${access_token}`
           return api(originalRequest)
@@ -70,7 +71,7 @@ api.interceptors.response.use(
       url: error.config?.url,
       method: error.config?.method,
     })
-    
+
     if (error.response?.status === 403) {
       console.error('Forbidden: Insufficient permissions')
     } else if (error.response?.status === 404) {

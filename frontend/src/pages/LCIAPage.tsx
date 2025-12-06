@@ -182,6 +182,12 @@ export default function LCIAPage() {
       setIsLoading(false)
     }
   }
+  const [flippedCard, setFlippedCard] = useState<string | null>(null);
+
+const toggleFlip = (key: string) => {
+  setFlippedCard(flippedCard === key ? null : key);
+};
+
 
   const toggleMaterial = (index: number) => {
     const newExpanded = new Set(expandedMaterials)
@@ -411,65 +417,86 @@ export default function LCIAPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Object.entries(categories).map(([key, meta]: [string, LCIACategoryMetadata]) => {
               const value = impacts[key as keyof typeof impacts] as number
-              return (
+             return (
   <div
-  key={key}
-  className="relative rounded-lg overflow-hidden border-2 p-4 bg-cover bg-center"
-  style={{
-    backgroundImage: `url(${categoryImages[key]})`
-  }}
->
-  {/* Overlay */}
-  <div className="absolute inset-0 bg-white/70"></div>
-
-  {/* Foreground content */}
-  <div className="relative z-10">
-    
-    <div className="flex items-center mb-2">
-      {categoryIcons[key] || <Gauge className="w-5 h-5" />}
-      <span className="ml-2 font-semibold text-sm">{meta.short_name}</span>
-
-      <button
-        onClick={() => setShowTooltip(showTooltip === key ? null : key)}
-        className="ml-auto p-1 rounded-full hover:bg-white/30 transition-colors"
+    key={key}
+    className="relative h-44 cursor-pointer"
+    onClick={() => toggleFlip(key)}
+  >
+    <div
+      className={`
+        relative w-full h-full transition-transform duration-500
+        ${flippedCard === key ? "rotate-y-180" : ""}
+      `}
+      style={{ transformStyle: "preserve-3d" }}
+    >
+      {/* FRONT SIDE */}
+      <div
+        className="absolute inset-0 rounded-lg border-2 p-4 bg-cover bg-center"
+        style={{
+          backgroundImage: `url(${categoryImages[key]})`,
+          backfaceVisibility: "hidden",
+        }}
       >
-        <Info className="w-4 h-4 opacity-60 hover:opacity-100" />
-      </button>
-    </div>
+        <div className="absolute inset-0 bg-white/70"></div>
 
-    {/* Tooltip */}
-    {showTooltip === key && categoryDefinitions[key] && (
-      <div 
-        ref={tooltipRef}
-        className="absolute z-20 top-full left-0 right-0 mt-2 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg"
+        <div className="relative z-10">
+          <div className="flex items-center mb-2">
+            {categoryIcons[key]}
+            <span className="ml-2 font-bold text-sm text-gray-900 drop-shadow">
+              {meta.short_name}
+            </span>
+          </div>
+
+          <p className="text-2xl font-extrabold text-gray-900 drop-shadow-md">
+            {formatValue(value, meta.unit)}
+          </p>
+
+          <p className="text-sm font-semibold text-gray-800 drop-shadow">
+            {meta.unit}
+          </p>
+
+          <p className="text-sm mt-2 font-semibold text-gray-900 drop-shadow">
+            {meta.name}
+          </p>
+        </div>
+      </div>
+
+      {/* BACK SIDE */}
+      <div
+        className="absolute inset-0 rounded-lg bg-gray-900 text-white p-4 overflow-auto"
+        style={{
+          transform: "rotateY(180deg)",
+          backfaceVisibility: "hidden",
+        }}
       >
-        <div className="font-semibold mb-1">{meta.name}</div>
-        <p className="leading-relaxed mb-2">
+        <h3 className="font-bold text-sm mb-2">
+          {meta.name} ({meta.short_name})
+        </h3>
+
+        <p className="text-xs text-gray-200 mb-2">
+          <span className="font-semibold">Definition: </span>
           {categoryDefinitions[key].definition}
         </p>
+
+        <p className="text-xs text-gray-300 mb-2">
+          <span className="font-semibold text-white">Relevance: </span>
+          {categoryDefinitions[key].relevance}
+        </p>
+
+        <p className="text-xs text-gray-300">
+          <span className="font-semibold text-white">Example: </span>
+          {categoryDefinitions[key].example}
+        </p>
       </div>
-    )}
-
-    {/* Value & texts */}
-   <p className="text-2xl font-extrabold text-gray-900 drop-shadow-md">
-  {formatValue(value, meta.unit)}
-</p>
-
-<p className="text-sm font-semibold text-gray-800 drop-shadow">
-  {meta.unit}
-</p>
-
-<p className="text-sm mt-2 font-semibold text-gray-900 drop-shadow">
-  {meta.name}
-</p>
-
+    </div>
   </div>
-</div>
-
-              )
+);
             })}
           </div>
         </div>
+
+            
 
         {/* Materials Breakdown */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -510,11 +537,32 @@ export default function LCIAPage() {
                       {Object.entries(categories).slice(0, 8).map(([key, meta]: [string, LCIACategoryMetadata]) => {
                         const value = mat.impacts[key as keyof typeof mat.impacts] as number
                         return (
-                          <div key={key} className="bg-white rounded p-2">
-                            <p className="text-xs text-gray-500">{meta.short_name}</p>
-                            <p className="font-semibold">{formatValue(value, meta.unit)}</p>
-                            <p className="text-xs text-gray-400">{meta.unit}</p>
-                          </div>
+                          <div
+  key={key}
+  className="relative rounded-lg p-3 bg-cover bg-center shadow-sm"
+  style={{
+    backgroundImage: `url(${categoryImages[key]})`
+  }}
+>
+  {/* Overlay */}
+  <div className="absolute inset-0 bg-white/70 rounded-lg"></div>
+
+  {/* Foreground content */}
+  <div className="relative z-10">
+    <p className="text-xs font-semibold text-gray-900 drop-shadow">
+      {meta.short_name}
+    </p>
+
+    <p className="text-lg font-extrabold text-gray-900 drop-shadow-md">
+      {formatValue(value, meta.unit)}
+    </p>
+
+    <p className="text-xs text-gray-700 font-medium drop-shadow">
+      {meta.unit}
+    </p>
+  </div>
+</div>
+
                         )
                       })}
                     </div>
@@ -533,18 +581,7 @@ export default function LCIAPage() {
         </div>
 
         {/* Category Definitions */}
-        <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Impact Category Definitions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.entries(categories).map(([key, meta]: [string, LCIACategoryMetadata]) => (
-              <div key={key} className="p-3 bg-gray-50 rounded-lg">
-                <h4 className="font-semibold text-gray-900">{meta.name} ({meta.short_name})</h4>
-                <p className="text-sm text-gray-600 mt-1">{meta.description}</p>
-                <p className="text-xs text-gray-400 mt-1">Methodology: {meta.methodology} | Unit: {meta.unit}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+       
       </div>
     </div>
   )

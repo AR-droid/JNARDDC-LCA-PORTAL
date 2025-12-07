@@ -8,7 +8,8 @@ const API_BASE = `${baseUrl.replace(/\/$/, '')}/api/v1`
 
 export default function PricingPage() {
   const { isAuthenticated, user, checkAuth, token } = useAuthStore()
-  const [upgrading, setUpgrading] = useState(false)
+  const [upgradingTier, setUpgradingTier] = useState<string | null>(null)
+  const [cancelling, setCancelling] = useState(false)
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   // Auto-hide notification after 5 seconds
@@ -29,7 +30,7 @@ export default function PricingPage() {
   const handleUpgrade = async (tier: string) => {
     if (!token) return
 
-    setUpgrading(true)
+    setUpgradingTier(tier)
     try {
       const res = await fetch(`${API_BASE}/auth/upgrade`, {
         method: 'POST',
@@ -52,7 +53,37 @@ export default function PricingPage() {
       console.error('Upgrade error:', error)
       setNotification({ type: 'error', message: 'Failed to upgrade. Please try again.' })
     } finally {
-      setUpgrading(false)
+      setUpgradingTier(null)
+    }
+  }
+
+  const handleCancelPlan = async () => {
+    if (!token) return
+
+    setCancelling(true)
+    try {
+      const res = await fetch(`${API_BASE}/auth/upgrade`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ tier: 'free' })
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        setNotification({ type: 'success', message: 'Plan cancelled. You are now on the Free plan.' })
+        checkAuth() // Refresh user data
+      } else {
+        setNotification({ type: 'error', message: data.detail || 'Failed to cancel plan' })
+      }
+    } catch (error) {
+      console.error('Cancel plan error:', error)
+      setNotification({ type: 'error', message: 'Failed to cancel plan. Please try again.' })
+    } finally {
+      setCancelling(false)
     }
   }
 
@@ -60,18 +91,17 @@ export default function PricingPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Notification Banner */}
       {notification && (
-        <div className={`fixed top-4 right-4 z-50 max-w-md px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-slide-in ${
-          notification.type === 'success' 
-            ? 'bg-green-50 border border-green-200 text-green-800' 
+        <div className={`fixed top-4 right-4 z-50 max-w-md px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-slide-in ${notification.type === 'success'
+            ? 'bg-green-50 border border-green-200 text-green-800'
             : 'bg-red-50 border border-red-200 text-red-800'
-        }`}>
+          }`}>
           {notification.type === 'success' ? (
             <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
           ) : (
             <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
           )}
           <p className="text-sm font-medium">{notification.message}</p>
-          <button 
+          <button
             onClick={() => setNotification(null)}
             className="ml-auto text-gray-400 hover:text-gray-600"
           >
@@ -170,7 +200,7 @@ export default function PricingPage() {
               <h3 className="text-xl font-bold text-white mb-1">Pro</h3>
               <p className="text-blue-100 text-sm">For Exporters & Growing Businesses</p>
               <div className="mt-3">
-                <span className="text-4xl font-bold text-white">₹15,000</span>
+                <span className="text-4xl font-bold text-white">₹14,999</span>
                 <span className="text-blue-200 text-sm">/month</span>
               </div>
               <p className="text-blue-200 text-xs mt-1">or $180/month</p>
@@ -186,16 +216,29 @@ export default function PricingPage() {
               <PricingFeature light>JNARDDC verification</PricingFeature>
             </ul>
             {user?.tier === 'pro' ? (
-              <button disabled className="block w-full text-center py-2.5 px-4 bg-white/30 text-white rounded-lg text-sm font-medium cursor-not-allowed">
-                Current Plan
+              <div className="space-y-2">
+                <button disabled className="block w-full text-center py-2.5 px-4 bg-white/30 text-white rounded-lg text-sm font-medium cursor-not-allowed">
+                  Current Plan
+                </button>
+                <button
+                  onClick={handleCancelPlan}
+                  disabled={cancelling}
+                  className="block w-full text-center py-2 px-4 bg-transparent border border-white/30 text-white/80 rounded-lg text-xs font-medium hover:bg-white/10 transition disabled:opacity-50"
+                >
+                  {cancelling ? 'Cancelling...' : 'Cancel Plan'}
+                </button>
+              </div>
+            ) : user?.tier === 'enterprise' ? (
+              <button disabled className="block w-full text-center py-2.5 px-4 bg-white/20 text-white/60 rounded-lg text-sm font-medium cursor-not-allowed">
+                Included in Enterprise
               </button>
             ) : isAuthenticated ? (
               <button
                 onClick={() => handleUpgrade('pro')}
-                disabled={upgrading}
+                disabled={upgradingTier === 'pro'}
                 className="block w-full text-center py-2.5 px-4 bg-white text-blue-600 rounded-lg text-sm font-bold hover:bg-blue-50 transition disabled:opacity-50"
               >
-                {upgrading ? 'Upgrading...' : 'Upgrade Now'}
+                {upgradingTier === 'pro' ? 'Upgrading...' : 'Upgrade Now'}
               </button>
             ) : (
               <Link
@@ -233,16 +276,25 @@ export default function PricingPage() {
               <PricingFeature included>24/7 phone support</PricingFeature>
             </ul>
             {user?.tier === 'enterprise' ? (
-              <button disabled className="block w-full text-center py-2.5 px-4 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg text-sm font-medium cursor-not-allowed">
-                Current Plan
-              </button>
+              <div className="space-y-2">
+                <button disabled className="block w-full text-center py-2.5 px-4 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg text-sm font-medium cursor-not-allowed">
+                  Current Plan
+                </button>
+                <button
+                  onClick={handleCancelPlan}
+                  disabled={cancelling}
+                  className="block w-full text-center py-2 px-4 bg-transparent border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 rounded-lg text-xs font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition disabled:opacity-50"
+                >
+                  {cancelling ? 'Cancelling...' : 'Cancel Plan'}
+                </button>
+              </div>
             ) : isAuthenticated ? (
               <button
                 onClick={() => handleUpgrade('enterprise')}
-                disabled={upgrading}
+                disabled={upgradingTier === 'enterprise'}
                 className="block w-full text-center py-2.5 px-4 bg-gray-900 dark:bg-gray-700 text-white rounded-lg text-sm font-bold hover:bg-gray-800 dark:hover:bg-gray-600 transition disabled:opacity-50"
               >
-                {upgrading ? 'Upgrading...' : 'Upgrade Now'}
+                {upgradingTier === 'enterprise' ? 'Upgrading...' : 'Upgrade Now'}
               </button>
             ) : (
               <a

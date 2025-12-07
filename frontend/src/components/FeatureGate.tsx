@@ -28,34 +28,34 @@ const featureTiers: Record<FeatureKey, 'pro' | 'enterprise'> = {
 
 export function FeatureGate({ feature, children, fallback }: FeatureGateProps) {
   const { user } = useAuthStore();
-  
+
   // Check if user has access to feature
   const hasAccess = user?.features?.[feature] ?? false;
-  
+
   // Also check tier directly as fallback
   const userTier = user?.tier || 'free';
   const requiredTier = featureTiers[feature];
-  
-  const tierAccess = 
+
+  const tierAccess =
     requiredTier === 'pro' ? (userTier === 'pro' || userTier === 'enterprise') :
-    requiredTier === 'enterprise' ? userTier === 'enterprise' :
-    true;
-  
+      requiredTier === 'enterprise' ? userTier === 'enterprise' :
+        true;
+
   if (hasAccess || tierAccess) {
     return <>{children}</>;
   }
-  
+
   if (fallback) {
     return <>{fallback}</>;
   }
-  
+
   return null;
 }
 
 export function UpgradePrompt({ feature, compact = false }: { feature: FeatureKey; compact?: boolean }) {
   const requiredTier = featureTiers[feature] || 'pro';
   const featureName = featureNames[feature] || feature;
-  
+
   if (compact) {
     return (
       <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -67,7 +67,7 @@ export function UpgradePrompt({ feature, compact = false }: { feature: FeatureKe
       </div>
     );
   }
-  
+
   return (
     <div className="bg-gradient-to-br from-gray-50 to-blue-50 border-2 border-dashed border-blue-200 rounded-xl p-8 text-center">
       <div className="flex justify-center mb-3">
@@ -85,17 +85,16 @@ export function UpgradePrompt({ feature, compact = false }: { feature: FeatureKe
       </p>
       <Link
         to="/pricing"
-        className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-white transition ${
-          requiredTier === 'enterprise' 
-            ? 'bg-purple-600 hover:bg-purple-700' 
+        className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-white transition ${requiredTier === 'enterprise'
+            ? 'bg-purple-600 hover:bg-purple-700'
             : 'bg-blue-600 hover:bg-blue-700'
-        }`}
+          }`}
       >
         <Zap className="w-4 h-4" />
         Upgrade to {requiredTier === 'enterprise' ? 'Enterprise' : 'Pro'}
       </Link>
       <p className="text-xs text-gray-400 mt-3">
-        {requiredTier === 'pro' ? 'Starting at ₹15,000/month' : 'Custom pricing for enterprises'}
+        {requiredTier === 'pro' ? 'Starting at ₹14,999/month' : 'Custom pricing for enterprises'}
       </p>
     </div>
   );
@@ -103,28 +102,27 @@ export function UpgradePrompt({ feature, compact = false }: { feature: FeatureKe
 
 export function ProjectLimitBanner() {
   const { user } = useAuthStore();
-  
+
   if (!user || user.tier !== 'free') return null;
-  
+
   const projectCount = user.project_count || 0;
   const projectLimit = user.project_limit || 3;
   const remaining = projectLimit - projectCount;
-  
+
   if (remaining > 1) return null;
-  
+
   return (
-    <div className={`rounded-lg p-4 mb-4 ${
-      remaining <= 0 
-        ? 'bg-red-50 border border-red-200' 
+    <div className={`rounded-lg p-4 mb-4 ${remaining <= 0
+        ? 'bg-red-50 border border-red-200'
         : 'bg-yellow-50 border border-yellow-200'
-    }`}>
+      }`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           {remaining <= 0 ? <XCircle className="w-6 h-6 text-red-500" /> : <AlertCircle className="w-6 h-6 text-yellow-500" />}
           <div>
             <p className={`font-medium ${remaining <= 0 ? 'text-red-700' : 'text-yellow-700'}`}>
-              {remaining <= 0 
-                ? 'Project limit reached' 
+              {remaining <= 0
+                ? 'Project limit reached'
                 : `Only ${remaining} project${remaining === 1 ? '' : 's'} remaining`}
             </p>
             <p className="text-sm text-gray-600">
@@ -149,15 +147,15 @@ export function TierBadge({ tier, size = 'md' }: { tier?: string; size?: 'sm' | 
     md: 'px-3 py-1 text-sm',
     lg: 'px-4 py-1.5 text-base',
   };
-  
+
   const tierConfig: Record<string, { bg: string; text: string; label: React.ReactNode }> = {
     free: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Free' },
     pro: { bg: 'bg-blue-100', text: 'text-blue-700', label: (<><Star className="w-4 h-4 inline-block mr-1" /> Pro</>) },
     enterprise: { bg: 'bg-purple-100', text: 'text-purple-700', label: (<><Building className="w-4 h-4 inline-block mr-1" /> Enterprise</>) },
   };
-  
+
   const config = tierConfig[tier as keyof typeof tierConfig] || tierConfig.free;
-  
+
   return (
     <span className={`${config.bg} ${config.text} ${sizeClasses[size]} rounded-full font-medium`}>
       {config.label}

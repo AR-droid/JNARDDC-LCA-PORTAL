@@ -497,8 +497,8 @@ export default function HomePage() {
                   key={index}
                   onClick={() => setCurrentTestimonial(index)}
                   className={`w-3 h-3 rounded-full transition-all ${index === currentTestimonial
-                      ? 'bg-blue-600 w-8'
-                      : 'bg-gray-300 hover:bg-gray-400'
+                    ? 'bg-blue-600 w-8'
+                    : 'bg-gray-300 hover:bg-gray-400'
                     }`}
                 />
               ))}
@@ -575,7 +575,7 @@ export default function HomePage() {
                 <h3 className="text-xl font-bold text-white mb-2">Pro</h3>
                 <p className="text-blue-100 text-sm">For Exporters & Growing Businesses</p>
                 <div className="mt-4">
-                  <span className="text-4xl font-bold text-white">₹15,000</span>
+                  <span className="text-4xl font-bold text-white">₹14,999</span>
                   <span className="text-blue-200">/month</span>
                 </div>
                 <p className="text-blue-200 text-xs mt-1">or $180/month</p>

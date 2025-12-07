@@ -552,20 +552,29 @@ def upgrade_to_pro():
         data = request.json
         target_tier = data.get('tier', 'pro')
         
-        if target_tier not in ['pro', 'enterprise']:
+        if target_tier not in ['free', 'pro', 'enterprise']:
             return jsonify({"detail": "Invalid tier"}), 400
         
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
         
-        # Update user tier to pro (without payment for now)
+        # Set project limit based on tier
+        project_limit = 3 if target_tier == 'free' else -1  # 3 for free, -1 (unlimited) for pro/enterprise
+        
+        # Update user tier
         c.execute("""UPDATE users SET tier = ?, project_limit = ? WHERE id = ?""",
-                  (target_tier, -1, payload['user_id']))  # -1 means unlimited
+                  (target_tier, project_limit, payload['user_id']))
         
         conn.commit()
         conn.close()
         
-        return jsonify({"message": f"Successfully upgraded to {target_tier.title()} plan!", "tier": target_tier}), 200
+        # Customize message based on tier
+        if target_tier == 'free':
+            message = "Plan cancelled. You are now on the Free plan."
+        else:
+            message = f"Successfully upgraded to {target_tier.title()} plan!"
+        
+        return jsonify({"message": message, "tier": target_tier}), 200
     except jwt.ExpiredSignatureError:
         return jsonify({"detail": "Token expired"}), 401
     except Exception as e:

@@ -26,7 +26,6 @@ services:
   - type: web
     name: jnarddc-lca-frontend
     env: static
-    region: singapore
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
@@ -39,5 +38,5 @@ services:
         fromService:
           type: web
           name: jnarddc-lca-backend
-          property: url
-          envVarKey: VITE_API_URL
+          property: host
+

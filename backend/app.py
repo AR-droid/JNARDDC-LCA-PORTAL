@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl.drawing.image import Image as XLImage
 
 # Load environment variables
 load_dotenv()  # Try .env first
@@ -9115,7 +9116,7 @@ def export_cbam_excel(project_id):
         )
         
         # Set column widths
-        ws.column_dimensions['A'].width = 5
+        ws.column_dimensions['A'].width = 10  # Wider to fit logo
         ws.column_dimensions['B'].width = 25
         ws.column_dimensions['C'].width = 20
         ws.column_dimensions['D'].width = 15
@@ -9126,12 +9127,20 @@ def export_cbam_excel(project_id):
         
         row = 1
         
-        # ===== LETTERHEAD =====
+        # ===== LETTERHEAD WITH LOGO =====
+        # Add logo image
+        logo_path = os.path.join(BASE_DIR, 'frontend', 'public', 'images', 'logo.png')
+        if os.path.exists(logo_path):
+            logo = XLImage(logo_path)
+            logo.width = 60
+            logo.height = 60
+            ws.add_image(logo, 'A1')
+        
         ws.merge_cells('B1:G1')
         ws['B1'] = 'JNARDDC LCA PORTAL'
         ws['B1'].font = header_font
         ws['B1'].alignment = Alignment(horizontal='center', vertical='center')
-        ws.row_dimensions[1].height = 30
+        ws.row_dimensions[1].height = 50  # Taller to fit logo
         
         row = 2
         ws.merge_cells('B2:G2')

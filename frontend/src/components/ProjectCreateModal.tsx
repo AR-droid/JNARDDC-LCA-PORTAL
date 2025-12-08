@@ -1,6 +1,6 @@
-import { useState, FormEvent, useRef } from 'react';
+import { useState, FormEvent, useRef, useCallback, useEffect } from 'react';
 import { projectsApi, parseNLPDescription, NLPParseResult, NLPAssumption } from '../api/projects';
-import { Mic, MicOff, Loader2, Upload, FileText, X, AlertTriangle, Recycle } from 'lucide-react';
+import { Mic, MicOff, Loader2, Upload, FileText, X, AlertTriangle, Recycle, ImageIcon, Camera, XCircle } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 
@@ -29,6 +29,17 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [uploadedDocument, setUploadedDocument] = useState<{ name: string, wordCount: number } | null>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
+
+  // Image Upload State
+  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<{ name: string, size: number } | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  // Camera Capture State
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -228,6 +239,175 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
     setNlpInput('');
   };
 
+  // Image Upload Handler
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Unsupported image type. Please upload JPEG, PNG, or WebP images.');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Image too large. Maximum size is 10MB.');
+      return;
+    }
+
+    setIsAnalyzingImage(true);
+    setError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${API_BASE}/ai/analyze-product-image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.description) {
+        setNlpInput(data.description);
+        setUploadedImage({
+          name: file.name,
+          size: file.size
+        });
+        // Clear any previous document upload
+        setUploadedDocument(null);
+      } else {
+        setError(data.detail || 'Failed to analyze image. Please try again or use a clearer product image.');
+      }
+    } catch (error) {
+      console.error('Image analysis error:', error);
+      setError('Failed to analyze image. Please try again.');
+    } finally {
+      setIsAnalyzingImage(false);
+      if (imageInputRef.current) {
+        imageInputRef.current.value = '';
+      }
+    }
+  };
+
+  const clearUploadedImage = () => {
+    setUploadedImage(null);
+    setNlpInput('');
+  };
+
+  // Camera Functions
+  const openCamera = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment', // Prefer back camera on mobile
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+      setCameraStream(stream);
+      setIsCameraOpen(true);
+      
+      // Set video source after state update
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      setError('Could not access camera. Please ensure you have granted permission or try uploading an image instead.');
+    }
+  }, []);
+
+  const closeCamera = useCallback(() => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    setIsCameraOpen(false);
+  }, [cameraStream]);
+
+  const capturePhoto = useCallback(async () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw video frame to canvas
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0);
+    
+    // Convert to blob
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        setError('Failed to capture photo. Please try again.');
+        return;
+      }
+
+      // Close camera
+      closeCamera();
+      
+      // Analyze the captured image
+      setIsAnalyzingImage(true);
+      setError('');
+
+      try {
+        const formData = new FormData();
+        formData.append('image', blob, 'camera-capture.jpg');
+
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`${API_BASE}/ai/analyze-product-image`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.description) {
+          setNlpInput(data.description);
+          setUploadedImage({
+            name: 'Camera Capture',
+            size: blob.size
+          });
+          // Clear any previous document upload
+          setUploadedDocument(null);
+        } else {
+          setError(data.detail || 'Failed to analyze photo. Please try again or use a clearer image.');
+        }
+      } catch (error) {
+        console.error('Photo analysis error:', error);
+        setError('Failed to analyze photo. Please try again.');
+      } finally {
+        setIsAnalyzingImage(false);
+      }
+    }, 'image/jpeg', 0.9);
+  }, [closeCamera]);
+
+  // Cleanup camera on unmount or modal close
+  useEffect(() => {
+    return () => {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [cameraStream]);
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
@@ -271,6 +451,14 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
     setNlpResult(null);
     setInputMode('manual');
     setError('');
+    setUploadedDocument(null);
+    setUploadedImage(null);
+    // Close camera if open
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    setIsCameraOpen(false);
   };
 
   const handleClose = () => {
@@ -318,6 +506,57 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
           </div>
         )}
 
+        {/* Camera Capture Modal */}
+        {isCameraOpen && (
+          <div className="p-6 bg-gray-900 border-b border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Camera className="w-5 h-5" /> Camera Capture
+              </h3>
+              <button
+                type="button"
+                onClick={closeCamera}
+                className="text-gray-400 hover:text-white transition"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="relative rounded-lg overflow-hidden bg-black">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full max-h-[400px] object-contain"
+              />
+              <canvas ref={canvasRef} className="hidden" />
+            </div>
+            
+            <div className="flex items-center justify-center gap-4 mt-4">
+              <button
+                type="button"
+                onClick={closeCamera}
+                className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={capturePhoto}
+                className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-medium flex items-center gap-2"
+              >
+                <Camera className="w-5 h-5" />
+                Capture & Analyze
+              </button>
+            </div>
+            
+            <p className="text-center text-gray-400 text-sm mt-3">
+              Position the product in the frame and click "Capture & Analyze"
+            </p>
+          </div>
+        )}
+
         {/* NLP Input Mode */}
         {inputMode === 'nlp' && (
           <div className="p-6 bg-green-50 border-b border-green-200">
@@ -325,8 +564,44 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
               <h3 className="text-lg font-semibold text-green-800 flex items-center gap-2">
                 <img src="/images/ai.png" alt="AI" className="w-5 h-5" /> Smart Input
               </h3>
-              {/* Document Upload Button */}
-              <div>
+              {/* Upload Buttons */}
+              <div className="flex gap-2">
+                {/* Camera Capture Button */}
+                <button
+                  type="button"
+                  onClick={openCamera}
+                  disabled={isAnalyzingImage || isParsingNLP || isUploadingDocument || isCameraOpen}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200 transition disabled:opacity-50"
+                  title="Take photo with camera"
+                >
+                  <Camera className="w-4 h-4" />
+                  Take Photo
+                </button>
+
+                {/* Image Upload Button */}
+                <input
+                  type="file"
+                  ref={imageInputRef}
+                  onChange={handleImageUpload}
+                  accept="image/jpeg,image/png,image/webp,image/jpg"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={isAnalyzingImage || isParsingNLP || isUploadingDocument || isCameraOpen}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition disabled:opacity-50"
+                  title="Upload product image (JPEG, PNG, WebP)"
+                >
+                  {isAnalyzingImage ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <ImageIcon className="w-4 h-4" />
+                  )}
+                  {isAnalyzingImage ? 'Analyzing...' : 'Upload Image'}
+                </button>
+
+                {/* Document Upload Button */}
                 <input
                   type="file"
                   ref={documentInputRef}
@@ -337,7 +612,7 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
                 <button
                   type="button"
                   onClick={() => documentInputRef.current?.click()}
-                  disabled={isUploadingDocument || isParsingNLP}
+                  disabled={isUploadingDocument || isParsingNLP || isAnalyzingImage || isCameraOpen}
                   className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition disabled:opacity-50"
                   title="Upload document (PDF, DOCX, TXT, CSV, XLSX)"
                 >
@@ -351,8 +626,25 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
               </div>
             </div>
             <p className="text-sm text-green-700 mb-3">
-              Describe your product in natural language, use voice input, or upload a document.
+              Describe your product in natural language, use voice input, upload a document, <span className="font-medium text-emerald-700">take a photo</span>, or <span className="font-medium text-purple-700">upload an image</span> for AI analysis.
             </p>
+
+            {/* Uploaded Image Badge */}
+            {uploadedImage && (
+              <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-purple-50 border border-purple-200 rounded-lg">
+                <ImageIcon className="w-4 h-4 text-purple-600" />
+                <span className="text-sm text-purple-700 flex-1">
+                  {uploadedImage.name} ({(uploadedImage.size / 1024).toFixed(1)} KB) - AI analyzed
+                </span>
+                <button
+                  type="button"
+                  onClick={clearUploadedImage}
+                  className="text-purple-600 hover:text-purple-800"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
 
             {/* Uploaded Document Badge */}
             {uploadedDocument && (
@@ -378,13 +670,13 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
                   onChange={(e) => setNlpInput(e.target.value)}
                   rows={3}
                   className="w-full px-4 py-2 pr-12 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder={isTranscribing ? "Transcribing..." : isUploadingDocument ? "Extracting text..." : "Example: 10kg copper wire, PVC coated, used in a motor for 10 years"}
-                  disabled={isParsingNLP || isTranscribing || isUploadingDocument}
+                  placeholder={isTranscribing ? "Transcribing..." : isUploadingDocument ? "Extracting text..." : isAnalyzingImage ? "Analyzing product image..." : "Example: 10kg copper wire, PVC coated, used in a motor for 10 years"}
+                  disabled={isParsingNLP || isTranscribing || isUploadingDocument || isAnalyzingImage || isCameraOpen}
                 />
                 <button
                   type="button"
                   onClick={handleVoiceButton}
-                  disabled={isParsingNLP || isTranscribing || isUploadingDocument}
+                  disabled={isParsingNLP || isTranscribing || isUploadingDocument || isAnalyzingImage || isCameraOpen}
                   className={`absolute right-2 top-2 p-2 rounded-lg transition flex items-center justify-center ${isRecording
                       ? 'bg-red-500 text-white animate-pulse hover:bg-red-600'
                       : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
@@ -411,7 +703,7 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
                 type="button"
                 onClick={handleNLPParse}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium disabled:bg-green-300 flex items-center gap-2"
-                disabled={isParsingNLP || !nlpInput.trim() || isTranscribing}
+                disabled={isParsingNLP || !nlpInput.trim() || isTranscribing || isAnalyzingImage || isCameraOpen}
               >
                 {isParsingNLP ? <><Loader2 className="w-4 h-4 animate-spin" /> Parsing...</> : <>Parse Description</>}
               </button>

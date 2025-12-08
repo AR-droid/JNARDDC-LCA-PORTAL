@@ -8751,6 +8751,69 @@ Materials:
         return jsonify({"detail": str(e)}), 500
 
 
+@app.route('/api/v1/ai/analyze-product-image', methods=['POST', 'OPTIONS'])
+def ai_analyze_product_image():
+    """Analyze a product image using Gemini Vision to generate a description for LCA"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        # Check if file is in the request
+        if 'image' not in request.files:
+            return jsonify({"detail": "No image file provided"}), 400
+        
+        file = request.files['image']
+        
+        if file.filename == '':
+            return jsonify({"detail": "No image file selected"}), 400
+        
+        # Validate file type
+        allowed_types = {'image/jpeg', 'image/png', 'image/webp', 'image/jpg'}
+        mime_type = file.content_type
+        
+        if mime_type not in allowed_types:
+            return jsonify({"detail": f"Unsupported image type: {mime_type}. Allowed: JPEG, PNG, WebP"}), 400
+        
+        # Read file data
+        image_data = file.read()
+        
+        # Validate file size (max 10MB)
+        if len(image_data) > 10 * 1024 * 1024:
+            return jsonify({"detail": "Image file too large. Maximum size is 10MB"}), 400
+        
+        # Import and call the analyze function
+        from gemini_utils import analyze_product_image, GEMINI_CONFIGURED
+        
+        if not GEMINI_CONFIGURED:
+            return jsonify({
+                "detail": "Gemini API is not configured. Please set GEMINI_API_KEY environment variable.",
+                "description": None
+            }), 503
+        
+        # Analyze the image
+        description = analyze_product_image(image_data, mime_type)
+        
+        if description:
+            return jsonify({
+                "success": True,
+                "description": description,
+                "image_size": len(image_data),
+                "mime_type": mime_type
+            }), 200
+        else:
+            return jsonify({
+                "success": False,
+                "detail": "Failed to analyze image. Please try again or use a clearer product image.",
+                "description": None
+            }), 500
+        
+    except Exception as e:
+        print(f"AI Image Analysis Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"detail": str(e)}), 500
+
+
 # =====================================================
 # ENGINE 7: CBAM EXPORT & COMPLIANCE
 # =====================================================
@@ -11249,6 +11312,438 @@ def get_scrap_yard_stats():
     except Exception as e:
         print(f"Error fetching scrap yard stats: {e}")
         return jsonify({'detail': str(e)}), 500
+
+
+@app.route('/api/v1/waste-to-research/<project_id>', methods=['GET', 'OPTIONS'])
+def get_waste_to_research_exchange(project_id):
+    """
+    Map waste generated from each lifecycle stage to industries that can use it.
+    Uses Groq AI to intelligently match waste streams to potential research/industrial applications.
+    """
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Get project and materials
+        c.execute("SELECT name, description, product_category FROM projects WHERE id = ? AND user_id = ?", 
+                  (project_id, payload['user_id']))
+        project = c.fetchone()
+        
+        if not project:
+            conn.close()
+            return jsonify({"detail": "Project not found"}), 404
+        
+        c.execute("""SELECT material_name, material_type, quantity, unit 
+                     FROM project_materials WHERE project_id = ?""", (project_id,))
+        materials = c.fetchall()
+        conn.close()
+        
+        # Analyze project to determine relevant lifecycle stages and actual waste
+        print(f"📊 Analyzing project: {project[0]} with {len(materials)} materials...")
+        
+        # Calculate total material quantities
+        total_quantity_kg = 0
+        material_types = []
+        materials_summary = []
+        
+        for mat in materials:
+            mat_name, mat_type, qty, unit = mat
+            # Convert to kg for calculations
+            qty_kg = qty
+            if unit.lower() in ['g', 'gram', 'grams']:
+                qty_kg = qty / 1000
+            elif unit.lower() in ['ton', 'tons', 'tonne', 'tonnes']:
+                qty_kg = qty * 1000
+            elif unit.lower() in ['mg', 'milligram']:
+                qty_kg = qty / 1000000
+            
+            total_quantity_kg += qty_kg
+            material_types.append(mat_type.lower() if mat_type else 'unknown')
+            materials_summary.append(f"{mat_name} ({mat_type}): {qty} {unit}")
+        
+        # Determine relevant lifecycle stages based on materials
+        # If materials are already processed (alloys, fabricated products), skip mining stages
+        is_raw_material = any(keyword in ' '.join(material_types) for keyword in ['ore', 'bauxite', 'mining', 'raw'])
+        is_primary_metal = any(keyword in ' '.join(material_types) for keyword in ['primary', 'virgin', 'smelting'])
+        is_fabricated = any(keyword in ' '.join(material_types) for keyword in ['alloy', 'sheet', 'extruded', 'cast', 'fabricated', 'can', 'product'])
+        
+        # Define lifecycle stages based on project type
+        relevant_stages = []
+        
+        if is_raw_material or is_primary_metal:
+            relevant_stages = [
+                {'stage': 'Mining', 'description': 'Extraction of raw materials from ore deposits'},
+                {'stage': 'Beneficiation', 'description': 'Concentration and purification of ore'},
+                {'stage': 'Refining', 'description': 'Chemical processing to extract pure metal'},
+                {'stage': 'Smelting', 'description': 'High-temperature reduction to produce metal'},
+            ]
+        
+        if is_fabricated or not (is_raw_material or is_primary_metal):
+            # Most projects are fabrication/manufacturing
+            relevant_stages.extend([
+                {'stage': 'Casting', 'description': 'Shaping molten metal into products'},
+                {'stage': 'Fabrication', 'description': 'Manufacturing and assembly processes'},
+            ])
+        
+        # Always include recycling stage
+        relevant_stages.append({'stage': 'Recycle', 'description': 'Recycling and recovery operations'})
+        
+        # If no stages determined, use fabrication stages (most common)
+        if not relevant_stages:
+            relevant_stages = [
+                {'stage': 'Casting', 'description': 'Shaping molten metal into products'},
+                {'stage': 'Fabrication', 'description': 'Manufacturing and assembly processes'},
+                {'stage': 'Recycle', 'description': 'Recycling and recovery operations'},
+            ]
+        
+        print(f"✅ Identified {len(relevant_stages)} relevant lifecycle stages: {[s['stage'] for s in relevant_stages]}")
+        
+        # Generate project-specific waste streams using AI
+        waste_mappings = []
+        use_ai = False
+        
+        if groq_client:
+            try:
+                print("🤖 Generating project-specific waste streams with AI...")
+                materials_text = "\n".join(materials_summary[:10])  # Limit to first 10 materials
+                
+                prompt = f"""You are an expert in industrial waste generation and circular economy.
+
+PROJECT CONTEXT:
+- Project Name: {project[0]}
+- Product Category: {project[2] or 'General Manufacturing'}
+- Total Materials: {len(materials)} materials, approximately {total_quantity_kg:.0f} kg total
+- Materials Used:
+{materials_text}
+
+RELEVANT LIFECYCLE STAGES:
+{chr(10).join([f"- {s['stage']}: {s['description']}" for s in relevant_stages])}
+
+TASK: For each lifecycle stage, identify the ACTUAL waste streams that would be generated from processing these specific materials. Calculate realistic waste quantities based on the material quantities provided.
+
+For each stage, return:
+1. Specific waste types that would actually be generated (e.g., "Aluminum machining chips" not "Overburden" for a fabrication project)
+2. Estimated waste quantities based on the material quantities (use waste factors: 2-5% for fabrication, 3-8% for smelting, 10-15% for mining)
+3. 2-3 Indian industries/research institutions that could use each waste stream
+
+Return ONLY valid JSON in this format:
+{{
+  "stages": [
+    {{
+      "stage": "Stage Name",
+      "waste_mappings": [
+        {{
+          "waste_type": "Specific waste name (e.g., Aluminum machining chips)",
+          "quantity_estimate": "X kg/month (calculated from materials)",
+          "industries": [
+            {{
+              "name": "Company/Institution Name",
+              "industry": "Industry Type",
+              "application": "How they use this waste",
+              "contact_email": "contact@example.com",
+              "location": "City, State",
+              "research_potential": "High/Medium/Low"
+            }}
+          ]
+        }}
+      ]
+    }}
+  ]
+}}"""
+                
+                response = groq_client.chat.completions.create(
+                    model=GROQ_MODEL,
+                    messages=[
+                        {"role": "system", "content": "You are an expert in industrial waste valorization. Always return valid JSON only. Be specific about waste types based on actual materials."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=3000,
+                    response_format={"type": "json_object"}
+                )
+                
+                import json
+                ai_result = json.loads(response.choices[0].message.content)
+                # Handle both 'stages' and direct array formats
+                if 'stages' in ai_result:
+                    waste_mappings = ai_result['stages']
+                elif isinstance(ai_result, list):
+                    waste_mappings = ai_result
+                else:
+                    # Fallback if format is unexpected
+                    waste_mappings = generate_project_specific_waste_mappings(relevant_stages, materials, project[2], total_quantity_kg)
+                
+                use_ai = True
+                print(f"✅ AI generated {len(waste_mappings)} stages with project-specific waste streams")
+                
+            except Exception as e:
+                print(f"⚠️ AI generation failed: {e}")
+                import traceback
+                traceback.print_exc()
+                # Fallback to rule-based with project context
+                waste_mappings = generate_project_specific_waste_mappings(relevant_stages, materials, project[2], total_quantity_kg)
+        else:
+            # Fallback: generate project-specific waste based on materials
+            waste_mappings = generate_project_specific_waste_mappings(relevant_stages, materials, project[2], total_quantity_kg)
+        
+        
+        return jsonify({
+            'project_id': project_id,
+            'project_name': project[0],
+            'lifecycle_stages': waste_mappings,
+            'generated_at': datetime.utcnow().isoformat(),
+            'source': 'groq_ai' if use_ai and len(waste_mappings) > 0 else 'rule_based'
+        }), 200
+        
+    except Exception as e:
+        print(f"Waste to Resource Connect Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"detail": str(e)}), 500
+
+
+def generate_project_specific_waste_mappings(relevant_stages, materials, product_category, total_quantity_kg):
+    """Generate project-specific waste mappings based on actual materials"""
+    waste_mappings = []
+    
+    # Determine primary material type
+    primary_material = 'aluminium'  # default
+    if materials:
+        first_mat_type = (materials[0][1] or '').lower()
+        if 'aluminium' in first_mat_type or 'aluminum' in first_mat_type:
+            primary_material = 'aluminium'
+        elif 'copper' in first_mat_type:
+            primary_material = 'copper'
+        elif 'steel' in first_mat_type or 'iron' in first_mat_type:
+            primary_material = 'steel'
+        elif 'lithium' in first_mat_type:
+            primary_material = 'lithium'
+    
+    # Stage-specific waste generation
+    stage_waste_map = {
+        'Mining': {
+            'waste_types': ['Overburden', 'Tailings', 'Gangue'],
+            'waste_factor': 0.12,  # 12% for mining
+            'industries': [
+                {'name': 'IIT Kharagpur', 'industry': 'Research Institution', 
+                 'application': 'Land reclamation and construction fill material', 
+                 'contact_email': 'mining@iitkgp.ac.in', 'location': 'Kharagpur, West Bengal', 'research_potential': 'High'},
+                {'name': 'NMDC Limited', 'industry': 'Mining', 
+                 'application': 'Backfilling and rehabilitation', 
+                 'contact_email': 'environment@nmdc.co.in', 'location': 'Hyderabad, Telangana', 'research_potential': 'Medium'}
+            ]
+        },
+        'Beneficiation': {
+            'waste_types': ['Tailings', 'Process water', 'Slurry'],
+            'waste_factor': 0.08,
+            'industries': [
+                {'name': 'CSIR-Central Institute of Mining and Fuel Research', 'industry': 'Research Institution', 
+                 'application': 'Mineral recovery and tailings management', 
+                 'contact_email': 'director@cimfr.nic.in', 'location': 'Dhanbad, Jharkhand', 'research_potential': 'High'},
+                {'name': 'Hindustan Zinc Limited', 'industry': 'Mining & Metals', 
+                 'application': 'Metal recovery from tailings', 
+                 'contact_email': 'sustainability@hzlindia.com', 'location': 'Udaipur, Rajasthan', 'research_potential': 'Medium'}
+            ]
+        },
+        'Refining': {
+            'waste_types': ['Red mud', 'Bauxite residue', 'Acidic wastewater'] if primary_material == 'aluminium' else ['Slag', 'Acidic wastewater', 'Dust'],
+            'waste_factor': 0.06,
+            'industries': [
+                {'name': 'CSIR-National Metallurgical Laboratory', 'industry': 'Research Institution', 
+                 'application': 'Extraction of valuable elements and waste valorization', 
+                 'contact_email': 'director@nmlindia.org', 'location': 'Jamshedpur, Jharkhand', 'research_potential': 'High'},
+                {'name': 'JSW Steel Ltd', 'industry': 'Steel Manufacturing', 
+                 'application': 'Iron recovery and cement production', 
+                 'contact_email': 'csr@jsw.in', 'location': 'Mumbai, Maharashtra', 'research_potential': 'Medium'}
+            ]
+        },
+        'Smelting': {
+            'waste_types': [f'{primary_material.capitalize()} slag', 'Flue dust', 'Metal dross'],
+            'waste_factor': 0.05,
+            'industries': [
+                {'name': 'IIT Delhi', 'industry': 'Research Institution', 
+                 'application': 'Cement replacement in construction materials', 
+                 'contact_email': 'research@iitd.ac.in', 'location': 'New Delhi', 'research_potential': 'High'},
+                {'name': 'ACC Limited', 'industry': 'Cement Manufacturing', 
+                 'application': 'Raw material for Portland cement production', 
+                 'contact_email': 'sustainability@accindia.com', 'location': 'Mumbai, Maharashtra', 'research_potential': 'Medium'}
+            ]
+        },
+        'Casting': {
+            'waste_types': [f'{primary_material.capitalize()} casting scrap', 'Risers', 'Gates', 'Mold waste'],
+            'waste_factor': 0.03,
+            'industries': [
+                {'name': 'Bharat Forge Ltd', 'industry': 'Forging & Casting', 
+                 'application': 'Remelting and reuse in foundry operations', 
+                 'contact_email': 'quality@bharatforge.com', 'location': 'Pune, Maharashtra', 'research_potential': 'Low'},
+                {'name': 'IIT Madras', 'industry': 'Research Institution', 
+                 'application': 'Advanced casting process optimization', 
+                 'contact_email': 'materials@iitm.ac.in', 'location': 'Chennai, Tamil Nadu', 'research_potential': 'High'}
+            ]
+        },
+        'Fabrication': {
+            'waste_types': [f'{primary_material.capitalize()} machining chips', 'Cutting waste', 'Grinding dust', 'Metal shavings'],
+            'waste_factor': 0.04,
+            'industries': [
+                {'name': 'Hindalco Industries Ltd', 'industry': 'Aluminum Manufacturing', 
+                 'application': 'Direct remelting in smelting operations', 
+                 'contact_email': 'sustainability@hindalco.com', 'location': 'Mumbai, Maharashtra', 'research_potential': 'Low'},
+                {'name': 'IIT Kanpur', 'industry': 'Research Institution', 
+                 'application': 'Powder metallurgy and additive manufacturing', 
+                 'contact_email': 'materials@iitk.ac.in', 'location': 'Kanpur, Uttar Pradesh', 'research_potential': 'High'}
+            ]
+        },
+        'Recycle': {
+            'waste_types': ['Sorting rejects', 'Contaminated scrap', 'Slag from remelting'],
+            'waste_factor': 0.02,
+            'industries': [
+                {'name': 'JNARDDC Research Division', 'industry': 'Research Institution', 
+                 'application': 'Waste valorization and circular economy research', 
+                 'contact_email': 'research@jnarddc.gov.in', 'location': 'Nagpur, Maharashtra', 'research_potential': 'High'},
+                {'name': 'Tata Steel Ltd', 'industry': 'Steel Manufacturing', 
+                 'application': 'Pelletization and recycling', 
+                 'contact_email': 'environment@tatasteel.com', 'location': 'Jamshedpur, Jharkhand', 'research_potential': 'Medium'}
+            ]
+        }
+    }
+    
+    for stage_data in relevant_stages:
+        stage_name = stage_data['stage']
+        stage_info = stage_waste_map.get(stage_name, {
+            'waste_types': ['General waste'],
+            'waste_factor': 0.03,
+            'industries': [
+                {'name': 'JNARDDC Research Division', 'industry': 'Research Institution', 
+                 'application': 'Waste valorization research', 
+                 'contact_email': 'research@jnarddc.gov.in', 'location': 'Nagpur, Maharashtra', 'research_potential': 'High'}
+            ]
+        })
+        
+        # Calculate waste quantity
+        waste_qty_kg = total_quantity_kg * stage_info['waste_factor']
+        if waste_qty_kg > 1000:
+            qty_estimate = f"{waste_qty_kg/1000:.1f} tons/month"
+        else:
+            qty_estimate = f"{waste_qty_kg:.0f} kg/month"
+        
+        waste_mappings.append({
+            'stage': stage_name,
+            'waste_mappings': [
+                {
+                    'waste_type': waste_type,
+                    'quantity_estimate': qty_estimate,
+                    'industries': stage_info['industries']
+                }
+                for waste_type in stage_info['waste_types'][:2]  # Limit to 2 waste types per stage
+            ]
+        })
+    
+    return waste_mappings
+
+
+def generate_fallback_waste_mappings(lifecycle_stages, product_category):
+    """Fallback rule-based waste-to-industry mapping when AI is unavailable"""
+    fallback_mappings = []
+    
+    # Predefined mappings for common waste types
+    industry_mappings = {
+        'Slag': [
+            {'name': 'Indian Institute of Technology (IIT) Delhi', 'industry': 'Research Institution', 
+             'application': 'Cement replacement in construction materials', 'contact_email': 'research@iitd.ac.in', 
+             'location': 'New Delhi', 'research_potential': 'High'},
+            {'name': 'ACC Limited', 'industry': 'Cement Manufacturing', 
+             'application': 'Raw material for Portland cement production', 'contact_email': 'sustainability@accindia.com', 
+             'location': 'Mumbai, Maharashtra', 'research_potential': 'Medium'}
+        ],
+        'Red mud': [
+            {'name': 'CSIR-National Metallurgical Laboratory', 'industry': 'Research Institution', 
+             'application': 'Extraction of rare earth elements and iron', 'contact_email': 'director@nmlindia.org', 
+             'location': 'Jamshedpur, Jharkhand', 'research_potential': 'High'},
+            {'name': 'JSW Steel Ltd', 'industry': 'Steel Manufacturing', 
+             'application': 'Iron recovery and cement production', 'contact_email': 'csr@jsw.in', 
+             'location': 'Mumbai, Maharashtra', 'research_potential': 'Medium'}
+        ],
+        'Metal chips': [
+            {'name': 'Hindalco Industries Ltd', 'industry': 'Aluminum Manufacturing', 
+             'application': 'Remelting and recycling', 'contact_email': 'sustainability@hindalco.com', 
+             'location': 'Mumbai, Maharashtra', 'research_potential': 'Low'},
+            {'name': 'Indian Institute of Science (IISc) Bangalore', 'industry': 'Research Institution', 
+             'application': 'Powder metallurgy research', 'contact_email': 'materials@iisc.ac.in', 
+             'location': 'Bangalore, Karnataka', 'research_potential': 'High'}
+        ],
+        'Dust': [
+            {'name': 'Tata Steel Ltd', 'industry': 'Steel Manufacturing', 
+             'application': 'Pelletization and recycling', 'contact_email': 'environment@tatasteel.com', 
+             'location': 'Jamshedpur, Jharkhand', 'research_potential': 'Medium'},
+            {'name': 'IIT Bombay', 'industry': 'Research Institution', 
+             'application': 'Air pollution control and material recovery', 'contact_email': 'research@iitb.ac.in', 
+             'location': 'Mumbai, Maharashtra', 'research_potential': 'High'}
+        ],
+        'Overburden': [
+            {'name': 'IIT Kharagpur', 'industry': 'Research Institution', 
+             'application': 'Land reclamation and construction fill material', 'contact_email': 'mining@iitkgp.ac.in', 
+             'location': 'Kharagpur, West Bengal', 'research_potential': 'High'},
+            {'name': 'NMDC Limited', 'industry': 'Mining', 
+             'application': 'Backfilling and rehabilitation', 'contact_email': 'environment@nmdc.co.in', 
+             'location': 'Hyderabad, Telangana', 'research_potential': 'Medium'}
+        ],
+        'Tailings': [
+            {'name': 'CSIR-Central Institute of Mining and Fuel Research', 'industry': 'Research Institution', 
+             'application': 'Mineral recovery and tailings management research', 'contact_email': 'director@cimfr.nic.in', 
+             'location': 'Dhanbad, Jharkhand', 'research_potential': 'High'},
+            {'name': 'Hindustan Zinc Limited', 'industry': 'Mining & Metals', 
+             'application': 'Metal recovery from tailings', 'contact_email': 'sustainability@hzlindia.com', 
+             'location': 'Udaipur, Rajasthan', 'research_potential': 'Medium'}
+        ],
+        'Casting scrap': [
+            {'name': 'Bharat Forge Ltd', 'industry': 'Forging & Casting', 
+             'application': 'Remelting and reuse in foundry operations', 'contact_email': 'quality@bharatforge.com', 
+             'location': 'Pune, Maharashtra', 'research_potential': 'Low'},
+            {'name': 'IIT Madras', 'industry': 'Research Institution', 
+             'application': 'Advanced casting process optimization', 'contact_email': 'materials@iitm.ac.in', 
+             'location': 'Chennai, Tamil Nadu', 'research_potential': 'High'}
+        ],
+        'Machining chips': [
+            {'name': 'Hindalco Industries Ltd', 'industry': 'Aluminum Manufacturing', 
+             'application': 'Direct remelting in smelting operations', 'contact_email': 'sustainability@hindalco.com', 
+             'location': 'Mumbai, Maharashtra', 'research_potential': 'Low'},
+            {'name': 'IIT Kanpur', 'industry': 'Research Institution', 
+             'application': 'Powder metallurgy and additive manufacturing', 'contact_email': 'materials@iitk.ac.in', 
+             'location': 'Kanpur, Uttar Pradesh', 'research_potential': 'High'}
+        ]
+    }
+    
+    for stage_data in lifecycle_stages:
+        stage_mappings = []
+        for waste_type in stage_data['waste_types'][:3]:  # Limit to 3 waste types
+            industries = industry_mappings.get(waste_type, [
+                {'name': 'JNARDDC Research Division', 'industry': 'Research Institution', 
+                 'application': 'Waste valorization research', 'contact_email': 'research@jnarddc.gov.in', 
+                 'location': 'Nagpur, Maharashtra', 'research_potential': 'High'}
+            ])
+            
+            stage_mappings.append({
+                'waste_type': waste_type,
+                'quantity_estimate': 'Variable based on production scale',
+                'industries': industries
+            })
+        
+        fallback_mappings.append({
+            'stage': stage_data['stage'],
+            'waste_mappings': stage_mappings
+        })
+    
+    return fallback_mappings
 
 
 def init_db():

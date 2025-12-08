@@ -1,4 +1,4 @@
-import { useState, FormEvent, useRef } from 'react';
+import { useState, FormEvent, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   projectsApi,
@@ -8,7 +8,7 @@ import {
   NLPParsedMaterial,
 } from '../api/projects';
 import { useAuthStore } from '../stores/authStore';
-import { Mic, MicOff, Loader2, FileText, X, Sparkles, UploadCloud, Ban, BarChart3, Recycle, Nut, AlertTriangle, CheckCircle, ArrowLeft, Plus, ChevronDown, Settings, Pencil, Zap } from 'lucide-react';
+import { Mic, MicOff, Loader2, FileText, X, Sparkles, UploadCloud, Ban, BarChart3, Recycle, Nut, AlertTriangle, CheckCircle, ArrowLeft, Plus, ChevronDown, Settings, Pencil, Zap, Camera, ImageIcon, XCircle } from 'lucide-react';
 
 
 
@@ -88,6 +88,17 @@ export default function CreateProjectPage() {
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [uploadedDocument, setUploadedDocument] = useState<{ name: string; wordCount: number } | null>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
+
+  // Image Upload State
+  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<{ name: string; size: number } | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  // Camera Capture State
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Voice Recording Functions
   const startRecording = async () => {
@@ -222,6 +233,175 @@ export default function CreateProjectPage() {
     setUploadedDocument(null);
     setDescription('');
   };
+
+  // Image Upload Handler
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Unsupported image type. Please upload JPEG, PNG, or WebP images.');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Image too large. Maximum size is 10MB.');
+      return;
+    }
+
+    setIsAnalyzingImage(true);
+    setError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${API_BASE}/ai/analyze-product-image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.description) {
+        setDescription(data.description);
+        setUploadedImage({
+          name: file.name,
+          size: file.size
+        });
+        // Clear any previous document upload
+        setUploadedDocument(null);
+      } else {
+        setError(data.detail || 'Failed to analyze image. Please try again or use a clearer product image.');
+      }
+    } catch (error) {
+      console.error('Image analysis error:', error);
+      setError('Failed to analyze image. Please try again.');
+    } finally {
+      setIsAnalyzingImage(false);
+      if (imageInputRef.current) {
+        imageInputRef.current.value = '';
+      }
+    }
+  };
+
+  const clearUploadedImage = () => {
+    setUploadedImage(null);
+    setDescription('');
+  };
+
+  // Camera Functions
+  const openCamera = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment', // Prefer back camera on mobile
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+      setCameraStream(stream);
+      setIsCameraOpen(true);
+      
+      // Set video source after state update
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      setError('Could not access camera. Please ensure you have granted permission or try uploading an image instead.');
+    }
+  }, []);
+
+  const closeCamera = useCallback(() => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    setIsCameraOpen(false);
+  }, [cameraStream]);
+
+  const capturePhoto = useCallback(async () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw video frame to canvas
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0);
+    
+    // Convert to blob
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        setError('Failed to capture photo. Please try again.');
+        return;
+      }
+
+      // Close camera
+      closeCamera();
+      
+      // Analyze the captured image
+      setIsAnalyzingImage(true);
+      setError('');
+
+      try {
+        const formData = new FormData();
+        formData.append('image', blob, 'camera-capture.jpg');
+
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`${API_BASE}/ai/analyze-product-image`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.description) {
+          setDescription(data.description);
+          setUploadedImage({
+            name: 'Camera Capture',
+            size: blob.size
+          });
+          // Clear any previous document upload
+          setUploadedDocument(null);
+        } else {
+          setError(data.detail || 'Failed to analyze photo. Please try again or use a clearer image.');
+        }
+      } catch (error) {
+        console.error('Photo analysis error:', error);
+        setError('Failed to analyze photo. Please try again.');
+      } finally {
+        setIsAnalyzingImage(false);
+      }
+    }, 'image/jpeg', 0.9);
+  }, [closeCamera]);
+
+  // Cleanup camera on unmount
+  useEffect(() => {
+    return () => {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [cameraStream]);
 
   // Ask AI to parse description
   const handleAskAI = async () => {
@@ -395,6 +575,19 @@ export default function CreateProjectPage() {
                 </div>
               )}
 
+              {/* Uploaded Image Badge */}
+              {uploadedImage && (
+                <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-purple-50 border border-purple-100 rounded-lg">
+                  <ImageIcon className="w-4 h-4 text-purple-600" />
+                  <span className="text-sm text-purple-700 flex-1">
+                    {uploadedImage.name} ({(uploadedImage.size / 1024).toFixed(1)} KB) - AI analyzed
+                  </span>
+                  <button type="button" onClick={clearUploadedImage} className="text-purple-600 hover:text-purple-800">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
               {/* Description Textarea with Mic */}
               <div className="relative">
                 <textarea
@@ -407,15 +600,17 @@ export default function CreateProjectPage() {
                       ? 'Transcribing your voice...'
                       : isUploadingDocument
                       ? 'Extracting text from document...'
+                      : isAnalyzingImage
+                      ? 'Analyzing product image...'
                       : 'Example: 10kg copper wire with PVC coating, used in an electric motor. Contains 30% recycled content, designed for 10 year lifespan.'
                   }
-                  disabled={isParsingAI || isTranscribing || isUploadingDocument}
+                  disabled={isParsingAI || isTranscribing || isUploadingDocument || isAnalyzingImage || isCameraOpen}
                 />
                 {/* Mic Button */}
                 <button
                   type="button"
                   onClick={handleVoiceButton}
-                  disabled={isParsingAI || isTranscribing || isUploadingDocument}
+                  disabled={isParsingAI || isTranscribing || isUploadingDocument || isAnalyzingImage || isCameraOpen}
                   className={`absolute right-3 top-3 p-2 rounded-lg transition ${
                     isRecording 
                       ? 'bg-red-500 text-white animate-pulse hover:bg-red-600' 
@@ -445,7 +640,7 @@ export default function CreateProjectPage() {
                 <button
                   type="button"
                   onClick={handleAskAI}
-                  disabled={isParsingAI || !description.trim()}
+                  disabled={isParsingAI || !description.trim() || isAnalyzingImage || isCameraOpen}
                   className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-200"
                 >
                   {isParsingAI ? (
@@ -463,11 +658,56 @@ export default function CreateProjectPage() {
               </div>
             </div>
 
-            {/* Right: File Drop Zone (1/3 width) */}
-            <div 
-              className="bg-white rounded-2xl shadow-sm border-2 border-dashed border-gray-200 p-6 hover:border-blue-300 hover:bg-blue-50/50 transition cursor-pointer group flex flex-col items-center justify-center text-center"
-              onClick={() => documentInputRef.current?.click()}
-            >
+            {/* Right: Input Options (1/3 width) */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+              <h4 className="font-medium text-gray-700 text-sm">Or use these options:</h4>
+              
+              {/* Camera Capture Button */}
+              <button
+                type="button"
+                onClick={openCamera}
+                disabled={isAnalyzingImage || isParsingAI || isUploadingDocument || isCameraOpen}
+                className="w-full flex items-center gap-3 p-4 border-2 border-dashed border-emerald-200 rounded-xl hover:border-emerald-400 hover:bg-emerald-50 transition disabled:opacity-50 disabled:cursor-not-allowed group"
+              >
+                <div className="p-2 bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition">
+                  <Camera className="w-6 h-6 text-emerald-600" />
+                </div>
+                <div className="text-left">
+                  <p className="font-medium text-gray-700 group-hover:text-emerald-700 transition">Take Photo</p>
+                  <p className="text-xs text-gray-500">Use camera to capture product</p>
+                </div>
+              </button>
+
+              {/* Image Upload Button */}
+              <input
+                type="file"
+                ref={imageInputRef}
+                onChange={handleImageUpload}
+                accept="image/jpeg,image/png,image/webp,image/jpg"
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={isAnalyzingImage || isParsingAI || isUploadingDocument || isCameraOpen}
+                className="w-full flex items-center gap-3 p-4 border-2 border-dashed border-purple-200 rounded-xl hover:border-purple-400 hover:bg-purple-50 transition disabled:opacity-50 disabled:cursor-not-allowed group"
+              >
+                <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition">
+                  {isAnalyzingImage ? (
+                    <Loader2 className="w-6 h-6 text-purple-600 animate-spin" />
+                  ) : (
+                    <ImageIcon className="w-6 h-6 text-purple-600" />
+                  )}
+                </div>
+                <div className="text-left">
+                  <p className="font-medium text-gray-700 group-hover:text-purple-700 transition">
+                    {isAnalyzingImage ? 'Analyzing...' : 'Upload Image'}
+                  </p>
+                  <p className="text-xs text-gray-500">JPEG, PNG, WebP (max 10MB)</p>
+                </div>
+              </button>
+
+              {/* Document Upload Button */}
               <input
                 type="file"
                 ref={documentInputRef}
@@ -475,24 +715,79 @@ export default function CreateProjectPage() {
                 accept=".pdf,.docx,.txt,.csv,.xlsx"
                 className="hidden"
               />
-              <UploadCloud className="w-12 h-12 text-gray-300 group-hover:text-blue-400 mb-4 transition" />
-              <p className="text-gray-600 group-hover:text-gray-800 font-medium transition">
-                Upload Document
-              </p>
-              <p className="text-gray-500 group-hover:text-gray-700 text-sm mt-1 transition">
-                Drop files here or <span className="text-blue-600 font-medium">browse</span>
-              </p>
-              <p className="text-xs text-gray-400 mt-3">
-                PDF, DOCX, TXT, CSV, XLSX
-              </p>
-              {isUploadingDocument && (
-                <div className="flex items-center gap-2 mt-3 text-blue-600">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">Parsing...</span>
+              <button
+                type="button"
+                onClick={() => documentInputRef.current?.click()}
+                disabled={isAnalyzingImage || isParsingAI || isUploadingDocument || isCameraOpen}
+                className="w-full flex items-center gap-3 p-4 border-2 border-dashed border-blue-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition disabled:opacity-50 disabled:cursor-not-allowed group"
+              >
+                <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition">
+                  {isUploadingDocument ? (
+                    <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                  ) : (
+                    <UploadCloud className="w-6 h-6 text-blue-600" />
+                  )}
                 </div>
-              )}
+                <div className="text-left">
+                  <p className="font-medium text-gray-700 group-hover:text-blue-700 transition">
+                    {isUploadingDocument ? 'Parsing...' : 'Upload Document'}
+                  </p>
+                  <p className="text-xs text-gray-500">PDF, DOCX, TXT, CSV, XLSX</p>
+                </div>
+              </button>
             </div>
           </div>
+
+          {/* Camera Capture Modal */}
+          {isCameraOpen && (
+            <div className="bg-gray-900 rounded-2xl shadow-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <Camera className="w-5 h-5" /> Camera Capture
+                </h3>
+                <button
+                  type="button"
+                  onClick={closeCamera}
+                  className="text-gray-400 hover:text-white transition"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="relative rounded-xl overflow-hidden bg-black">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full max-h-[400px] object-contain"
+                />
+                <canvas ref={canvasRef} className="hidden" />
+              </div>
+              
+              <div className="flex items-center justify-center gap-4 mt-4">
+                <button
+                  type="button"
+                  onClick={closeCamera}
+                  className="px-5 py-2.5 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={capturePhoto}
+                  className="px-6 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-medium flex items-center gap-2 shadow-lg shadow-emerald-900/30"
+                >
+                  <Camera className="w-5 h-5" />
+                  Capture & Analyze
+                </button>
+              </div>
+              
+              <p className="text-center text-gray-400 text-sm mt-3">
+                Position the product in the frame and click "Capture & Analyze"
+              </p>
+            </div>
+          )}
 
           {/* Advanced Options Toggle */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">

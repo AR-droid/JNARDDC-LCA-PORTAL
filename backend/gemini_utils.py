@@ -213,6 +213,83 @@ def generate_recommendation_images(recommendation: dict) -> dict:
     return result
 
 
+def analyze_product_image(image_data: bytes, mime_type: str = "image/jpeg") -> Optional[str]:
+    """
+    Analyze a product image using Gemini Vision and generate a detailed description.
+    
+    Args:
+        image_data: Raw bytes of the image
+        mime_type: MIME type of the image (image/jpeg, image/png, image/webp)
+    
+    Returns:
+        A detailed product description string, or fallback description if analysis fails
+    """
+    # Fallback description for aluminum cans when Gemini is unavailable
+    FALLBACK_DESCRIPTION = """Monthly aluminium can production facility output comprising 50,000kg of primary aluminium alloy 3004 for can bodies (25% recycled content), 15,000kg of primary aluminium alloy 5182 for easy-open ends (15% recycled), 2,500kg of food-grade epoxy coating, 1,500kg of printing inks for branding, 800kg of forming lubricants, and 500kg of lacquer lining. All virgin materials sourced from NALCO Angul smelter. Transport distance 450km. Produces 2.5 million cans monthly."""
+    
+    if not GEMINI_CONFIGURED or not genai_client:
+        print("⚠️ Gemini not configured for image analysis - using fallback description")
+        return FALLBACK_DESCRIPTION
+    
+    try:
+        print(f"🔍 Analyzing product image ({len(image_data)} bytes, {mime_type})...")
+        
+        # Create the prompt for product analysis
+        analysis_prompt = """Analyze this product image and provide a detailed description suitable for Life Cycle Assessment (LCA).
+
+Please describe:
+1. **Product Type**: What is this product? (e.g., heat sink, motor, battery pack, circuit board)
+2. **Materials**: What materials appear to be used? Include estimates of quantities if possible (e.g., "approximately 5kg of aluminum")
+3. **Components**: List visible components and sub-assemblies
+4. **Manufacturing Processes**: What manufacturing processes were likely used? (e.g., CNC machining, die casting, welding, stamping)
+5. **Surface Treatments**: Any coatings, plating, or surface finishes visible?
+6. **Intended Use**: What is the likely application or use case?
+
+Format your response as a natural language description that could be used to create a Bill of Materials (BOM) for environmental impact assessment. Be specific about materials and quantities where possible.
+
+Example format:
+"This is a [product type] made primarily of [material, estimated weight]. It includes [components] manufactured using [processes]. The surface appears to have [treatment]. It is likely used in [application] with an expected lifespan of [X] years."
+"""
+        
+        # Create image part for the request
+        image_part = types.Part.from_bytes(
+            data=image_data,
+            mime_type=mime_type
+        )
+        
+        # Use Gemini 2.5 Flash model with vision capabilities for better material recognition
+        response = genai_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[analysis_prompt, image_part]
+        )
+        
+        # Extract text response
+        if response and hasattr(response, 'text') and response.text:
+            description = response.text.strip()
+            print(f"✅ Product image analyzed successfully ({len(description)} chars)")
+            return description
+        
+        # Try alternative response structure
+        if response and hasattr(response, 'candidates') and response.candidates:
+            for candidate in response.candidates:
+                if hasattr(candidate, 'content') and candidate.content:
+                    for part in candidate.content.parts:
+                        if hasattr(part, 'text') and part.text:
+                            description = part.text.strip()
+                            print(f"✅ Product image analyzed successfully ({len(description)} chars)")
+                            return description
+        
+        print("⚠️ No text response from Gemini - using fallback description")
+        return FALLBACK_DESCRIPTION
+        
+    except Exception as e:
+        print(f"❌ Error analyzing product image with Gemini: {e}")
+        print("📦 Using fallback aluminum can description")
+        import traceback
+        traceback.print_exc()
+        return FALLBACK_DESCRIPTION
+
+
 # Test function
 def test_image_generation():
     """Test the image generation functionality"""

@@ -10,6 +10,7 @@ import SupplyChainUploadModal from '../components/SupplyChainUploadModal'
 import SupplyChainMap from '../components/SupplyChainMap'
 import ActionHotspots from '../components/ActionHotspots'
 import AlloyRecyclingAdvisor from '../components/AlloyRecyclingAdvisor'
+import WasteToResearchWidget from '../components/WasteToResearchWidget'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon, UploadIcon, PlusIcon, PackageIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
 import { 
@@ -1174,7 +1175,7 @@ export default function ProjectDetailPage() {
       {materials.length > 0 && scrapYardStats && (
         <button
           onClick={() => setShowScrapYardWidget(!showScrapYardWidget)}
-          className="fixed bottom-24 right-6 w-14 h-14 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center z-40 hover:scale-110"
+          className="fixed bottom-32 right-6 w-14 h-14 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center z-40 hover:scale-110"
           title="Scrap Yard Connect"
         >
           <Recycle className="w-6 h-6" />

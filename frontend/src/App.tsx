@@ -19,6 +19,7 @@ import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
 import TeamManagementPage from './pages/TeamManagementPage'
 import ScrapYardConnectPage from './pages/ScrapYardConnectPage'
+import WasteToResearchExchangePage from './pages/WasteToResearchExchangePage'
 import WalletPage from './pages/WalletPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
@@ -175,6 +176,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ScrapYardConnectPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projects/:id/waste-to-research"
+          element={
+            <ProtectedRoute>
+              <WasteToResearchExchangePage />
             </ProtectedRoute>
           }
         />

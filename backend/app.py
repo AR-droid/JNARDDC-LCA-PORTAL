@@ -2696,30 +2696,62 @@ def delete_material(project_id, material_id):
         return jsonify({"detail": str(e)}), 500
 
 def calculate_gwp(material_type, quantity, recycled_content, transport_distance):
-    """Calculate GWP based on material type and parameters"""
+    """
+    Calculate GWP based on material type and parameters.
     
-    # Get base emission factor from global EMISSION_FACTORS
-    if material_type in EMISSION_FACTORS:
-        base_ef = EMISSION_FACTORS[material_type]['virgin']
-    else:
-        base_ef = 5.0  # Default if not found
+    Formula: GWP = Quantity × [(Virgin% × EF_virgin) + (Recycled% × EF_recycled)]
     
-    # Calculate virgin and recycled portions
+    Where:
+    - Virgin% = (100 - recycled_content) / 100
+    - Recycled% = recycled_content / 100
+    """
+    
+    # Standard emission factors (kg CO₂-eq per kg)
+    # Based on industry LCA values
+    EF_VIRGIN = {
+        'aluminium': 9.5,
+        'copper': 4.0,
+        'steel': 2.0,
+        'lithium': 15.0,
+        'cobalt': 10.0,
+        'nickel': 12.5,
+        'default': 5.0
+    }
+    
+    EF_RECYCLED = {
+        'aluminium': 0.6,
+        'copper': 0.4,
+        'steel': 0.4,
+        'lithium': 1.5,
+        'cobalt': 1.0,
+        'nickel': 1.2,
+        'default': 0.5
+    }
+    
+    # Extract base material name (e.g., 'copper' from 'copper_secondary')
+    base_material = material_type.lower().replace('_primary', '').replace('_secondary', '')
+    
+    # Get emission factors
+    ef_virgin = EF_VIRGIN.get(base_material, EF_VIRGIN['default'])
+    ef_recycled = EF_RECYCLED.get(base_material, EF_RECYCLED['default'])
+    
+    # Calculate fractions
     virgin_fraction = (100 - recycled_content) / 100
     recycled_fraction = recycled_content / 100
     
-    # Calculate material emissions
-    virgin_emissions = quantity * base_ef * virgin_fraction
+    # Calculate GWP per kg
+    gwp_per_kg = (virgin_fraction * ef_virgin) + (recycled_fraction * ef_recycled)
     
-    # Use material-specific recycled emission factor
-    recycled_ef = EMISSION_FACTORS.get(material_type, {}).get('recycled', base_ef * 0.1)
-    recycled_emissions = quantity * recycled_ef * recycled_fraction
+    # Total GWP = quantity × GWP per kg
+    material_gwp = quantity * gwp_per_kg
     
-    # Transport emissions (kg CO2-eq per ton-km)
-    transport_emissions = (quantity / 1000) * transport_distance * 0.062
+    # Add transport emissions (kg CO2-eq per ton-km × 0.062)
+    transport_gwp = (quantity / 1000) * transport_distance * 0.062
     
-    # Total GWP
-    total_gwp = virgin_emissions + recycled_emissions + transport_emissions
+    total_gwp = material_gwp + transport_gwp
+    
+    # Debug output
+    print(f"  [GWP] {base_material}: {quantity}kg × ({virgin_fraction:.0%}×{ef_virgin} + {recycled_fraction:.0%}×{ef_recycled}) = {total_gwp:.2f} kg CO₂eq")
     
     return round(total_gwp, 2)
 
@@ -5624,12 +5656,16 @@ def parse_nlp_input(description):
                 lifespan_found = True
                 break
     
-    # Extract recycled content (e.g., "30% recycled", "recycled content 25%")
+    # Extract recycled content (e.g., "30% recycled", "recycled content 25%", "60 % of recycled")
     recycled_patterns = [
-        r'(\d+)\s*%\s*recycled',
-        r'recycled[:\s]+(\d+)\s*%',
-        r'recycled content[:\s]+(\d+)',
+        r'(\d+)\s*%\s*(?:of\s+)?recycled',        # 60% recycled, 60 % of recycled
+        r'contains\s+(\d+)\s*%\s*(?:of\s+)?recycled',  # contains 60% recycled
+        r'(\d+)\s*%\s*(?:of\s+)?recycled\s+(?:content|material|metal)',  # 60% of recycled material
+        r'recycled[:\s]+(\d+)\s*%',               # recycled: 60%, recycled 60%
+        r'recycled content[:\s]+(\d+)',           # recycled content: 60
+        r'(\d+)\s*(?:percent|pct)\s*recycled',    # 60 percent recycled
     ]
+
     
     recycled_content = None
     for pattern in recycled_patterns:
@@ -11154,65 +11190,90 @@ def apply_sourcing_plan(project_id):
         
         # Get current project materials for before/after comparison
         c.execute("""
-            SELECT id, material_name, material_type, quantity, recycled_content, gwp
+            SELECT id, material_name, material_type, quantity, recycled_content, gwp, transport_distance
             FROM project_materials WHERE project_id = ?
         """, (project_id,))
         materials_before = {row['id']: dict(row) for row in c.fetchall()}
         
-        # Calculate before totals
-        total_gwp_before = sum(m['gwp'] or 0 for m in materials_before.values())
-        avg_recycled_before = sum(m['recycled_content'] or 0 for m in materials_before.values()) / max(len(materials_before), 1)
+        # Calculate "Before" GWP using 0% recycled content (100% virgin baseline)
+        # This shows the CO2 savings from sourcing recycled materials vs all-virgin
+        total_gwp_before = 0
+        for mat in materials_before.values():
+            virgin_gwp = calculate_gwp(
+                mat['material_type'] or 'aluminium_primary',
+                mat['quantity'] or 0,
+                0,  # 0% recycled = 100% virgin baseline
+                mat.get('transport_distance', 0) or 0
+            )
+            total_gwp_before += virgin_gwp
         
-        # Update materials with recycled content from sourcing plan
+        avg_recycled_before = 0  # Baseline is 0% recycled
+        print(f"[DEBUG] Before GWP (100% virgin baseline): {total_gwp_before}")
+        
+        # Update ALL materials with target recycled content
         updated_materials = []
+        
+        # Create a lookup for sourcing details by material_id for supplier info
+        sourcing_lookup = {}
         for sourcing in sourcing_details:
-            material_id = sourcing.get('material_id')
-            yard_info = sourcing.get('yard', {})
+            mat_id = sourcing.get('material_id')
+            if mat_id:
+                sourcing_lookup[mat_id] = sourcing.get('yard', {})
+        
+        print(f"\n=== APPLY SOURCING PLAN DEBUG ===")
+        print(f"Project ID: {project_id}")
+        print(f"Target Recycled Content: {target_recycled_content}%")
+        print(f"Materials found: {len(materials_before)}")
+        print(f"Sourcing details received: {len(sourcing_details)}")
+        
+        # Loop through ALL project materials (not just those in sourcing_details)
+        for material_id, mat in materials_before.items():
+            # Get sourcing info if available, otherwise use defaults
+            yard_info = sourcing_lookup.get(material_id, {})
             
-            if material_id and material_id in materials_before:
-                mat = materials_before[material_id]
-                
-                # Set recycled_content to target percentage from user selection
-                new_recycled_content = target_recycled_content
-                
-                # Recalculate GWP - recycled materials have ~70-90% lower emissions
-                # Using a conservative 75% reduction factor for recycled metals
-                original_gwp = mat['gwp'] or 0
-                original_recycled = mat['recycled_content'] or 0
-                
-                # Adjust GWP based on new recycled content
-                # Formula: new_gwp = virgin_gwp * (1 - recycled_content * 0.75)
-                if original_recycled < 100:
-                    virgin_gwp = original_gwp / (1 - (original_recycled / 100) * 0.75) if original_recycled > 0 else original_gwp
-                else:
-                    virgin_gwp = original_gwp * 4  # If already 100% recycled, estimate virgin
-                
-                new_gwp = virgin_gwp * (1 - (new_recycled_content / 100) * 0.75)
-                
-                # Update the material in database (only updating columns that exist)
-                c.execute("""
-                    UPDATE project_materials 
-                    SET recycled_content = ?,
-                        gwp = ?,
-                        transport_distance = ?
-                    WHERE id = ? AND project_id = ?
-                """, (
-                    new_recycled_content,
-                    round(new_gwp, 4),
-                    yard_info.get('distance_km', 0),
-                    material_id,
-                    project_id
-                ))
-                
-                updated_materials.append({
-                    'material_id': material_id,
-                    'material_name': mat['material_name'] or mat['material_type'],
-                    'recycled_content_before': original_recycled,
-                    'recycled_content_after': new_recycled_content,
-                    'gwp_before': original_gwp,
-                    'gwp_after': round(new_gwp, 4),
-                    'supplier': yard_info.get('name', '')
-                })
+            # Set recycled_content to target percentage from user selection
+            new_recycled_content = target_recycled_content
+            
+            # Get material info for proper GWP recalculation
+            original_gwp = mat['gwp'] or 0
+            original_recycled = mat['recycled_content'] or 0
+            quantity = mat['quantity'] or 0
+            material_type = mat['material_type'] or 'aluminium_primary'
+            transport_dist = yard_info.get('distance_km', mat.get('transport_distance', 0) or 0)
+            
+            # Debug: Print calculation inputs
+            print(f"  Material: {mat.get('material_name')} ({material_type})")
+            print(f"    Quantity: {quantity}, Old recycled: {original_recycled}%, New recycled: {new_recycled_content}%")
+            print(f"    Old GWP: {original_gwp}")
+            
+            # Use proper calculate_gwp function with emission factors
+            new_gwp = calculate_gwp(material_type, quantity, new_recycled_content, transport_dist)
+            
+            print(f"    New GWP: {new_gwp}")
+            print(f"    Reduction: {original_gwp - new_gwp} ({round((original_gwp - new_gwp) / max(original_gwp, 0.001) * 100, 1)}%)")
+            
+            # Update the material in database
+            c.execute("""
+                UPDATE project_materials 
+                SET recycled_content = ?,
+                    gwp = ?
+                WHERE id = ? AND project_id = ?
+            """, (
+                new_recycled_content,
+                round(new_gwp, 4),
+                material_id,
+                project_id
+            ))
+            
+            updated_materials.append({
+                'material_id': material_id,
+                'material_name': mat['material_name'] or mat['material_type'],
+                'recycled_content_before': original_recycled,
+                'recycled_content_after': new_recycled_content,
+                'gwp_before': original_gwp,
+                'gwp_after': round(new_gwp, 4),
+                'supplier': yard_info.get('name', 'Recycled Source')
+            })
         
         # Update project status
         c.execute("""

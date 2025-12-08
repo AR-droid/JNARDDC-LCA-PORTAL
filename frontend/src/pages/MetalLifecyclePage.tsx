@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { 
-  Mountain, 
-  FlaskConical, 
-  Factory, 
-  Flame, 
-  Building2, 
-  Wrench, 
+import {
+  Mountain,
+  FlaskConical,
+  Factory,
+  Flame,
+  Building2,
+  Wrench,
   Recycle,
   ChevronDown,
   ChevronUp,
@@ -20,10 +20,78 @@ import {
   FileSpreadsheet,
   Lock,
   Info,
-  TrendingDown
+  TrendingDown,
+  Loader2
 } from 'lucide-react'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
+
+// Default GWP contributions (used as fallback)
+const DEFAULT_GWP_CONTRIBUTIONS: Record<string, number> = {
+  mining: 8,
+  beneficiation: 7,
+  refining: 18,
+  smelting: 45,
+  casting: 8,
+  fabrication: 7,
+  recycle: 7
+}
+
+// Mapping function: Convert 5-stage backend data to 7-stage frontend data
+function mapBackendToFrontendStages(backendData: {
+  lifecycle_stages: Array<{ stage: string; percentage: number }>;
+  summary: { avg_recycled_content: number };
+}): Record<string, number> {
+  const stages = backendData.lifecycle_stages || []
+  const recycledContent = backendData.summary?.avg_recycled_content || 0
+
+  // Find backend stage percentages
+  const extraction = stages.find(s => s.stage.includes('Extraction'))?.percentage || 40
+  const processing = stages.find(s => s.stage.includes('Processing') || s.stage.includes('Manufacturing'))?.percentage || 25
+  const eol = stages.find(s => s.stage.includes('End of Life'))?.percentage || 8
+
+  // Adjust ratios based on recycled content (higher recycled = lower extraction stages)
+  const virginRatio = (100 - recycledContent) / 100
+
+  // Split extraction into Mining, Beneficiation, Refining
+  // Ratios based on typical metal processing: Mining ~15%, Beneficiation ~13%, Refining ~72%
+  const miningRatio = 0.25 * virginRatio
+  const beneficiationRatio = 0.22 * virginRatio
+  const refiningRatio = 0.53 * virginRatio
+
+  // Processing is mostly smelting (~85%) + casting (~15%)
+  const smeltingRatio = 0.85
+  const castingRatio = 0.15
+
+  // EOL splits between fabrication and recycle
+  const fabricationRatio = 0.5
+  const recycleRatio = 0.5
+
+  // Calculate final percentages
+  const mining = Math.round(extraction * miningRatio)
+  const beneficiation = Math.round(extraction * beneficiationRatio)
+  const refining = Math.round(extraction * refiningRatio)
+  const smelting = Math.round(processing * smeltingRatio + (recycledContent / 100) * 20) // Smelting gets bonus from recycled
+  const casting = Math.round(processing * castingRatio + 5)
+  const fabrication = Math.round(eol * fabricationRatio + 5)
+  const recycle = Math.round(eol * recycleRatio + (recycledContent / 100) * 5)
+
+  // Normalize to 100%
+  const total = mining + beneficiation + refining + smelting + casting + fabrication + recycle
+  const factor = 100 / total
+
+  return {
+    mining: Math.round(mining * factor) || 1,
+    beneficiation: Math.round(beneficiation * factor) || 1,
+    refining: Math.round(refining * factor) || 1,
+    smelting: Math.round(smelting * factor) || 45,
+    casting: Math.round(casting * factor) || 8,
+    fabrication: Math.round(fabrication * factor) || 7,
+    recycle: Math.round(recycle * factor) || 7
+  }
+}
 
 // Types
 interface WasteStream {
@@ -240,12 +308,54 @@ const getEnergyBadgeColor = (intensity: string) => {
 export default function MetalLifecyclePage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { user } = useAuthStore()
-  
+  const { user, token } = useAuthStore()
+
   const [expandedStage, setExpandedStage] = useState<string | null>('smelting')
-  
+  const [gwpContributions, setGwpContributions] = useState<Record<string, number>>(DEFAULT_GWP_CONTRIBUTIONS)
+  const [isLoading, setIsLoading] = useState(true)
+  const [recycledContent, setRecycledContent] = useState(0)
+
   const hasVerificationAccess = user?.tier === 'enterprise' || user?.features?.verification
   const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise' || user?.features?.cbam_export
+
+  // Fetch analytics data and map to 7-stage model
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      if (!id || !token) {
+        setIsLoading(false)
+        return
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/projects/${id}/analytics`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          const mappedStages = mapBackendToFrontendStages(data)
+          setGwpContributions(mappedStages)
+          setRecycledContent(data.summary?.avg_recycled_content || 0)
+        }
+      } catch (error) {
+        console.error('Failed to fetch lifecycle analytics:', error)
+        // Keep default values on error
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchAnalytics()
+  }, [id, token])
+
+  // Create dynamic stages with fetched GWP values
+  const dynamicStages = LIFECYCLE_STAGES.map(stage => ({
+    ...stage,
+    gwpContribution: gwpContributions[stage.id] || stage.gwpContribution
+  }))
 
   const toggleStage = (stageId: string) => {
     setExpandedStage(expandedStage === stageId ? null : stageId)
@@ -344,7 +454,7 @@ export default function MetalLifecyclePage() {
         <div className="relative overflow-hidden rounded-2xl mb-8">
           <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-700"></div>
           <div className="absolute inset-0 bg-[url('/images/smelting.jpg')] bg-cover bg-center opacity-20"></div>
-          
+
           <div className="relative px-8 py-10">
             <div className="flex items-center gap-4 mb-4">
               <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
@@ -428,26 +538,38 @@ export default function MetalLifecyclePage() {
 
         {/* Visual Flow Diagram - Horseshoe Circular Layout */}
         <div className="bg-white rounded-2xl shadow-lg p-4 md:p-6 mb-8 overflow-hidden">
-          <div className="flex items-center gap-2 mb-4">
-            <Info className="w-5 h-5 text-blue-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Click any stage to view details</h2>
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <div className="flex items-center gap-2">
+              <Info className="w-5 h-5 text-blue-600" />
+              <h2 className="text-lg font-semibold text-gray-900">Click any stage to view details</h2>
+            </div>
+            {isLoading ? (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Loading data...</span>
+              </div>
+            ) : recycledContent > 0 && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 text-sm font-medium rounded-full border border-green-200">
+                <Recycle className="w-4 h-4" />
+                <span>{Math.round(recycledContent)}% Recycled Content</span>
+              </div>
+            )}
           </div>
 
           {/* Horseshoe Flow Diagram with SVG Connection */}
-          <div className="relative" style={{ minHeight: '320px' }}>
-            
+          <div className="relative">
+
             {/* Top Row: All 7 stages in a single line */}
             <div className="flex flex-wrap md:flex-nowrap gap-1 md:gap-2 mb-2 relative z-10">
-              {LIFECYCLE_STAGES.map((stage, index) => (
+              {dynamicStages.map((stage, index) => (
                 <div key={stage.id} className="relative flex-1 min-w-[80px]">
                   {/* Mini Stage Card */}
                   <div
                     onClick={() => toggleStage(stage.id)}
-                    className={`relative cursor-pointer rounded-lg border-2 transition-all duration-300 hover:shadow-lg hover:scale-105 ${
-                      expandedStage === stage.id
-                        ? `${stage.borderColor} ${stage.bgColor} shadow-md scale-105`
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    } ${stage.id === 'smelting' ? 'ring-2 ring-orange-400 ring-offset-1' : ''} 
+                    className={`relative cursor-pointer rounded-lg border-2 transition-all duration-300 hover:shadow-lg hover:scale-105 ${expandedStage === stage.id
+                      ? `${stage.borderColor} ${stage.bgColor} shadow-md scale-105`
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                      } ${stage.id === 'smelting' ? 'ring-2 ring-orange-400 ring-offset-1' : ''} 
                       ${stage.id === 'recycle' ? 'ring-2 ring-green-400 ring-offset-1' : ''}`}
                   >
                     <div className="p-2 text-center">
@@ -458,17 +580,16 @@ export default function MetalLifecyclePage() {
                       <div className={`text-sm md:text-base font-bold ${stage.textColor}`}>{stage.gwpContribution}%</div>
                       {/* Mini GWP Bar */}
                       <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden mt-1">
-                        <div 
-                          className={`h-full rounded-full ${
-                            stage.gwpContribution >= 40 ? 'bg-red-500' :
+                        <div
+                          className={`h-full rounded-full ${stage.gwpContribution >= 40 ? 'bg-red-500' :
                             stage.gwpContribution >= 15 ? 'bg-orange-500' :
-                            'bg-green-500'
-                          }`}
+                              'bg-green-500'
+                            }`}
                           style={{ width: `${Math.min(stage.gwpContribution * 2, 100)}%` }}
                         />
                       </div>
                     </div>
-                    
+
                     {/* Smelting receives scrap indicator */}
                     {stage.id === 'smelting' && (
                       <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-20">
@@ -478,7 +599,7 @@ export default function MetalLifecyclePage() {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Arrow to next stage */}
                   {index < 6 && (
                     <div className="hidden md:flex absolute -right-1 top-1/2 -translate-y-1/2 z-10">
@@ -490,80 +611,66 @@ export default function MetalLifecyclePage() {
             </div>
 
             {/* Circular Loop - U-Shape Connection: Recycle → Down → Left → Up → Smelting */}
-            <div className="relative mt-2 mx-auto" style={{ maxWidth: '100%' }}>
-              {/* The U-shaped path container */}
-              <div className="relative h-20 md:h-24">
-                
-                {/* Vertical line DOWN from Recycle (right side) */}
-                <div className="absolute right-[7%] top-0 flex flex-col items-center">
-                  <div className="w-1 h-6 md:h-8 bg-green-500 rounded-full"></div>
-                  {/* Arrow pointing down */}
-                  <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-green-500 -mt-0.5"></div>
-                </div>
+            <div className="relative mt-2 mx-auto w-full h-24 sm:h-28">
+              {/* SVG Gradient Path */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible" preserveAspectRatio="none" viewBox="0 0 1000 100">
+                <defs>
+                  <linearGradient id="loopGradient" x1="100%" y1="0%" x2="0%" y2="0%">
+                    <stop offset="0%" stopColor="#22c55e" /> {/* green-500 */}
+                    <stop offset="50%" stopColor="#34d399" /> {/* emerald-400 */}
+                    <stop offset="100%" stopColor="#f97316" /> {/* orange-500 */}
+                  </linearGradient>
+                </defs>
 
-                {/* Horizontal line LEFT (bottom of U) */}
-                <div className="absolute bottom-4 left-[calc(14.28%*3.5+1%)] right-[7%] h-1 bg-gradient-to-l from-green-500 via-emerald-400 to-orange-500 rounded-full">
-                  {/* Arrow pointing left */}
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2">
-                    <div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[10px] border-r-orange-500"></div>
-                  </div>
-                </div>
+                {/* 
+                  Path logic (based on 1000 width):
+                  Recycle (Index 6) Center ~ 92.8% -> 928
+                  Smelting (Index 3) Center ~ 50.0% -> 500 
+                */}
+                <path
+                  d="M 928 0 V 60 Q 928 90 898 90 H 530 Q 500 90 500 60 V 15"
+                  fill="none"
+                  stroke="url(#loopGradient)"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  className="drop-shadow-sm"
+                />
+              </svg>
 
-                {/* Vertical line UP to Smelting (left side - position at 4th box which is ~50% from left) */}
-                <div className="absolute left-[calc(14.28%*3.5)]" style={{ bottom: '16px' }}>
-                  <div className="flex flex-col items-center">
-                    {/* Arrow pointing up */}
-                    <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-orange-500"></div>
-                    <div className="w-1 h-6 md:h-8 bg-orange-500 rounded-full -mt-0.5"></div>
-                  </div>
-                </div>
+              {/* Labels & Icons positioned absolutely to avoid distortion */}
 
-                {/* Center Label on the horizontal line */}
-                <div className="absolute bottom-8 md:bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap z-10">
-                  <span className="px-2 py-1 bg-green-100 text-green-700 text-[9px] md:text-xs font-bold rounded-full border border-green-300 shadow-sm">
-                    ♻️ CIRCULAR LOOP → Scrap returns to Smelting
-                  </span>
-                </div>
+              {/* From Recycle Label */}
+              <div className="absolute top-0 right-[7.14%] translate-x-1/2 flex flex-col items-center gap-0.5">
+                <span className="text-[10px] font-bold text-green-600 bg-white/80 px-1 rounded">from Recycle</span>
+                <ArrowDown className="w-4 h-4 text-green-500 animate-bounce" style={{ animationDuration: '2s' }} />
+              </div>
 
-                {/* Labels at corners */}
-                <div className="absolute right-[4%] top-0 text-[9px] md:text-[10px] font-bold text-green-600">
-                  from Recycle ↓
+              {/* To Smelting Label */}
+              <div className="absolute bottom-[25px] left-[50%] -translate-x-1/2 flex flex-col items-center gap-0.5" style={{ bottom: 'calc(100% - 25px)' }}>
+                {/* Positioned at the tip of the arrow (approx y=15 in SVG which is 15%) */}
+                <div className="absolute top-[8px] flex flex-col items-center">
+                  <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[10px] border-b-orange-500"></div>
                 </div>
-                <div className="absolute left-[calc(14.28%*3.5-20px)] md:left-[calc(14.28%*3.5-30px)] top-0 text-[9px] md:text-[10px] font-bold text-orange-600">
-                  ↑ to Smelting
+                <span className="absolute top-[20px] text-[10px] font-bold text-orange-600 bg-white/80 px-1 rounded whitespace-nowrap">↑ to Smelting</span>
+              </div>
+
+              {/* Center Banner */}
+              <div className="absolute bottom-1 sm:bottom-2 left-1/2 -translate-x-1/2 z-10">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-800 text-xs font-bold rounded-full border border-green-200 shadow-sm whitespace-nowrap">
+                  <RotateCcw className="w-3 h-3" />
+                  <span>CIRCULAR LOOP: Scrap returns to Smelting</span>
                 </div>
               </div>
             </div>
 
-            {/* Savings Banner */}
-            <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4 mt-2 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-              <div className="flex items-center gap-2">
-                <Recycle className="w-5 h-5 text-green-600 animate-spin-slow" />
-                <span className="text-sm font-bold text-green-800">Circular Economy:</span>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="text-center">
-                  <span className="text-xl font-bold text-green-600">95%</span>
-                  <span className="text-xs text-gray-600 ml-1">Energy Saved</span>
-                </div>
-                <div className="w-px h-6 bg-green-300"></div>
-                <div className="text-center">
-                  <span className="text-xl font-bold text-green-600">~17kg</span>
-                  <span className="text-xs text-gray-600 ml-1">CO₂/kg Al Saved</span>
-                </div>
-                <div className="w-px h-6 bg-green-300"></div>
-                <div className="text-center">
-                  <span className="text-sm font-medium text-orange-600">Bypasses: Mining → Beneficiation → Refining</span>
-                </div>
-              </div>
-            </div>
+
           </div>
         </div>
 
         {/* Expanded Stage Details */}
         {expandedStage && (
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-8 animate-in slide-in-from-top duration-300">
-            {LIFECYCLE_STAGES.filter(s => s.id === expandedStage).map(stage => (
+            {dynamicStages.filter(s => s.id === expandedStage).map(stage => (
               <div key={stage.id}>
                 {/* Header */}
                 <div className={`${stage.bgColor} px-6 py-4 border-b ${stage.borderColor}`}>
@@ -595,7 +702,7 @@ export default function MetalLifecyclePage() {
                       </h3>
                       <div className="space-y-3">
                         {stage.keyProcesses.map((process, idx) => (
-                          <div 
+                          <div
                             key={idx}
                             className={`flex items-center gap-3 p-3 rounded-lg ${stage.bgColor} border ${stage.borderColor}`}
                           >
@@ -628,7 +735,7 @@ export default function MetalLifecyclePage() {
                       </h3>
                       <div className="space-y-3">
                         {stage.wasteStreams.map((waste, idx) => (
-                          <div 
+                          <div
                             key={idx}
                             className="p-4 rounded-lg bg-gray-50 border border-gray-200 hover:border-gray-300 transition"
                           >
@@ -653,7 +760,7 @@ export default function MetalLifecyclePage() {
                             <h4 className="font-semibold text-green-800">Circular Economy Benefit</h4>
                           </div>
                           <p className="text-sm text-green-700">
-                            Materials recovered here feed back into the Refining/Smelting stages, 
+                            Materials recovered here feed back into the Refining/Smelting stages,
                             creating a closed-loop system that saves <strong>95% energy</strong> compared to virgin material extraction.
                           </p>
                         </div>
@@ -683,9 +790,9 @@ export default function MetalLifecyclePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {LIFECYCLE_STAGES.map(stage => (
-                  <tr 
-                    key={stage.id} 
+                {dynamicStages.map(stage => (
+                  <tr
+                    key={stage.id}
                     className={`hover:bg-gray-50 cursor-pointer transition ${expandedStage === stage.id ? stage.bgColor : ''}`}
                     onClick={() => toggleStage(stage.id)}
                   >
@@ -703,12 +810,11 @@ export default function MetalLifecyclePage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full rounded-full ${
-                              stage.gwpContribution >= 40 ? 'bg-red-500' :
+                          <div
+                            className={`h-full rounded-full ${stage.gwpContribution >= 40 ? 'bg-red-500' :
                               stage.gwpContribution >= 15 ? 'bg-orange-500' :
-                              'bg-green-500'
-                            }`}
+                                'bg-green-500'
+                              }`}
                             style={{ width: `${stage.gwpContribution}%` }}
                           />
                         </div>

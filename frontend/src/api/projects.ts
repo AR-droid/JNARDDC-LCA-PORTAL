@@ -1158,10 +1158,11 @@ export const scrapYardApi = {
   /**
    * Apply a selected sourcing plan to update project materials
    */
-  applySourcingPlan: async (projectId: string, plan: 'plan_a' | 'plan_b' | 'plan_c', sourcing: SourcingItem[]): Promise<ApplySourcingPlanResponse> => {
+  applySourcingPlan: async (projectId: string, plan: 'plan_a' | 'plan_b' | 'plan_c', sourcing: SourcingItem[], targetRecycledContent: number = 100): Promise<ApplySourcingPlanResponse> => {
     const response = await api.post(`/projects/${projectId}/apply-sourcing-plan`, {
       plan,
-      sourcing
+      sourcing,
+      target_recycled_content: targetRecycledContent
     })
     return response.data
   }

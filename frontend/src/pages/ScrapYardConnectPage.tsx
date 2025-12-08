@@ -41,6 +41,30 @@ import {
 // Digital Twin URL for virgin/recycled content visualization
 const DIGITAL_TWIN_URL = 'https://aluminium-digital-twin-frontend.onrender.com/'
 
+// Helper function to format small CO₂ values
+const formatCO2 = (value: number): string => {
+  if (value === 0) return '0';
+  if (value < 0.01) return '< 0.01';
+  return value.toFixed(2);
+}
+
+// Helper function to format prices in Indian format (lakhs/crores)
+const formatPrice = (value: number): string => {
+  if (value >= 10000000) {
+    // Crores (1,00,00,000+)
+    return `₹${(value / 10000000).toFixed(2)} Cr`;
+  } else if (value >= 100000) {
+    // Lakhs (1,00,000+)
+    return `₹${(value / 100000).toFixed(2)} L`;
+  } else if (value >= 1000) {
+    // Thousands with Indian formatting
+    return `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+  } else {
+    // Small values
+    return `₹${value.toFixed(2)}`;
+  }
+}
+
 // Indian states for filter
 const INDIAN_STATES = [
   'Maharashtra', 'Gujarat', 'Tamil Nadu', 'Karnataka', 'Rajasthan',
@@ -102,6 +126,7 @@ export default function ScrapYardConnectPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [hasRefreshed, setHasRefreshed] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [targetRecycledContent, setTargetRecycledContent] = useState<number>(100)
 
   // Filters
   const [filters, setFilters] = useState<ScrapYardFilters>({})
@@ -188,7 +213,7 @@ export default function ScrapYardConnectPage() {
       // Use the full sourcing items from the selected plan
       const sourcing = sourcingPlans.plans[selectedPlan].sourcing
 
-      const result = await scrapYardApi.applySourcingPlan(projectId, selectedPlan, sourcing)
+      const result = await scrapYardApi.applySourcingPlan(projectId, selectedPlan, sourcing, targetRecycledContent)
       setApplyResult(result)
       setShowSuccessModal(true)
     } catch (e) {
@@ -394,7 +419,7 @@ export default function ScrapYardConnectPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600 text-sm">Total Cost</span>
-                      <span className="font-bold text-gray-900">₹{sourcingPlans.plans.plan_a.summary.total_cost.toLocaleString()}</span>
+                      <span className="font-bold text-gray-900">{formatPrice(sourcingPlans.plans.plan_a.summary.total_cost)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600 text-sm">Avg Distance</span>
@@ -402,7 +427,7 @@ export default function ScrapYardConnectPage() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600 text-sm">Transport CO₂</span>
-                      <span className="font-medium text-gray-700">{sourcingPlans.plans.plan_a.summary.total_transport_co2_kg} kg</span>
+                      <span className="font-medium text-gray-700">{formatCO2(sourcingPlans.plans.plan_a.summary.total_transport_co2_kg)} kg</span>
                     </div>
                     <div className="pt-3 border-t border-gray-100">
                       <div className="flex justify-between items-center">
@@ -417,7 +442,7 @@ export default function ScrapYardConnectPage() {
                           <ExternalLink className="w-3 h-3" />
                         </a>
                         <div className="text-right">
-                          <span className="font-bold text-green-600">₹{sourcingPlans.plans.plan_a.savings_vs_virgin.toLocaleString()}</span>
+                          <span className="font-bold text-green-600">{formatPrice(sourcingPlans.plans.plan_a.savings_vs_virgin)}</span>
                           <span className="text-green-500 text-sm ml-1">({sourcingPlans.plans.plan_a.savings_percent}%)</span>
                         </div>
                       </div>
@@ -458,7 +483,7 @@ export default function ScrapYardConnectPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600 text-sm">Total Cost</span>
-                      <span className="font-bold text-gray-900">₹{sourcingPlans.plans.plan_b.summary.total_cost.toLocaleString()}</span>
+                      <span className="font-bold text-gray-900">{formatPrice(sourcingPlans.plans.plan_b.summary.total_cost)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600 text-sm">Avg Distance</span>
@@ -466,7 +491,7 @@ export default function ScrapYardConnectPage() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600 text-sm">Transport CO₂</span>
-                      <span className="font-medium text-blue-600">{sourcingPlans.plans.plan_b.summary.total_transport_co2_kg} kg</span>
+                      <span className="font-medium text-blue-600">{formatCO2(sourcingPlans.plans.plan_b.summary.total_transport_co2_kg)} kg</span>
                     </div>
                     <div className="pt-3 border-t border-gray-100">
                       <div className="flex justify-between items-center">
@@ -481,7 +506,7 @@ export default function ScrapYardConnectPage() {
                           <ExternalLink className="w-3 h-3" />
                         </a>
                         <div className="text-right">
-                          <span className="font-bold text-green-600">₹{sourcingPlans.plans.plan_b.savings_vs_virgin.toLocaleString()}</span>
+                          <span className="font-bold text-green-600">{formatPrice(sourcingPlans.plans.plan_b.savings_vs_virgin)}</span>
                           <span className="text-green-500 text-sm ml-1">({sourcingPlans.plans.plan_b.savings_percent}%)</span>
                         </div>
                       </div>
@@ -522,7 +547,7 @@ export default function ScrapYardConnectPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600 text-sm">Total Cost</span>
-                      <span className="font-bold text-gray-900">₹{sourcingPlans.plans.plan_c.summary.total_cost.toLocaleString()}</span>
+                      <span className="font-bold text-gray-900">{formatPrice(sourcingPlans.plans.plan_c.summary.total_cost)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600 text-sm">Avg Distance</span>
@@ -530,7 +555,7 @@ export default function ScrapYardConnectPage() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600 text-sm">Transport CO₂</span>
-                      <span className="font-medium text-gray-700">{sourcingPlans.plans.plan_c.summary.total_transport_co2_kg} kg</span>
+                      <span className="font-medium text-gray-700">{formatCO2(sourcingPlans.plans.plan_c.summary.total_transport_co2_kg)} kg</span>
                     </div>
                     <div className="pt-3 border-t border-gray-100">
                       <div className="flex justify-between items-center">
@@ -545,7 +570,7 @@ export default function ScrapYardConnectPage() {
                           <ExternalLink className="w-3 h-3" />
                         </a>
                         <div className="text-right">
-                          <span className="font-bold text-green-600">₹{sourcingPlans.plans.plan_c.savings_vs_virgin.toLocaleString()}</span>
+                          <span className="font-bold text-green-600">{formatPrice(sourcingPlans.plans.plan_c.savings_vs_virgin)}</span>
                           <span className="text-green-500 text-sm ml-1">({sourcingPlans.plans.plan_c.savings_percent}%)</span>
                         </div>
                       </div>
@@ -608,28 +633,56 @@ export default function ScrapYardConnectPage() {
                 {/* Apply to Project Button - Show if there are matched materials */}
                 {sourcingPlans.plans[selectedPlan].sourcing.length > 0 && (
                   <div className="px-5 py-4 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-100">
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                      <div className="text-sm text-gray-600">
-                        <p className="font-medium text-gray-900 mb-1">Apply this plan to your project?</p>
-                        <p>This will update your BOM with recycled materials and recalculate GWP & MCI scores.</p>
+                    <div className="flex flex-col gap-4">
+                      {/* Recycled Content Selector */}
+                      <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+                        <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                          Target Recycled Content:
+                        </label>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {[100, 80, 60, 40, 20].map((percent) => (
+                            <button
+                              key={percent}
+                              onClick={() => setTargetRecycledContent(percent)}
+                              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                targetRecycledContent === percent
+                                  ? 'bg-green-600 text-white shadow-md'
+                                  : 'bg-white text-gray-700 border border-gray-300 hover:border-green-400 hover:bg-green-50'
+                              }`}
+                            >
+                              {percent}%
+                            </button>
+                          ))}
+                        </div>
+                        <span className="text-xs text-gray-500 ml-2">
+                          (Mix of recycled + virgin materials)
+                        </span>
                       </div>
-                      <button
-                        onClick={handleApplyPlan}
-                        disabled={isApplying}
-                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isApplying ? (
-                          <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            Applying...
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle2 className="w-5 h-5" />
-                            Apply to Project
-                          </>
-                        )}
-                      </button>
+                      
+                      {/* Apply Button */}
+                      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="text-sm text-gray-600">
+                          <p className="font-medium text-gray-900 mb-1">Apply this plan to your project?</p>
+                          <p>This will update your BOM with <span className="font-semibold text-green-700">{targetRecycledContent}% recycled</span> materials and recalculate GWP & MCI scores.</p>
+                        </div>
+                        <button
+                          onClick={handleApplyPlan}
+                          disabled={isApplying}
+                          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isApplying ? (
+                            <>
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                              Applying...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="w-5 h-5" />
+                              Apply {targetRecycledContent}% Recycled
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

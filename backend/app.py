@@ -10997,7 +10997,7 @@ def get_sourcing_plans(project_id):
                             'certifications': yard['certifications']
                         },
                         'cost': round(cost, 2),
-                        'transport_co2_kg': round(transport_co2, 2)
+                        'transport_co2_kg': round(transport_co2, 4)
                     })
             
             return {
@@ -11005,7 +11005,7 @@ def get_sourcing_plans(project_id):
                 'summary': {
                     'total_cost': round(total_cost, 2),
                     'avg_distance_km': round(total_distance / max(len(plan_yards), 1), 1),
-                    'total_transport_co2_kg': round(total_transport_co2, 2),
+                    'total_transport_co2_kg': round(total_transport_co2, 4),
                     'materials_covered': materials_covered,
                     'coverage_percent': round((materials_covered / len(materials)) * 100, 0) if materials else 0
                 }
@@ -11070,6 +11070,10 @@ def apply_sourcing_plan(project_id):
         data = request.get_json()
         plan_key = data.get('plan')  # 'plan_a', 'plan_b', or 'plan_c'
         sourcing_details = data.get('sourcing', [])  # Array of {material_id, yard info}
+        target_recycled_content = data.get('target_recycled_content', 100)  # Default to 100% if not specified
+        
+        # Validate recycled content percentage
+        target_recycled_content = max(0, min(100, float(target_recycled_content)))
         
         if not plan_key or plan_key not in ['plan_a', 'plan_b', 'plan_c']:
             return jsonify({'detail': 'Invalid plan selected'}), 400
@@ -11105,8 +11109,8 @@ def apply_sourcing_plan(project_id):
             if material_id and material_id in materials_before:
                 mat = materials_before[material_id]
                 
-                # Set recycled_content to 100% since sourcing from scrap yard
-                new_recycled_content = 100.0
+                # Set recycled_content to target percentage from user selection
+                new_recycled_content = target_recycled_content
                 
                 # Recalculate GWP - recycled materials have ~70-90% lower emissions
                 # Using a conservative 75% reduction factor for recycled metals

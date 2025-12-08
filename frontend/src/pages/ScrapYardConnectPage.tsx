@@ -35,7 +35,11 @@ import {
   DollarSign,
   CheckCircle2,
   RefreshCw,
+  ExternalLink,
 } from 'lucide-react'
+
+// Digital Twin URL for virgin/recycled content visualization
+const DIGITAL_TWIN_URL = 'https://aluminium-digital-twin-frontend.onrender.com/'
 
 // Indian states for filter
 const INDIAN_STATES = [
@@ -402,7 +406,16 @@ export default function ScrapYardConnectPage() {
                     </div>
                     <div className="pt-3 border-t border-gray-100">
                       <div className="flex justify-between items-center">
-                        <span className="text-green-600 font-medium text-sm">Savings vs Virgin</span>
+                        <a 
+                          href={DIGITAL_TWIN_URL} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-green-600 font-medium text-sm hover:text-green-700 flex items-center gap-1 cursor-pointer hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Savings vs Virgin
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
                         <div className="text-right">
                           <span className="font-bold text-green-600">₹{sourcingPlans.plans.plan_a.savings_vs_virgin.toLocaleString()}</span>
                           <span className="text-green-500 text-sm ml-1">({sourcingPlans.plans.plan_a.savings_percent}%)</span>
@@ -457,7 +470,16 @@ export default function ScrapYardConnectPage() {
                     </div>
                     <div className="pt-3 border-t border-gray-100">
                       <div className="flex justify-between items-center">
-                        <span className="text-green-600 font-medium text-sm">Savings vs Virgin</span>
+                        <a 
+                          href={DIGITAL_TWIN_URL} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-green-600 font-medium text-sm hover:text-green-700 flex items-center gap-1 cursor-pointer hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Savings vs Virgin
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
                         <div className="text-right">
                           <span className="font-bold text-green-600">₹{sourcingPlans.plans.plan_b.savings_vs_virgin.toLocaleString()}</span>
                           <span className="text-green-500 text-sm ml-1">({sourcingPlans.plans.plan_b.savings_percent}%)</span>
@@ -512,7 +534,16 @@ export default function ScrapYardConnectPage() {
                     </div>
                     <div className="pt-3 border-t border-gray-100">
                       <div className="flex justify-between items-center">
-                        <span className="text-green-600 font-medium text-sm">Savings vs Virgin</span>
+                        <a 
+                          href={DIGITAL_TWIN_URL} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-green-600 font-medium text-sm hover:text-green-700 flex items-center gap-1 cursor-pointer hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Savings vs Virgin
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
                         <div className="text-right">
                           <span className="font-bold text-green-600">₹{sourcingPlans.plans.plan_c.savings_vs_virgin.toLocaleString()}</span>
                           <span className="text-green-500 text-sm ml-1">({sourcingPlans.plans.plan_c.savings_percent}%)</span>
@@ -974,10 +1005,18 @@ export default function ScrapYardConnectPage() {
                   <p className="text-xs text-gray-500">Materials Updated</p>
                 </div>
                 <div className="w-px h-10 bg-gray-200"></div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">{applyResult.impact?.recycled_content_after?.toFixed(0) || '100'}%</p>
-                  <p className="text-xs text-gray-500">Recycled Content</p>
-                </div>
+                <a 
+                  href={DIGITAL_TWIN_URL} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="group cursor-pointer hover:bg-green-50 rounded-lg p-2 -m-2 transition"
+                >
+                  <p className="text-2xl font-bold text-gray-900 group-hover:text-green-600">{applyResult.impact?.recycled_content_after?.toFixed(0) || '100'}%</p>
+                  <p className="text-xs text-gray-500 group-hover:text-green-600 flex items-center justify-center gap-1">
+                    Recycled Content
+                    <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
+                  </p>
+                </a>
               </div>
 
               {/* Actions */}

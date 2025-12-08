@@ -31,8 +31,12 @@ import {
   CheckCircle, 
   Bot, 
   Package,
-  Pencil
+  Pencil,
+  ExternalLink
 } from 'lucide-react'
+
+// Digital Twin URL for virgin/recycled content visualization
+const DIGITAL_TWIN_URL = 'https://aluminium-digital-twin-frontend.onrender.com/'
 import gwpImg from '/images/smoke.jpg'
 import mciImg from '/images/recycle.jpg'
 import materialsImg from '/images/fossil.jpg'
@@ -1213,14 +1217,30 @@ export default function ProjectDetailPage() {
                 <div className="mb-4 bg-white/10 backdrop-blur rounded-lg p-3">
                   <p className="text-xs text-green-100 mb-2 font-medium">Current Material Mix</p>
                   <div className="grid grid-cols-2 gap-2 mb-3">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-white">{virginPercentage}%</p>
-                      <p className="text-xs text-green-100">Virgin Content</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-white">{recycledPercentage}%</p>
-                      <p className="text-xs text-green-100">Recycled Content</p>
-                    </div>
+                    <a 
+                      href={DIGITAL_TWIN_URL} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-center group cursor-pointer hover:bg-white/10 rounded-lg p-2 -m-2 transition"
+                    >
+                      <p className="text-2xl font-bold text-white group-hover:text-yellow-300 transition">{virginPercentage}%</p>
+                      <p className="text-xs text-green-100 group-hover:text-yellow-200 flex items-center justify-center gap-1 transition">
+                        Virgin Content
+                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
+                      </p>
+                    </a>
+                    <a 
+                      href={DIGITAL_TWIN_URL} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-center group cursor-pointer hover:bg-white/10 rounded-lg p-2 -m-2 transition"
+                    >
+                      <p className="text-2xl font-bold text-white group-hover:text-yellow-300 transition">{recycledPercentage}%</p>
+                      <p className="text-xs text-green-100 group-hover:text-yellow-200 flex items-center justify-center gap-1 transition">
+                        Recycled Content
+                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
+                      </p>
+                    </a>
                   </div>
                   {/* Progress bar */}
                   <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">

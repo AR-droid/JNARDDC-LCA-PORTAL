@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { projectsApi, Project, MCIResult } from '../api/projects'
 import { materialsApi, Material } from '../api/materials'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
-import { FileSpreadsheet, Lock, BarChart3, Recycle, Target, Wrench, Truck, Microscope, Building2 } from 'lucide-react'
+import { FileSpreadsheet, Lock, BarChart3, Recycle, Target, Wrench, Truck, Microscope, Building2, RotateCcw } from 'lucide-react'
 
 // ... existing code ...
 
@@ -203,6 +203,12 @@ export default function AnalysisPage() {
               className="px-4 py-2 text-sm font-medium bg-green-50 text-green-700 rounded-md transition-colors flex items-center gap-2"
             >
               <AnalyticsIcon size={16} /> Analysis
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${id}/lifecycle`)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-md transition-colors flex items-center gap-2"
+            >
+              <RotateCcw size={16} /> Lifecycle
             </button>
             <button
               onClick={() => navigate(`/projects/${id}/recommendations`)}

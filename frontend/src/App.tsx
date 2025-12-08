@@ -23,6 +23,8 @@ import WalletPage from './pages/WalletPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import VerificationPage from './pages/VerificationPage'
+import ESGLeaderboardPage from './pages/ESGLeaderboardPage'
+import MetalLifecyclePage from './pages/MetalLifecyclePage'
 
 function App() {
   return (
@@ -69,6 +71,14 @@ function App() {
           element={
             <ProtectedRoute>
               <AnalysisPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projects/:id/lifecycle"
+          element={
+            <ProtectedRoute>
+              <MetalLifecyclePage />
             </ProtectedRoute>
           }
         />
@@ -173,6 +183,14 @@ function App() {
           element={
             <ProtectedRoute>
               <VerificationPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/leaderboard"
+          element={
+            <ProtectedRoute>
+              <ESGLeaderboardPage />
             </ProtectedRoute>
           }
         />

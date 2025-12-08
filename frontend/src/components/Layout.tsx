@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useLanguageStore, useTranslation, Language } from '../stores/languageStore';
 import AIChatPanel from './AIChatPanel';
-import { Building, Star, Globe, ChevronDown, Recycle } from 'lucide-react';
+import { Building, Star, Globe, ChevronDown, Recycle, Trophy } from 'lucide-react';
 
 interface NavbarProps {
   children: React.ReactNode;
@@ -112,6 +112,12 @@ export default function Layout({ children }: NavbarProps) {
                     className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
                   >
                     {t('nav.compare')}
+                  </Link>
+                  <Link
+                    to="/leaderboard"
+                    className="text-gray-700 hover:text-yellow-600 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1"
+                  >
+                    <Trophy className="w-4 h-4" /> Leaderboard
                   </Link>
                 </div>
               )}
@@ -387,9 +393,10 @@ export default function Layout({ children }: NavbarProps) {
         </footer>
       )}
 
-      {/* Floating Chat Button - only for authenticated users */}
+      {/* Floating Buttons - only for authenticated users */}
       {isAuthenticated && (
         <>
+          {/* AI Chat Button */}
           <button
             onClick={() => setIsChatOpen(true)}
             className="fixed bottom-6 right-6 w-16 h-16 bg-white text-emerald-600 rounded-full shadow-2xl hover:shadow-emerald-500/20 hover:scale-105 transition-all duration-300 flex items-center justify-center z-40 border border-gray-100"

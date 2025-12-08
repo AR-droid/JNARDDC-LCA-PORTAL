@@ -92,8 +92,8 @@ export default function PricingPage() {
       {/* Notification Banner */}
       {notification && (
         <div className={`fixed top-4 right-4 z-50 max-w-md px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-slide-in ${notification.type === 'success'
-            ? 'bg-green-50 border border-green-200 text-green-800'
-            : 'bg-red-50 border border-red-200 text-red-800'
+          ? 'bg-green-50 border border-green-200 text-green-800'
+          : 'bg-red-50 border border-red-200 text-red-800'
           }`}>
           {notification.type === 'success' ? (
             <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
@@ -200,7 +200,7 @@ export default function PricingPage() {
               <h3 className="text-xl font-bold text-white mb-1">Pro</h3>
               <p className="text-blue-100 text-sm">For Exporters & Growing Businesses</p>
               <div className="mt-3">
-                <span className="text-4xl font-bold text-white">₹14,999</span>
+                <span className="text-4xl font-bold text-white">₹28,999</span>
                 <span className="text-blue-200 text-sm">/month</span>
               </div>
               <p className="text-blue-200 text-xs mt-1">or $180/month</p>

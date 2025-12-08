@@ -56,15 +56,15 @@ const MATERIAL_TYPES = [
   { value: 'stainless_steel', label: 'Stainless Steel', color: 'bg-cyan-100 text-cyan-700' },
 ]
 
-// New Chennai recycling yard that appears after refresh
-const CHENNAI_RECYCLING_YARD: ScrapYard = {
-  id: 'chennai-recycling-new',
-  name: 'Chennai Green Recyclers',
-  city: 'Chennai',
+// New Dindigul recycling yard that appears after refresh
+const DINDIGUL_RECYCLING_YARD: ScrapYard = {
+  id: 'dindigul-recycling-new',
+  name: 'Dindigul Green Recyclers',
+  city: 'Dindigul',
   state: 'Tamil Nadu',
-  address: 'Plot 45, Industrial Estate, Ambattur, Chennai - 600058',
-  latitude: 13.0827,
-  longitude: 80.2707,
+  address: 'Silvarpatti, Dindigul - 624002',
+  latitude: 10.3673,
+  longitude: 77.9803,
   material_types: ['aluminium'],
   available_qty_tons: 3.5,
   price_per_kg: 145,
@@ -72,10 +72,10 @@ const CHENNAI_RECYCLING_YARD: ScrapYard = {
   certifications: ['ISO 14001', 'Green Business Certified'],
   rating: 4.8,
   is_verified: true,
-  distance_km: 85,
+  distance_km: 45,
   contact_name: 'Rajesh Venkataraman',
   contact_phone: '+91 98765 43210',
-  contact_email: 'rajesh@chennaigreenrecyclers.com',
+  contact_email: 'rajesh@dindigulrecyclers.com',
   total_transactions: 42,
   last_updated: new Date().toISOString(),
   created_at: new Date().toISOString(),
@@ -162,9 +162,9 @@ export default function ScrapYardConnectPage() {
     // Add Chennai yard to the list
     setScrapYards(prev => {
       // Check if Chennai yard already exists
-      const exists = prev.some(y => y.id === CHENNAI_RECYCLING_YARD.id)
+      const exists = prev.some(y => y.id === DINDIGUL_RECYCLING_YARD.id)
       if (!exists) {
-        return [CHENNAI_RECYCLING_YARD, ...prev]
+        return [DINDIGUL_RECYCLING_YARD, ...prev]
       }
       return prev
     })
@@ -537,7 +537,7 @@ export default function ScrapYardConnectPage() {
                     {selectedPlan === 'plan_a' ? <DollarSign className="w-4 h-4 text-green-600" /> : selectedPlan === 'plan_b' ? <MapPin className="w-4 h-4 text-blue-600" /> : <Package className="w-4 h-4 text-purple-600" />} {sourcingPlans.plans[selectedPlan].name} - Sourcing Details
                   </h3>
                 </div>
-                
+
                 {sourcingPlans.plans[selectedPlan].sourcing.length > 0 ? (
                   <div className="divide-y divide-gray-100">
                     {sourcingPlans.plans[selectedPlan].sourcing.map((item, idx) => (

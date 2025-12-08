@@ -575,7 +575,7 @@ export default function HomePage() {
                 <h3 className="text-xl font-bold text-white mb-2">Pro</h3>
                 <p className="text-blue-100 text-sm">For Exporters & Growing Businesses</p>
                 <div className="mt-4">
-                  <span className="text-4xl font-bold text-white">₹14,999</span>
+                  <span className="text-4xl font-bold text-white">₹28,999</span>
                   <span className="text-blue-200">/month</span>
                 </div>
                 <p className="text-blue-200 text-xs mt-1">or $180/month</p>

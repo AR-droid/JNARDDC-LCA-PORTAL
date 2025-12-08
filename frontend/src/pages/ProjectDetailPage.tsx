@@ -1166,72 +1166,110 @@ export default function ProjectDetailPage() {
       )}
 
       {/* Floating Scrap Yard Connect Widget */}
-      {showScrapYardWidget && materials.length > 0 && scrapYardStats && (
-        <div className="fixed bottom-6 right-24 z-40 animate-slide-in-right">
-          <div className="relative bg-green-600 rounded-2xl shadow-2xl shadow-green-200 p-5 max-w-sm border border-green-400/30 overflow-hidden group">
-            {/* Background decoration */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
-            
-            {/* Close button */}
-            <button
-              onClick={() => setShowScrapYardWidget(false)}
-              className="absolute top-2 right-2 p-1 text-white/60 hover:text-white hover:bg-white/20 rounded-full transition"
-              aria-label="Close widget"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+      {showScrapYardWidget && materials.length > 0 && scrapYardStats && (() => {
+        // Calculate virgin vs recycled content
+        const totalMass = materials.reduce((sum, m) => sum + m.quantity, 0)
+        const recycledMass = materials.reduce((sum, m) => sum + (m.quantity * (m.recycled_content || 0) / 100), 0)
+        const virginMass = totalMass - recycledMass
+        const virginPercentage = totalMass > 0 ? Math.round((virginMass / totalMass) * 100) : 0
+        const recycledPercentage = totalMass > 0 ? Math.round((recycledMass / totalMass) * 100) : 0
+        const recyclingPotential = Math.min(100 - recycledPercentage, 80) // Max 80% increase potential
 
-            <div className="relative">
-              {/* Header */}
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-                  <Recycle className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-white">Scrap Yard Connect</h3>
-                    <span className="px-1.5 py-0.5 bg-yellow-400 text-yellow-900 text-xs font-bold rounded-full animate-pulse">
-                      NEW
-                    </span>
-                  </div>
-                  <p className="text-green-100 text-sm">Source recycled materials</p>
-                </div>
-              </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-white/10 backdrop-blur rounded-lg p-3 text-center">
-                  <p className="text-2xl font-bold text-white">{scrapYardStats.total_scrap_yards}</p>
-                  <p className="text-xs text-green-100">Scrap Yards</p>
-                </div>
-                <div className="bg-white/10 backdrop-blur rounded-lg p-3 text-center">
-                  <p className="text-2xl font-bold text-white">₹{scrapYardStats.potential_savings_crores}Cr</p>
-                  <p className="text-xs text-green-100">Potential Savings</p>
-                </div>
-              </div>
-
-              {/* Benefit highlight */}
-              <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-white/10 backdrop-blur rounded-lg">
-                <TrendingDown className="w-4 h-4 text-green-200" />
-                <p className="text-sm text-white">
-                  Get <span className="font-semibold">Plan A/B/C</span> sourcing options for your {materials.length} materials
-                </p>
-              </div>
-
-              {/* CTA */}
-              <Link
-                to={`/scrap-yard-connect?project=${id}`}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-white text-green-600 rounded-xl font-semibold hover:bg-green-50 transition group-hover:shadow-lg"
+        return (
+          <div className="fixed bottom-6 right-24 z-40 animate-slide-in-right">
+            <div className="relative bg-green-600 rounded-2xl shadow-2xl shadow-green-200 p-5 max-w-sm border border-green-400/30 overflow-hidden group">
+              {/* Background decoration */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
+              
+              {/* Close button */}
+              <button
+                onClick={() => setShowScrapYardWidget(false)}
+                className="absolute top-2 right-2 p-1 text-white/60 hover:text-white hover:bg-white/20 rounded-full transition"
+                aria-label="Close widget"
               >
-                View Sourcing Options
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              <div className="relative">
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+                    <Recycle className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-white">Scrap Yard Connect</h3>
+                      <span className="px-1.5 py-0.5 bg-yellow-400 text-yellow-900 text-xs font-bold rounded-full animate-pulse">
+                        NEW
+                      </span>
+                    </div>
+                    <p className="text-green-100 text-sm">Source recycled materials</p>
+                  </div>
+                </div>
+
+                {/* Virgin vs Recycled Content */}
+                <div className="mb-4 bg-white/10 backdrop-blur rounded-lg p-3">
+                  <p className="text-xs text-green-100 mb-2 font-medium">Current Material Mix</p>
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-white">{virginPercentage}%</p>
+                      <p className="text-xs text-green-100">Virgin Content</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-white">{recycledPercentage}%</p>
+                      <p className="text-xs text-green-100">Recycled Content</p>
+                    </div>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-white/80 transition-all duration-500"
+                      style={{ width: `${recycledPercentage}%` }}
+                    ></div>
+                  </div>
+                  {recyclingPotential > 0 && (
+                    <p className="text-xs text-green-100 mt-2 flex items-center gap-1">
+                      <TrendingDown className="w-3 h-3" />
+                      Add up to {recyclingPotential}% recycled content
+                    </p>
+                  )}
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="bg-white/10 backdrop-blur rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-white">{scrapYardStats.total_scrap_yards}</p>
+                    <p className="text-xs text-green-100">Scrap Yards</p>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-white">₹{scrapYardStats.potential_savings_crores}Cr</p>
+                    <p className="text-xs text-green-100">Potential Savings</p>
+                  </div>
+                </div>
+
+                {/* Benefit highlight */}
+                <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-white/10 backdrop-blur rounded-lg">
+                  <TrendingDown className="w-4 h-4 text-green-200" />
+                  <p className="text-sm text-white">
+                    Get <span className="font-semibold">Plan A/B/C</span> sourcing options for your {materials.length} materials
+                  </p>
+                </div>
+
+                {/* CTA */}
+                <Link
+                  to={`/scrap-yard-connect?project=${id}`}
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-white text-green-600 rounded-xl font-semibold hover:bg-green-50 transition group-hover:shadow-lg"
+                >
+                  View Sourcing Options
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { getCBAMReport, getCBAMReportQr, downloadCBAMExcel, downloadBRSRExcel, CBAMReport } from '../api/projects'
+import { getCBAMReport, getCBAMReportQr, downloadCBAMExcel, downloadCBAMPdf, downloadBRSRExcel, CBAMReport } from '../api/projects'
 import { useAuthStore } from '../stores/authStore'
 import { UpgradePrompt } from '../components/FeatureGate'
-import { FileSpreadsheet, Loader2, QrCode, AlertTriangle, Building2, Lock } from 'lucide-react'
+import { FileSpreadsheet, FileText, Loader2, QrCode, AlertTriangle, Building2, Lock } from 'lucide-react'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
 
 export default function CBAMExportPage() {
@@ -73,6 +73,22 @@ export default function CBAMExportPage() {
     } catch (err) {
       console.error('Error downloading BRSR:', err)
       alert('Failed to download BRSR report')
+    } finally {
+      setIsDownloading(false)
+      setDownloadingType(null)
+    }
+  }
+
+  const handleDownloadPdf = async () => {
+    if (!id) return
+    
+    try {
+      setIsDownloading(true)
+      setDownloadingType('pdf')
+      await downloadCBAMPdf(id)
+    } catch (err) {
+      console.error('Error downloading PDF:', err)
+      alert('Failed to download PDF report')
     } finally {
       setIsDownloading(false)
       setDownloadingType(null)
@@ -223,6 +239,13 @@ export default function CBAMExportPage() {
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 font-medium"
               >
                 {downloadingType === 'excel' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />} CBAM Excel
+              </button>
+              <button
+                onClick={handleDownloadPdf}
+                disabled={isDownloading}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center gap-2 font-medium"
+              >
+                {downloadingType === 'pdf' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />} CBAM PDF
               </button>
               <button
                 onClick={handleDownloadBRSR}

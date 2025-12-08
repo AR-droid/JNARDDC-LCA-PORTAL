@@ -12,3 +12,4 @@ PyPDF2
 openpyxl
 python-docx
 gunicorn
+reportlab

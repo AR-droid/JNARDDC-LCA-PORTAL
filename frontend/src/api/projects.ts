@@ -725,6 +725,33 @@ export const downloadCBAMExcel = async (projectId: string): Promise<void> => {
 }
 
 /**
+ * Download CBAM PDF export (letterhead format)
+ */
+export const downloadCBAMPdf = async (projectId: string): Promise<void> => {
+  const response = await api.get(`/projects/${projectId}/cbam-export/pdf`, {
+    responseType: 'blob'
+  })
+
+  // Get filename from content-disposition header or use default
+  const contentDisposition = response.headers['content-disposition']
+  let filename = `CBAM_Report_${projectId.slice(0, 8)}.pdf`
+  if (contentDisposition) {
+    const match = contentDisposition.match(/filename="?(.+)"?/)
+    if (match) filename = match[1]
+  }
+
+  // Create download link
+  const url = window.URL.createObjectURL(new Blob([response.data]))
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute('download', filename)
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(url)
+}
+
+/**
  * Get BRSR (SEBI) Export data
  */
 export const getBRSRExport = async (projectId: string): Promise<any> => {

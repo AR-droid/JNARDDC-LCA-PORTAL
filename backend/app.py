@@ -9393,6 +9393,321 @@ def export_cbam_excel(project_id):
         return jsonify({"detail": str(e)}), 500
 
 
+@app.route('/api/v1/projects/<project_id>/cbam-export/pdf', methods=['GET', 'OPTIONS'])
+def export_cbam_pdf(project_id):
+    """Export CBAM report as professional PDF document with letterhead"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        # Import reportlab components
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch, mm
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Get project
+        c.execute("SELECT * FROM projects WHERE id = ?", (project_id,))
+        project = c.fetchone()
+        if not project:
+            conn.close()
+            return jsonify({"detail": "Project not found"}), 404
+        
+        # Get user info
+        c.execute("SELECT full_name, organization_name, email FROM users WHERE id = ?", (project[7],))
+        user = c.fetchone()
+        
+        # Get materials
+        c.execute("""SELECT material_name, material_type, quantity, gwp, recycled_content, transport_distance
+                    FROM project_materials WHERE project_id = ?""", (project_id,))
+        materials = c.fetchall()
+        conn.close()
+        
+        if not materials:
+            return jsonify({"detail": "No materials to export"}), 400
+        
+        # Calculate CBAM data
+        quarter = (datetime.now().month - 1) // 3 + 1
+        report_id = f"CBAM-{project_id[:8].upper()}-{datetime.now().strftime('%Y%m%d')}"
+        reporting_period = f"{datetime.now().year}-Q{quarter}"
+        
+        cbam_goods = []
+        total_embedded_emissions = 0
+        total_quantity_tonnes = 0
+        
+        for m in materials:
+            quantity_kg = m[2] or 0
+            gwp = m[3] or 0
+            recycled = m[4] or 0
+            quantity_tonnes = quantity_kg / 1000
+            embedded_emissions = gwp / 1000
+            specific_emissions = embedded_emissions / quantity_tonnes if quantity_tonnes > 0 else 0
+            
+            cbam_category = get_cbam_category(m[1], m[0])
+            if cbam_category:
+                cbam_goods.append({
+                    'product': m[0],
+                    'category': cbam_category,
+                    'quantity': quantity_tonnes,
+                    'embedded': embedded_emissions,
+                    'specific': specific_emissions,
+                    'recycled': recycled
+                })
+                total_embedded_emissions += embedded_emissions
+                total_quantity_tonnes += quantity_tonnes
+        
+        avg_specific = total_embedded_emissions / total_quantity_tonnes if total_quantity_tonnes > 0 else 0
+        estimated_ets_price = 90
+        estimated_liability_eur = total_embedded_emissions * estimated_ets_price
+        estimated_liability_inr = estimated_liability_eur * 91
+        
+        # Create PDF
+        output = io.BytesIO()
+        doc = SimpleDocTemplate(
+            output,
+            pagesize=A4,
+            rightMargin=20*mm,
+            leftMargin=20*mm,
+            topMargin=15*mm,
+            bottomMargin=15*mm
+        )
+        
+        # Styles
+        styles = getSampleStyleSheet()
+        
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=20,
+            textColor=colors.HexColor('#1F4E79'),
+            alignment=TA_CENTER,
+            spaceAfter=5
+        )
+        
+        subtitle_style = ParagraphStyle(
+            'CustomSubtitle',
+            parent=styles['Normal'],
+            fontSize=10,
+            textColor=colors.HexColor('#666666'),
+            alignment=TA_CENTER,
+            fontName='Helvetica-Oblique',
+            spaceAfter=10
+        )
+        
+        section_header_style = ParagraphStyle(
+            'SectionHeader',
+            parent=styles['Heading2'],
+            fontSize=12,
+            textColor=colors.HexColor('#1F4E79'),
+            spaceBefore=15,
+            spaceAfter=8
+        )
+        
+        normal_style = ParagraphStyle(
+            'CustomNormal',
+            parent=styles['Normal'],
+            fontSize=9,
+            leading=12
+        )
+        
+        small_style = ParagraphStyle(
+            'SmallText',
+            parent=styles['Normal'],
+            fontSize=8,
+            textColor=colors.HexColor('#666666'),
+            alignment=TA_CENTER
+        )
+        
+        # Build PDF content
+        story = []
+        
+        # Logo and Header
+        logo_path = os.path.join(BASE_DIR, 'frontend', 'public', 'images', 'logo.png')
+        if os.path.exists(logo_path):
+            logo = RLImage(logo_path, width=50, height=50)
+            header_data = [[logo, Paragraph('JNARDDC LCA PORTAL', title_style)]]
+            header_table = Table(header_data, colWidths=[60, 400])
+            header_table.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+            ]))
+            story.append(header_table)
+        else:
+            story.append(Paragraph('JNARDDC LCA PORTAL', title_style))
+        
+        story.append(Paragraph('Jawaharlal Nehru Aluminium Research Development and Design Centre', subtitle_style))
+        story.append(Spacer(1, 5))
+        
+        # Horizontal line
+        line_data = [['━' * 80]]
+        line_table = Table(line_data, colWidths=[500])
+        line_table.setStyle(TableStyle([
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1F4E79')),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ]))
+        story.append(line_table)
+        story.append(Spacer(1, 15))
+        
+        # Report Title
+        story.append(Paragraph('CBAM QUARTERLY DECLARATION REPORT', ParagraphStyle(
+            'ReportTitle',
+            parent=styles['Heading1'],
+            fontSize=14,
+            textColor=colors.HexColor('#1F4E79'),
+            alignment=TA_CENTER,
+            spaceAfter=5
+        )))
+        story.append(Paragraph('Carbon Border Adjustment Mechanism - EU Regulation 2023/956', small_style))
+        story.append(Spacer(1, 20))
+        
+        # Report Metadata
+        story.append(Paragraph('REPORT INFORMATION', section_header_style))
+        metadata = [
+            ['Report ID:', report_id, 'Reporting Period:', reporting_period],
+            ['Generation Date:', datetime.now().strftime('%d/%m/%Y'), 'Software:', 'JNARDDC LCA Portal v1.0'],
+        ]
+        metadata_table = Table(metadata, colWidths=[90, 150, 100, 150])
+        metadata_table.setStyle(TableStyle([
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#666666')),
+            ('TEXTCOLOR', (2, 0), (2, -1), colors.HexColor('#666666')),
+            ('FONTNAME', (1, 0), (1, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (3, 0), (3, -1), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        story.append(metadata_table)
+        story.append(Spacer(1, 15))
+        
+        # Declarant Information
+        story.append(Paragraph('DECLARANT INFORMATION', section_header_style))
+        declarant = [
+            ['Company:', user[1] if user else 'Not specified', 'Country:', 'India'],
+            ['Contact:', user[0] if user else 'Not specified', 'EORI:', 'To be provided'],
+            ['Email:', user[2] if user else 'Not specified', '', ''],
+        ]
+        declarant_table = Table(declarant, colWidths=[70, 180, 70, 170])
+        declarant_table.setStyle(TableStyle([
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#666666')),
+            ('TEXTCOLOR', (2, 0), (2, -1), colors.HexColor('#666666')),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        story.append(declarant_table)
+        story.append(Spacer(1, 15))
+        
+        # Summary
+        story.append(Paragraph('EMISSIONS SUMMARY', section_header_style))
+        summary_data = [
+            ['Total Quantity', 'Embedded Emissions', 'Specific Emissions', 'Est. CBAM Liability'],
+            [f'{total_quantity_tonnes:.4f} t', f'{total_embedded_emissions:.4f} tCO₂', 
+             f'{avg_specific:.4f} tCO₂/t', f'€{estimated_liability_eur:.2f}'],
+            ['', '', '', f'≈ ₹{estimated_liability_inr:,.0f}'],
+        ]
+        summary_table = Table(summary_data, colWidths=[120, 130, 130, 120])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1F4E79')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F5F5F5')),
+        ]))
+        story.append(summary_table)
+        story.append(Spacer(1, 20))
+        
+        # Goods Declaration
+        story.append(Paragraph('CBAM GOODS DECLARATION', section_header_style))
+        
+        if cbam_goods:
+            goods_header = ['Product', 'CBAM Category', 'Qty (t)', 'Embedded (tCO₂)', 'Specific', 'Recycled %']
+            goods_data = [goods_header]
+            
+            for g in cbam_goods:
+                goods_data.append([
+                    g['product'][:25] + '...' if len(g['product']) > 25 else g['product'],
+                    g['category'],
+                    f"{g['quantity']:.4f}",
+                    f"{g['embedded']:.4f}",
+                    f"{g['specific']:.4f}",
+                    f"{g['recycled']}%"
+                ])
+            
+            goods_table = Table(goods_data, colWidths=[100, 80, 60, 80, 60, 60])
+            goods_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1F4E79')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),
+                ('ALIGN', (0, 0), (1, -1), 'LEFT'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F5F5F5')]),
+            ]))
+            story.append(goods_table)
+        else:
+            story.append(Paragraph('No CBAM-applicable materials found.', normal_style))
+        
+        story.append(Spacer(1, 20))
+        
+        # Compliance Notes
+        story.append(Paragraph('COMPLIANCE NOTES', section_header_style))
+        notes = [
+            '• Report covers goods imported under EU CBAM Regulation 2023/956',
+            '• Embedded emissions calculated using IPCC AR6 factors via JNARDDC methodology',
+            '• Specific emissions represent tCO₂ per tonne of product',
+            '• CBAM liability estimate based on current EU ETS price',
+            '• Actual liability subject to EU default values and verification'
+        ]
+        for note in notes:
+            story.append(Paragraph(note, ParagraphStyle(
+                'Note',
+                parent=styles['Normal'],
+                fontSize=8,
+                textColor=colors.HexColor('#666666'),
+                leftIndent=10,
+                spaceBefore=3
+            )))
+        
+        story.append(Spacer(1, 30))
+        
+        # Footer
+        story.append(Paragraph('━' * 80, ParagraphStyle('Line', alignment=TA_CENTER, textColor=colors.HexColor('#CCCCCC'), fontSize=8)))
+        story.append(Paragraph(
+            f'Generated by JNARDDC LCA Portal v1.0 | Data Sources: IPCC AR6, Ecoinvent 3.9 | {datetime.now().strftime("%d/%m/%Y %H:%M")}',
+            ParagraphStyle('Footer', parent=styles['Normal'], fontSize=7, textColor=colors.HexColor('#999999'), alignment=TA_CENTER)
+        ))
+        
+        # Build PDF
+        doc.build(story)
+        output.seek(0)
+        
+        filename = f"CBAM_Report_{project[1].replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
+        
+        return send_file(
+            output,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        print(f"CBAM PDF Export Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"detail": str(e)}), 500
+
+
 # =====================================================
 # BRSR EXPORT - SEBI Business Responsibility Report
 # =====================================================

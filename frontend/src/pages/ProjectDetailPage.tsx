@@ -9,6 +9,7 @@ import BOMUploadModal from '../components/BOMUploadModal'
 import SupplyChainUploadModal from '../components/SupplyChainUploadModal'
 import SupplyChainMap from '../components/SupplyChainMap'
 import ActionHotspots from '../components/ActionHotspots'
+import AlloyRecyclingAdvisor from '../components/AlloyRecyclingAdvisor'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon, UploadIcon, PlusIcon, PackageIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
 import { 
@@ -907,6 +908,13 @@ export default function ProjectDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Alloy Recycling Advisor Widget */}
+        {materials.length > 0 && id && (
+          <div className="mt-5">
+            <AlloyRecyclingAdvisor materials={materials} projectId={id} />
+          </div>
+        )}
 
         {/* Scrap Yard Connect - Action Hotspots */}
         {materials.length > 0 && (

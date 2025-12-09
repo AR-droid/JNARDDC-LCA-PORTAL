@@ -368,8 +368,8 @@ export default function ProjectDetailPage() {
       {/* Notification Banner */}
       {notification && (
         <div className={`fixed top-4 right-4 z-50 max-w-md px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-slide-in ${notification.type === 'success' ? 'bg-green-50 border border-green-200 text-green-800' :
-            notification.type === 'error' ? 'bg-red-50 border border-red-200 text-red-800' :
-              'bg-blue-50 border border-blue-200 text-blue-800'
+          notification.type === 'error' ? 'bg-red-50 border border-red-200 text-red-800' :
+            'bg-blue-50 border border-blue-200 text-blue-800'
           }`}>
           {notification.type === 'success' && <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />}
           {notification.type === 'error' && <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />}
@@ -407,12 +407,7 @@ export default function ProjectDetailPage() {
             >
               <AnalyticsIcon size={16} /> LCIA
             </button>
-            <button
-              onClick={() => navigate(`/projects/${id}/analysis`)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-md transition-colors flex items-center gap-2"
-            >
-              <AnalyticsIcon size={16} /> Analysis
-            </button>
+
             <button
               onClick={() => navigate(`/projects/${id}/lifecycle`)}
               className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-md transition-colors flex items-center gap-2"
@@ -484,8 +479,8 @@ export default function ProjectDetailPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${project.status === 'draft' ? 'bg-gray-100 text-gray-700' :
-                  project.status === 'calculated' ? 'bg-green-100 text-green-700' :
-                    'bg-blue-100 text-blue-700'
+                project.status === 'calculated' ? 'bg-green-100 text-green-700' :
+                  'bg-blue-100 text-blue-700'
                 }`}>
                 {project.status}
               </span>
@@ -569,8 +564,8 @@ export default function ProjectDetailPage() {
               <button
                 onClick={() => setActiveTab('materials')}
                 className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'materials'
-                    ? 'border-blue-600 text-blue-600 bg-blue-50'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'border-blue-600 text-blue-600 bg-blue-50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
               >
                 <span className="flex items-center gap-2">
@@ -581,8 +576,8 @@ export default function ProjectDetailPage() {
               <button
                 onClick={() => setActiveTab('supply-chain')}
                 className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'supply-chain'
-                    ? 'border-orange-600 text-orange-600 bg-orange-50'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'border-orange-600 text-orange-600 bg-orange-50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
               >
                 <span className="flex items-center gap-2">
@@ -879,8 +874,8 @@ export default function ProjectDetailPage() {
                             </td>
                             <td className="py-3 px-4 text-center">
                               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${entry.supplier_tier === 1 ? 'bg-green-100 text-green-700' :
-                                  entry.supplier_tier === 2 ? 'bg-yellow-100 text-yellow-700' :
-                                    'bg-gray-100 text-gray-700'
+                                entry.supplier_tier === 2 ? 'bg-yellow-100 text-yellow-700' :
+                                  'bg-gray-100 text-gray-700'
                                 }`}>
                                 Tier {entry.supplier_tier}
                               </span>
@@ -1075,8 +1070,8 @@ export default function ProjectDetailPage() {
                             <p className="text-sm text-gray-500">{material.material_type || 'Unknown Type'}</p>
                           </div>
                           <span className={`px-2 py-1 text-xs rounded-full ${(material.overall_confidence || 0) >= 0.7 ? 'bg-green-100 text-green-700' :
-                              (material.overall_confidence || 0) >= 0.5 ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-red-100 text-red-700'
+                            (material.overall_confidence || 0) >= 0.5 ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-red-100 text-red-700'
                             }`}>
                             {Math.round((material.overall_confidence || 0) * 100)}% confidence
                           </span>

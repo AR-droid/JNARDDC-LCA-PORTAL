@@ -391,12 +391,7 @@ export default function MetalLifecyclePage() {
             >
               <AnalyticsIcon size={16} /> LCIA
             </button>
-            <button
-              onClick={() => navigate(`/projects/${id}/analysis`)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-md transition-colors flex items-center gap-2"
-            >
-              <AnalyticsIcon size={16} /> Analysis
-            </button>
+
             <button
               className="px-4 py-2 text-sm font-medium bg-indigo-50 text-indigo-700 rounded-md transition-colors flex items-center gap-2"
             >

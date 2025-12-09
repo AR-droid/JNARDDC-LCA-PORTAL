@@ -8,7 +8,6 @@ import {
   Building2,
   Wrench,
   Recycle,
-  ChevronDown,
   ChevronUp,
   Zap,
   Droplets,

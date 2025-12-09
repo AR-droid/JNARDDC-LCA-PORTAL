@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { projectsApi, DesignRecommendation, DesignRecommendationsResult, AIDesignInsight } from '../api/projects'
 import { API_URL } from '../api/client'
-import { 
+import {
   FiRefreshCw, FiTruck, FiAlertTriangle, FiClock, FiTool,
-  FiChevronRight, FiEye, FiExternalLink, FiCheckCircle, FiInfo} from 'react-icons/fi'
+  FiChevronRight, FiEye, FiExternalLink, FiCheckCircle, FiInfo
+} from 'react-icons/fi'
 import { HiOutlineSparkles, HiOutlineLightBulb } from 'react-icons/hi'
 import { BiLeaf, BiTargetLock, BiRecycle } from 'react-icons/bi'
 import { TbArrowNarrowRight } from 'react-icons/tb'
@@ -17,12 +18,12 @@ interface RecommendationImages {
   after_image?: string
 }
 
-function ImageModal({ 
-  isOpen, 
-  onClose, 
-  images, 
-  title 
-}: { 
+function ImageModal({
+  isOpen,
+  onClose,
+  images,
+  title
+}: {
   isOpen: boolean
   onClose: () => void
   images: RecommendationImages
@@ -44,7 +45,7 @@ function ImageModal({
             ×
           </button>
         </div>
-        
+
         <div className="p-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {images.before_image && (
@@ -69,7 +70,7 @@ function ImageModal({
                 </div>
               </div>
             )}
-            
+
             {images.after_image && (
               <div>
                 <h4 className="text-lg font-medium text-gray-800 mb-3 text-center">
@@ -93,7 +94,7 @@ function ImageModal({
               </div>
             )}
           </div>
-          
+
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               AI-generated visualizations using Google Gemini • For demonstration purposes only
@@ -109,7 +110,7 @@ export default function RecommendationsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  
+
   const [recommendations, setRecommendations] = useState<DesignRecommendationsResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -117,7 +118,7 @@ export default function RecommendationsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isGeneratingImages, setIsGeneratingImages] = useState(false)
   const [showAiInsights, setShowAiInsights] = useState(false)
-  
+
   const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
   const hasVerificationAccess = user?.tier === 'enterprise' || user?.features?.verification
 
@@ -127,7 +128,7 @@ export default function RecommendationsPage() {
 
   const loadRecommendations = async () => {
     if (!id) return
-    
+
     try {
       setIsLoading(true)
       const data = await projectsApi.getRecommendations(id)
@@ -141,7 +142,7 @@ export default function RecommendationsPage() {
 
   const handleVisualize = async (rec: DesignRecommendation) => {
     console.log('handleVisualize called for:', rec)
-    
+
     // Check if images already exist
     if (rec.before_image || rec.after_image) {
       console.log('Images already exist, showing modal')
@@ -149,17 +150,17 @@ export default function RecommendationsPage() {
       setIsModalOpen(true)
       return
     }
-    
+
     // Check if user is authenticated
     const token = localStorage.getItem('access_token')
     console.log('Token from localStorage:', token ? 'Present' : 'Not found')
-    
+
     if (!token) {
       console.error('No authentication token found')
       alert('Please log in to generate images')
       return
     }
-    
+
     // Set selected recommendation BEFORE starting generation (for loading state)
     setSelectedRecommendation(rec)
     setIsGeneratingImages(true)
@@ -175,29 +176,29 @@ export default function RecommendationsPage() {
           recommendation: rec
         })
       })
-      
+
       console.log('Response status:', response.status)
       console.log('Response headers:', response.headers)
-      
+
       if (response.ok) {
         const imageData = await response.json()
         console.log('Image data received:', imageData)
-        
+
         // Update the recommendation with generated images
         const updatedRec = { ...rec, ...imageData }
         setSelectedRecommendation(updatedRec)
-        
+
         // Update the recommendations list
         if (recommendations) {
           const updatedRecommendations = {
             ...recommendations,
-            recommendations: recommendations.recommendations.map(r => 
+            recommendations: recommendations.recommendations.map(r =>
               r === rec ? updatedRec : r
             )
           }
           setRecommendations(updatedRecommendations)
         }
-        
+
         setIsModalOpen(true)
       } else {
         const error = await response.json()
@@ -231,57 +232,57 @@ export default function RecommendationsPage() {
 
   const getTypeConfig = (type: string): { label: string; Icon: React.ComponentType<{ className?: string }>; color: string; bgLight: string; borderColor: string } => {
     switch (type) {
-      case 'recycled_content': 
-        return { 
-          label: 'Recycled Content', 
+      case 'recycled_content':
+        return {
+          label: 'Recycled Content',
           Icon: BiRecycle,
           color: 'text-emerald-600',
           bgLight: 'bg-emerald-50',
           borderColor: 'border-emerald-200'
         }
-      case 'material_substitution': 
-        return { 
-          label: 'Material Swap', 
+      case 'material_substitution':
+        return {
+          label: 'Material Swap',
           Icon: FiRefreshCw,
           color: 'text-blue-600',
           bgLight: 'bg-blue-50',
           borderColor: 'border-blue-200'
         }
-      case 'transport_optimization': 
-        return { 
-          label: 'Transport', 
+      case 'transport_optimization':
+        return {
+          label: 'Transport',
           Icon: FiTruck,
           color: 'text-orange-600',
           bgLight: 'bg-orange-50',
           borderColor: 'border-orange-200'
         }
-      case 'scarcity_alert': 
-        return { 
-          label: 'Critical Mineral', 
+      case 'scarcity_alert':
+        return {
+          label: 'Critical Mineral',
           Icon: FiAlertTriangle,
           color: 'text-red-600',
           bgLight: 'bg-red-50',
           borderColor: 'border-red-200'
         }
-      case 'lifespan_extension': 
-        return { 
-          label: 'Lifespan', 
+      case 'lifespan_extension':
+        return {
+          label: 'Lifespan',
           Icon: FiClock,
           color: 'text-violet-600',
           bgLight: 'bg-violet-50',
           borderColor: 'border-violet-200'
         }
-      case 'design_for_disassembly': 
-        return { 
-          label: 'Design for Disassembly', 
+      case 'design_for_disassembly':
+        return {
+          label: 'Design for Disassembly',
           Icon: FiTool,
           color: 'text-cyan-600',
           bgLight: 'bg-cyan-50',
           borderColor: 'border-cyan-200'
         }
-      default: 
-        return { 
-          label: type, 
+      default:
+        return {
+          label: type,
           Icon: FiInfo,
           color: 'text-gray-600',
           bgLight: 'bg-gray-50',
@@ -372,35 +373,35 @@ export default function RecommendationsPage() {
                 onClick={() => navigate(`/projects/${id}/cbam-export`)}
                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-md transition-colors flex items-center gap-2"
               >
-              <FileSpreadsheet size={16} /> CBAM
-            </button>
-          ) : (
-            <Link
-              to="/pricing"
-              className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
-              title="CBAM Export requires Pro plan"
-            >
-              <Lock size={16} /> CBAM
-            </Link>
-          )}
-          {hasVerificationAccess ? (
-            <button
-              onClick={() => navigate(`/projects/${id}/verification`)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
-            >
-              <Building2 size={16} /> Verification
-            </button>
-          ) : (
-            <Link
-              to="/pricing"
-              className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
-              title="JNARDDC Verification requires Enterprise plan"
-            >
-              <Lock size={16} /> Verification
-            </Link>
-          )}
-        </div>
-      </div>        {/* Page header */}
+                <FileSpreadsheet size={16} /> CBAM
+              </button>
+            ) : (
+              <Link
+                to="/pricing"
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+                title="CBAM Export requires Pro plan"
+              >
+                <Lock size={16} /> CBAM
+              </Link>
+            )}
+            {hasVerificationAccess ? (
+              <button
+                onClick={() => navigate(`/projects/${id}/verification`)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
+              >
+                <Building2 size={16} /> Verification
+              </button>
+            ) : (
+              <Link
+                to="/pricing"
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+                title="JNARDDC Verification requires Enterprise plan"
+              >
+                <Lock size={16} /> Verification
+              </Link>
+            )}
+          </div>
+        </div>        {/* Page header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">Design recommendations</h1>
@@ -466,53 +467,50 @@ export default function RecommendationsPage() {
             {showAiInsights && (
               <div className="px-4 pb-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {recommendations.ai_insights.map((insight: AIDesignInsight, index: number) => (
-                <div 
-                  key={index}
-                  className={`bg-white rounded-lg p-4 shadow-sm border-l-4 ${
-                    insight.impact_potential === 'high' ? 'border-l-emerald-500' :
-                    insight.impact_potential === 'medium' ? 'border-l-teal-400' :
-                    'border-l-gray-300'
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-semibold text-gray-900">{insight.title}</h3>
-                    <div className="flex gap-1">
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                        insight.impact_potential === 'high' ? 'bg-emerald-100 text-emerald-700' :
-                        insight.impact_potential === 'medium' ? 'bg-teal-100 text-teal-700' :
-                        'bg-gray-100 text-gray-600'
-                      }`}>
-                        {insight.impact_potential}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-3">{insight.description}</p>
-                  <div className="flex items-center gap-3 text-xs">
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        insight.category === 'technology' ? 'bg-blue-50 text-blue-700' :
-                        insight.category === 'supply_chain' ? 'bg-orange-50 text-orange-700' :
-                        insight.category === 'regulatory' ? 'bg-red-50 text-red-700' :
-                        insight.category === 'cost_benefit' ? 'bg-green-50 text-green-700' :
-                        'bg-purple-50 text-purple-700'
-                      }`}
+                  {recommendations.ai_insights.map((insight: AIDesignInsight, index: number) => (
+                    <div
+                      key={index}
+                      className={`bg-white rounded-lg p-4 shadow-sm border-l-4 ${insight.impact_potential === 'high' ? 'border-l-emerald-500' :
+                          insight.impact_potential === 'medium' ? 'border-l-teal-400' :
+                            'border-l-gray-300'
+                        }`}
                     >
-                      {insight.category === 'supply_chain' ? 'Supply chain' :
-                        insight.category === 'technology' ? 'Technology' :
-                        insight.category === 'regulatory' ? 'Regulatory' :
-                        insight.category === 'cost_benefit' ? 'Cost-benefit' :
-                        'Circular economy'}
-                    </span>
-                    <span className="text-gray-400">|</span>
-                    <span className="text-gray-500 text-xs">
-                      {insight.implementation_timeframe === 'short_term' ? 'Short-term (0-6 months)' :
-                        insight.implementation_timeframe === 'medium_term' ? 'Medium-term (6-18 months)' :
-                        'Long-term (18+ months)'}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-semibold text-gray-900">{insight.title}</h3>
+                        <div className="flex gap-1">
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${insight.impact_potential === 'high' ? 'bg-emerald-100 text-emerald-700' :
+                              insight.impact_potential === 'medium' ? 'bg-teal-100 text-teal-700' :
+                                'bg-gray-100 text-gray-600'
+                            }`}>
+                            {insight.impact_potential}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">{insight.description}</p>
+                      <div className="flex items-center gap-3 text-xs">
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-medium ${insight.category === 'technology' ? 'bg-blue-50 text-blue-700' :
+                              insight.category === 'supply_chain' ? 'bg-orange-50 text-orange-700' :
+                                insight.category === 'regulatory' ? 'bg-red-50 text-red-700' :
+                                  insight.category === 'cost_benefit' ? 'bg-green-50 text-green-700' :
+                                    'bg-purple-50 text-purple-700'
+                            }`}
+                        >
+                          {insight.category === 'supply_chain' ? 'Supply chain' :
+                            insight.category === 'technology' ? 'Technology' :
+                              insight.category === 'regulatory' ? 'Regulatory' :
+                                insight.category === 'cost_benefit' ? 'Cost-benefit' :
+                                  'Circular economy'}
+                        </span>
+                        <span className="text-gray-400">|</span>
+                        <span className="text-gray-500 text-xs">
+                          {insight.implementation_timeframe === 'short_term' ? 'Short-term (0-6 months)' :
+                            insight.implementation_timeframe === 'medium_term' ? 'Medium-term (6-18 months)' :
+                              'Long-term (18+ months)'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -542,10 +540,10 @@ export default function RecommendationsPage() {
               const typeConfig = getTypeConfig(rec.type)
               const priorityConfig = getPriorityConfig(rec.priority)
               const TypeIcon = typeConfig.Icon
-              
+
               return (
-                <div 
-                  key={index} 
+                <div
+                  key={index}
                   className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200"
                 >
                   {/* Card Header */}
@@ -653,7 +651,7 @@ export default function RecommendationsPage() {
                     {/* Suggestions */}
                     {rec.suggestions && rec.suggestions.length > 0 && (
                       <div className="mt-4">
-                        <button 
+                        <button
                           className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 font-medium"
                           onClick={(e) => {
                             const content = e.currentTarget.nextElementSibling
@@ -685,11 +683,10 @@ export default function RecommendationsPage() {
                       <span className="text-xs text-gray-400">Confidence</span>
                       <div className="flex items-center gap-1.5">
                         <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full rounded-full ${
-                              rec.confidence >= 0.8 ? 'bg-emerald-500' : 
-                              rec.confidence >= 0.6 ? 'bg-amber-500' : 'bg-gray-400'
-                            }`}
+                          <div
+                            className={`h-full rounded-full ${rec.confidence >= 0.8 ? 'bg-emerald-500' :
+                                rec.confidence >= 0.6 ? 'bg-amber-500' : 'bg-gray-400'
+                              }`}
                             style={{ width: `${Math.round(rec.confidence * 100)}%` }}
                           />
                         </div>
@@ -701,11 +698,10 @@ export default function RecommendationsPage() {
                         <button
                           onClick={() => handleVisualize(rec)}
                           disabled={isGeneratingImages}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                            hasImages(rec)
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${hasImages(rec)
                               ? 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
                               : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md hover:shadow-lg hover:scale-105'
-                          }`}
+                            }`}
                         >
                           {isGeneratingImages && selectedRecommendation === rec ? (
                             <>
@@ -725,7 +721,7 @@ export default function RecommendationsPage() {
                           )}
                         </button>
                       )}
-                      <button 
+                      <button
                         onClick={() => navigate(`/projects/${id}/scenario`)}
                         className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 font-medium"
                       >
@@ -740,7 +736,7 @@ export default function RecommendationsPage() {
           </div>
         )}
       </div>
-      
+
       {/* Image Modal */}
       {selectedRecommendation && (
         <ImageModal

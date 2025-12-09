@@ -6,7 +6,6 @@ import {
   ChevronUp,
   CheckCircle,
   XCircle,
-  AlertTriangle,
   ArrowRight,
   Search,
   Info,
@@ -15,8 +14,6 @@ import {
   ExternalLink
 } from 'lucide-react'
 import {
-  ALLOY_DATABASE,
-  SCRAP_GRADES,
   SERIES_INFO,
   detectAlloyFromName,
   calculateElementBalance,
@@ -46,19 +43,19 @@ export default function AlloyRecyclingAdvisor({ materials, projectId }: AlloyRec
   // Detect alloys from materials
   const detectedAlloys = useMemo(() => {
     const alloys: { material: Material; alloy: AlloyData }[] = []
-    
+
     for (const material of materials) {
       // Only check aluminium materials
-      if (material.material_type?.toLowerCase().includes('alumin') || 
-          material.material_name?.toLowerCase().includes('alumin') ||
-          material.material_name?.toLowerCase().includes('aluminum')) {
+      if (material.material_type?.toLowerCase().includes('alumin') ||
+        material.material_name?.toLowerCase().includes('alumin') ||
+        material.material_name?.toLowerCase().includes('aluminum')) {
         const detected = detectAlloyFromName(material.material_name)
         if (detected) {
           alloys.push({ material, alloy: detected })
         }
       }
     }
-    
+
     return alloys
   }, [materials])
 
@@ -92,7 +89,7 @@ export default function AlloyRecyclingAdvisor({ materials, projectId }: AlloyRec
   if (detectedAlloys.length === 0 && !selectedAlloy) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div 
+        <div
           className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition"
           onClick={() => setIsExpanded(!isExpanded)}
         >
@@ -107,7 +104,7 @@ export default function AlloyRecyclingAdvisor({ materials, projectId }: AlloyRec
           </div>
           {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
         </div>
-        
+
         {isExpanded && (
           <div className="px-4 pb-4">
             <div className="bg-gray-50 rounded-lg p-4 text-center">
@@ -126,7 +123,7 @@ export default function AlloyRecyclingAdvisor({ materials, projectId }: AlloyRec
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       {/* Header */}
-      <div 
+      <div
         className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition bg-gradient-to-r from-blue-50 to-green-50"
         onClick={() => setIsExpanded(!isExpanded)}
       >
@@ -159,11 +156,10 @@ export default function AlloyRecyclingAdvisor({ materials, projectId }: AlloyRec
                 <button
                   key={material.id}
                   onClick={() => setSelectedAlloy(alloy)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                    primaryAlloy.code === alloy.code
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${primaryAlloy.code === alloy.code
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
                 >
                   {alloy.code}
                 </button>
@@ -172,16 +168,14 @@ export default function AlloyRecyclingAdvisor({ materials, projectId }: AlloyRec
           )}
 
           {/* Alloy Info Card */}
-          <div className={`rounded-lg p-3 border ${
-            seriesInfo ? `bg-${seriesInfo.color}-50 border-${seriesInfo.color}-200` : 'bg-gray-50 border-gray-200'
-          }`}>
+          <div className={`rounded-lg p-3 border ${seriesInfo ? `bg-${seriesInfo.color}-50 border-${seriesInfo.color}-200` : 'bg-gray-50 border-gray-200'
+            }`}>
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-lg font-bold text-gray-900">{primaryAlloy.code}</span>
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                    primaryAlloy.type === 'cast' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
-                  }`}>
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${primaryAlloy.type === 'cast' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                    }`}>
                     {primaryAlloy.type === 'cast' ? 'Cast' : 'Wrought'}
                   </span>
                   <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
@@ -195,7 +189,7 @@ export default function AlloyRecyclingAdvisor({ materials, projectId }: AlloyRec
                 <div className="text-[10px] text-gray-500">Recyclability</div>
               </div>
             </div>
-            
+
             {/* Composition */}
             <div className="mt-3 flex flex-wrap gap-2">
               {Object.entries(primaryAlloy.composition).map(([element, percent]) => (
@@ -256,8 +250,8 @@ export default function AlloyRecyclingAdvisor({ materials, projectId }: AlloyRec
             </h4>
             <div className="flex flex-wrap gap-2">
               {primaryAlloy.eol_pathways.map((pathway, idx) => (
-                <span 
-                  key={idx} 
+                <span
+                  key={idx}
                   className="px-2 py-1 bg-white rounded-lg text-xs text-blue-700 border border-blue-200 flex items-center gap-1"
                 >
                   <ArrowRight className="w-3 h-3" />
@@ -289,28 +283,26 @@ export default function AlloyRecyclingAdvisor({ materials, projectId }: AlloyRec
                 </select>
               </div>
             </div>
-            
+
             <div className="space-y-2">
               {elementBalance.map(({ element, current, required, status }) => (
                 <div key={element} className="flex items-center gap-3">
                   <span className="w-6 text-xs font-medium text-gray-700">{element}</span>
                   <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full transition-all ${
-                        status === 'ok' ? 'bg-green-500' :
+                    <div
+                      className={`h-full rounded-full transition-all ${status === 'ok' ? 'bg-green-500' :
                         status === 'low' ? 'bg-yellow-500' :
-                        status === 'watch' ? 'bg-orange-500' :
-                        'bg-red-500'
-                      }`}
+                          status === 'watch' ? 'bg-orange-500' :
+                            'bg-red-500'
+                        }`}
                       style={{ width: `${Math.min((current / Math.max(required, 0.01)) * 100, 100)}%` }}
                     />
                   </div>
-                  <span className={`text-[10px] font-medium whitespace-nowrap ${
-                    status === 'ok' ? 'text-green-600' :
+                  <span className={`text-[10px] font-medium whitespace-nowrap ${status === 'ok' ? 'text-green-600' :
                     status === 'low' ? 'text-yellow-600' :
-                    status === 'watch' ? 'text-orange-600' :
-                    'text-red-600'
-                  }`}>
+                      status === 'watch' ? 'text-orange-600' :
+                        'text-red-600'
+                    }`}>
                     {status === 'ok' && 'OK ✓'}
                     {status === 'low' && `Need +${(required - current).toFixed(2)}% virgin`}
                     {status === 'watch' && 'Watch ⚠️'}
@@ -333,8 +325,8 @@ export default function AlloyRecyclingAdvisor({ materials, projectId }: AlloyRec
                   {primaryAlloy.series === '2xxx' || primaryAlloy.series === '7xxx'
                     ? `${primaryAlloy.code} is a specialty alloy. Use closed-loop recycling to maintain quality, or downcycle to cast alloys (3xx.x) for general applications.`
                     : primaryAlloy.type === 'cast'
-                    ? `${primaryAlloy.code} cast alloy is very tolerant to mixed scrap. It can accept most wrought scrap and is ideal for absorbing lower-grade material.`
-                    : `${primaryAlloy.code} can accept ${compatibleScrapNames.slice(0, 2).join(', ')} scrap for closed-loop recycling. Add virgin Mg if using >60% recycled content.`
+                      ? `${primaryAlloy.code} cast alloy is very tolerant to mixed scrap. It can accept most wrought scrap and is ideal for absorbing lower-grade material.`
+                      : `${primaryAlloy.code} can accept ${compatibleScrapNames.slice(0, 2).join(', ')} scrap for closed-loop recycling. Add virgin Mg if using >60% recycled content.`
                   }
                 </p>
               </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { Loader2, Mail, Building2, FlaskConical, ArrowRight, ExternalLink, Recycle, Factory, AlertCircle, ChevronRight, ArrowDown } from 'lucide-react'
+import { Loader2, Mail, Building2, FlaskConical, Recycle, Factory, AlertCircle, ChevronRight, ArrowDown } from 'lucide-react'
 import api from '../api/client'
 
 interface WasteMapping {
@@ -71,13 +71,13 @@ export default function WasteToResearchExchange() {
       // Add timeout to prevent hanging
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
-      
+
       const response = await api.get(`/waste-to-research/${id}`, {
         signal: controller.signal
       })
-      
+
       clearTimeout(timeoutId)
-      
+
       setData(response.data)
       // Expand first stage by default
       if (response.data.lifecycle_stages && response.data.lifecycle_stages.length > 0) {
@@ -89,7 +89,7 @@ export default function WasteToResearchExchange() {
       } else {
         setError(err.response?.data?.detail || err.message || 'Failed to load waste-to-research mapping. Using fallback data...')
         console.error('Error loading waste mapping:', err)
-        
+
         // Try to show fallback data even on error
         // The backend should return fallback data, but if it doesn't, we can show a message
       }
@@ -137,10 +137,10 @@ JNARDDC LCA Portal User`
 
     // Open email client directly
     const mailtoLink = `mailto:${industry.contact_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`
-    
+
     // Directly open email client - this will open the default email client
     window.location.href = mailtoLink
-    
+
     // Note: If email client doesn't open, user can manually copy the email address
     // We don't show "Copied" message anymore - just open email client
   }
@@ -208,7 +208,7 @@ JNARDDC LCA Portal User`
             const col = idx % 2
             const isLastInRow = col === 1
             const isLastRow = row === Math.floor((data.lifecycle_stages.length - 1) / 2)
-            
+
             // Only show arrows for cards that are not the last in their row
             if (isLastInRow && !isLastRow) {
               // Arrow going down to next row
@@ -272,7 +272,7 @@ JNARDDC LCA Portal User`
                     <ChevronRight className="w-5 h-5 text-blue-500" />
                   </div>
                 )}
-                
+
                 {/* Connection Arrow - Between rows */}
                 {!isLast && (idx % 2 === 1) && (idx < data.lifecycle_stages.length - 1) && (
                   <div className="hidden md:block absolute bottom-0 left-1/2 transform -translate-x-1/2 -mb-3 z-20 bg-white rounded-full p-1 shadow-md">
@@ -352,11 +352,10 @@ JNARDDC LCA Portal User`
                                       📍 {industry.location}
                                     </p>
                                   </div>
-                                  <span className={`px-1.5 py-0.5 rounded text-xs font-medium ml-2 ${
-                                    industry.research_potential === 'High' ? 'bg-green-100 text-green-700' :
-                                    industry.research_potential === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
-                                    'bg-gray-100 text-gray-700'
-                                  }`}>
+                                  <span className={`px-1.5 py-0.5 rounded text-xs font-medium ml-2 ${industry.research_potential === 'High' ? 'bg-green-100 text-green-700' :
+                                      industry.research_potential === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
+                                        'bg-gray-100 text-gray-700'
+                                    }`}>
                                     {industry.research_potential}
                                   </span>
                                 </div>

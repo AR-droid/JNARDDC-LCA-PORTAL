@@ -10,28 +10,27 @@ import SupplyChainUploadModal from '../components/SupplyChainUploadModal'
 import SupplyChainMap from '../components/SupplyChainMap'
 import ActionHotspots from '../components/ActionHotspots'
 import AlloyRecyclingAdvisor from '../components/AlloyRecyclingAdvisor'
-import WasteToResearchWidget from '../components/WasteToResearchWidget'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon, UploadIcon, PlusIcon, PackageIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
-import { 
-  FileSpreadsheet, 
-  Sparkles, 
-  MapPin, 
-  Truck, 
-  Train, 
-  Ship, 
-  Plane, 
-  Wand2, 
-  Loader2, 
-  Recycle, 
-  ArrowRight, 
-  TrendingDown, 
-  Lightbulb, 
-  Building2, 
-  Lock, 
-  AlertTriangle, 
-  CheckCircle, 
-  Bot, 
+import {
+  FileSpreadsheet,
+  Sparkles,
+  MapPin,
+  Truck,
+  Train,
+  Ship,
+  Plane,
+  Wand2,
+  Loader2,
+  Recycle,
+  ArrowRight,
+  TrendingDown,
+  Lightbulb,
+  Building2,
+  Lock,
+  AlertTriangle,
+  CheckCircle,
+  Bot,
   Package,
   Pencil,
   ExternalLink,
@@ -90,11 +89,11 @@ export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  
+
   // Feature access checks
   const hasVerificationAccess = user?.tier === 'enterprise' || user?.features?.verification
   const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise' || user?.features?.cbam_export
-  
+
   const [project, setProject] = useState<Project | null>(null)
   const [materials, setMaterials] = useState<Material[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -159,7 +158,7 @@ export default function ProjectDetailPage() {
 
   const loadData = async () => {
     if (!id) return
-    
+
     try {
       setIsLoading(true)
       const [projectData, materialsData] = await Promise.all([
@@ -177,7 +176,7 @@ export default function ProjectDetailPage() {
 
   const handleAIGapFill = async () => {
     if (!id) return
-    
+
     try {
       setIsAIFilling(true)
       const result = await aiGapFill(id)
@@ -202,10 +201,10 @@ export default function ProjectDetailPage() {
 
     try {
       setIsGeneratingBOM(true)
-      
+
       // Parse the project description using NLP
       const nlpResult = await parseNLPDescription(project.description)
-      
+
       if (!nlpResult.parsed.materials || nlpResult.parsed.materials.length === 0) {
         setNotification({ type: 'error', message: 'Could not extract materials from the description. Please try adding more details about the materials used.' })
         return
@@ -223,7 +222,7 @@ export default function ProjectDetailPage() {
 
       // Batch add the materials
       const result = await materialsApi.addBatch(id, materialsToAdd)
-      
+
       if (result.added > 0) {
         setNotification({ type: 'success', message: `Successfully generated BOM! ${result.added} materials added from your description.${result.failed > 0 ? ` ${result.failed} materials could not be added.` : ''}` })
         await loadData()
@@ -246,7 +245,7 @@ export default function ProjectDetailPage() {
 
   const handleDeleteMaterial = async (materialId: string) => {
     if (!confirm('Are you sure you want to delete this material?')) return
-    
+
     try {
       await materialsApi.delete(id!, materialId)
       loadData()
@@ -258,7 +257,7 @@ export default function ProjectDetailPage() {
 
   const handleUpdateProject = async (data: Partial<Project>) => {
     if (!id) return
-    
+
     try {
       await projectsApi.update(id, data)
       await loadData()
@@ -328,8 +327,8 @@ export default function ProjectDetailPage() {
   }
 
   const totalGWP = materials.reduce((sum, m) => sum + m.gwp, 0)
-  const avgRecycledContent = materials.length > 0 
-    ? materials.reduce((sum, m) => sum + (m.recycled_content || 0), 0) / materials.length 
+  const avgRecycledContent = materials.length > 0
+    ? materials.reduce((sum, m) => sum + (m.recycled_content || 0), 0) / materials.length
     : 0
   // MCI (Material Circularity Indicator) - simplified calculation
   // MCI = (recycled_content_fraction * 0.5) + (recyclability_fraction * 0.5)
@@ -368,16 +367,15 @@ export default function ProjectDetailPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Notification Banner */}
       {notification && (
-        <div className={`fixed top-4 right-4 z-50 max-w-md px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-slide-in ${
-          notification.type === 'success' ? 'bg-green-50 border border-green-200 text-green-800' :
-          notification.type === 'error' ? 'bg-red-50 border border-red-200 text-red-800' :
-          'bg-blue-50 border border-blue-200 text-blue-800'
-        }`}>
+        <div className={`fixed top-4 right-4 z-50 max-w-md px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-slide-in ${notification.type === 'success' ? 'bg-green-50 border border-green-200 text-green-800' :
+            notification.type === 'error' ? 'bg-red-50 border border-red-200 text-red-800' :
+              'bg-blue-50 border border-blue-200 text-blue-800'
+          }`}>
           {notification.type === 'success' && <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />}
           {notification.type === 'error' && <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />}
           {notification.type === 'info' && <Bot className="w-5 h-5 text-blue-600 flex-shrink-0" />}
           <p className="text-sm font-medium">{notification.message}</p>
-          <button 
+          <button
             onClick={() => setNotification(null)}
             className="ml-auto text-gray-400 hover:text-gray-600"
           >
@@ -385,7 +383,7 @@ export default function ProjectDetailPage() {
           </button>
         </div>
       )}
-      
+
       <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
         {/* Secondary Navigation Bar - Quick Actions */}
         <div className="bg-white rounded-lg shadow mb-5">
@@ -485,11 +483,10 @@ export default function ProjectDetailPage() {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                project.status === 'draft' ? 'bg-gray-100 text-gray-700' :
-                project.status === 'calculated' ? 'bg-green-100 text-green-700' :
-                'bg-blue-100 text-blue-700'
-              }`}>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${project.status === 'draft' ? 'bg-gray-100 text-gray-700' :
+                  project.status === 'calculated' ? 'bg-green-100 text-green-700' :
+                    'bg-blue-100 text-blue-700'
+                }`}>
                 {project.status}
               </span>
               <button
@@ -508,60 +505,60 @@ export default function ProjectDetailPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-5">
-          
 
 
-        <div className="relative rounded-md overflow-hidden bg-blue-50">
-  <img 
-    src={gwpImg}
-    className="absolute inset-0 w-full h-full object-cover opacity-30"
-  />
-  <div className="relative p-3">
-    <p className="text-xs font-medium text-blue-700">Total GWP</p>
-    <p className="text-xl font-semibold text-blue-900">{totalGWP.toFixed(2)}</p>
-    <p className="text-2xs text-blue-600">kg CO₂-eq</p>
-    <p className="text-2xs text-blue-500 italic mt-1">IPCC AR6, Ecoinvent 3.9</p>
-  </div>
-</div>
 
-<div className="relative rounded-md overflow-hidden bg-teal-50">
-  <img 
-    src={mciImg}
-    className="absolute inset-0 w-full h-full object-cover opacity-30"
-  />
-  <div className="relative p-3">
-    <p className="text-xs font-medium text-teal-700">MCI Score</p>
-    <p className="text-xl font-semibold text-teal-900">{mciScore}</p>
-    <p className="text-2xs text-teal-600">Material Circularity</p>
-    <p className="text-2xs text-teal-500 italic mt-1">Ellen MacArthur Foundation</p>
-  </div>
-</div>
-<div className="relative rounded-md overflow-hidden bg-green-50">
-  <img 
-    src={materialsImg}
-    className="absolute inset-0 w-full h-full object-cover opacity-30"
-  />
-  <div className="relative p-3">
-    <p className="text-xs font-medium text-green-700">Materials</p>
-    <p className="text-xl font-semibold text-green-900">{materials.length}</p>
-    <p className="text-2xs text-green-600">items added</p>
-  </div>
-</div>
+            <div className="relative rounded-md overflow-hidden bg-blue-50">
+              <img
+                src={gwpImg}
+                className="absolute inset-0 w-full h-full object-cover opacity-30"
+              />
+              <div className="relative p-3">
+                <p className="text-xs font-medium text-blue-700">Total GWP</p>
+                <p className="text-xl font-semibold text-blue-900">{totalGWP.toFixed(2)}</p>
+                <p className="text-2xs text-blue-600">kg CO₂-eq</p>
+                <p className="text-2xs text-blue-500 italic mt-1">IPCC AR6, Ecoinvent 3.9</p>
+              </div>
+            </div>
+
+            <div className="relative rounded-md overflow-hidden bg-teal-50">
+              <img
+                src={mciImg}
+                className="absolute inset-0 w-full h-full object-cover opacity-30"
+              />
+              <div className="relative p-3">
+                <p className="text-xs font-medium text-teal-700">MCI Score</p>
+                <p className="text-xl font-semibold text-teal-900">{mciScore}</p>
+                <p className="text-2xs text-teal-600">Material Circularity</p>
+                <p className="text-2xs text-teal-500 italic mt-1">Ellen MacArthur Foundation</p>
+              </div>
+            </div>
+            <div className="relative rounded-md overflow-hidden bg-green-50">
+              <img
+                src={materialsImg}
+                className="absolute inset-0 w-full h-full object-cover opacity-30"
+              />
+              <div className="relative p-3">
+                <p className="text-xs font-medium text-green-700">Materials</p>
+                <p className="text-xl font-semibold text-green-900">{materials.length}</p>
+                <p className="text-2xs text-green-600">items added</p>
+              </div>
+            </div>
 
 
-           <div className="relative rounded-md overflow-hidden bg-purple-50">
-  <img 
-    src={categoryImg}
-    className="absolute inset-0 w-full h-full object-cover opacity-30"
-  />
-  <div className="relative p-3">
-    <p className="text-xs font-medium text-purple-700">Category</p>
-    <p className="text-base font-semibold text-purple-900">
-      {project.product_category || 'Not set'}
-    </p>
-    <p className="text-2xs text-purple-600">product type</p>
-  </div>
-</div>
+            <div className="relative rounded-md overflow-hidden bg-purple-50">
+              <img
+                src={categoryImg}
+                className="absolute inset-0 w-full h-full object-cover opacity-30"
+              />
+              <div className="relative p-3">
+                <p className="text-xs font-medium text-purple-700">Category</p>
+                <p className="text-base font-semibold text-purple-900">
+                  {project.product_category || 'Not set'}
+                </p>
+                <p className="text-2xs text-purple-600">product type</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -571,11 +568,10 @@ export default function ProjectDetailPage() {
             <div className="flex">
               <button
                 onClick={() => setActiveTab('materials')}
-                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'materials'
+                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'materials'
                     ? 'border-blue-600 text-blue-600 bg-blue-50'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
+                  }`}
               >
                 <span className="flex items-center gap-2">
                   <PackageIcon size={16} />
@@ -584,11 +580,10 @@ export default function ProjectDetailPage() {
               </button>
               <button
                 onClick={() => setActiveTab('supply-chain')}
-                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'supply-chain'
+                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'supply-chain'
                     ? 'border-orange-600 text-orange-600 bg-orange-50'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
+                  }`}
               >
                 <span className="flex items-center gap-2">
                   <MapPin size={16} />
@@ -644,16 +639,16 @@ export default function ProjectDetailPage() {
                       <span className="w-5 h-5 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs">2</span>
                       Next Step
                     </div>
-                    
+
                     <Wand2 className="mx-auto text-purple-400 mb-4" size={48} />
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">Build Your Bill of Materials</h3>
                     <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                      {project?.description 
+                      {project?.description
                         ? "Use AI to automatically extract materials from your product description, or add them manually."
                         : "Add your product's materials to calculate its environmental impact. Upload a PDF/Excel BOM or add materials one by one."
                       }
                     </p>
-                    
+
                     <div className="flex flex-col sm:flex-row justify-center gap-3">
                       {project?.description && (
                         <button
@@ -685,7 +680,7 @@ export default function ProjectDetailPage() {
                         <PlusIcon size={18} /> Add Manually
                       </button>
                     </div>
-                    
+
                     {!project?.description && (
                       <p className="text-sm text-gray-500 mt-4 flex items-center gap-2">
                         <Lightbulb className="w-4 h-4" /> Tip: Add a product description to enable AI-powered BOM generation
@@ -698,91 +693,91 @@ export default function ProjectDetailPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b">
-                        <th 
+                        <th
                           className="text-left py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
                           onClick={() => handleSort('material_name')}
                         >
                           <div className="flex items-center">
-                        Material
-                        <SortIcon field="material_name" />
-                      </div>
-                    </th>
-                    <th 
-                      className="text-left py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
-                      onClick={() => handleSort('material_type')}
-                    >
-                      <div className="flex items-center">
-                        Type
-                        <SortIcon field="material_type" />
-                      </div>
-                    </th>
-                    <th 
-                      className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
-                      onClick={() => handleSort('quantity')}
-                    >
-                      <div className="flex items-center justify-end">
-                        Quantity
-                        <SortIcon field="quantity" />
-                      </div>
-                    </th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Recycled %</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Transport (km)</th>
-                    <th 
-                      className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
-                      onClick={() => handleSort('gwp')}
-                    >
-                      <div className="flex items-center justify-end">
-                        GWP (kg CO₂-eq)
-                        <SortIcon field="gwp" />
-                      </div>
-                    </th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedMaterials.map((material) => (
-                    <tr key={material.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4 font-medium">{material.material_name}</td>
-                      <td className="py-3 px-4 text-gray-600">{material.material_type}</td>
-                      <td className="py-3 px-4 text-right">{material.quantity} {material.unit}</td>
-                      <td className="py-3 px-4 text-right">{material.recycled_content}%</td>
-                      <td className="py-3 px-4 text-right">{material.transport_distance}</td>
-                      <td className="py-3 px-4 text-right font-semibold text-blue-600">
-                        {material.gwp.toFixed(2)}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => setEditingMaterial(material)}
-                            className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition"
-                            title="Edit material"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteMaterial(material.id)}
-                            className="text-red-600 hover:text-red-800 text-sm font-medium"
-                            title="Delete material"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-gray-50 font-bold">
-                    <td colSpan={6} className="py-3 px-4 text-right">Total GWP:</td>
-                    <td className="py-3 px-4 text-right text-blue-600 text-lg">
-                      {totalGWP.toFixed(2)} kg CO₂-eq
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
+                            Material
+                            <SortIcon field="material_name" />
+                          </div>
+                        </th>
+                        <th
+                          className="text-left py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                          onClick={() => handleSort('material_type')}
+                        >
+                          <div className="flex items-center">
+                            Type
+                            <SortIcon field="material_type" />
+                          </div>
+                        </th>
+                        <th
+                          className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                          onClick={() => handleSort('quantity')}
+                        >
+                          <div className="flex items-center justify-end">
+                            Quantity
+                            <SortIcon field="quantity" />
+                          </div>
+                        </th>
+                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Recycled %</th>
+                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Transport (km)</th>
+                        <th
+                          className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                          onClick={() => handleSort('gwp')}
+                        >
+                          <div className="flex items-center justify-end">
+                            GWP (kg CO₂-eq)
+                            <SortIcon field="gwp" />
+                          </div>
+                        </th>
+                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedMaterials.map((material) => (
+                        <tr key={material.id} className="border-b hover:bg-gray-50">
+                          <td className="py-3 px-4 font-medium">{material.material_name}</td>
+                          <td className="py-3 px-4 text-gray-600">{material.material_type}</td>
+                          <td className="py-3 px-4 text-right">{material.quantity} {material.unit}</td>
+                          <td className="py-3 px-4 text-right">{material.recycled_content}%</td>
+                          <td className="py-3 px-4 text-right">{material.transport_distance}</td>
+                          <td className="py-3 px-4 text-right font-semibold text-blue-600">
+                            {material.gwp.toFixed(2)}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => setEditingMaterial(material)}
+                                className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition"
+                                title="Edit material"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteMaterial(material.id)}
+                                className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                title="Delete material"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-gray-50 font-bold">
+                        <td colSpan={6} className="py-3 px-4 text-right">Total GWP:</td>
+                        <td className="py-3 px-4 text-right text-blue-600 text-lg">
+                          {totalGWP.toFixed(2)} kg CO₂-eq
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
             </div>
-          )}
-        </div>
           )}
 
           {/* Supply Chain Tab Content */}
@@ -847,7 +842,7 @@ export default function ProjectDetailPage() {
                       <MapPin size={16} />
                       🇮🇳 Supply Chain Map - Make in India
                     </div>
-                    <SupplyChainMap 
+                    <SupplyChainMap
                       entries={supplyChainEntries}
                       destinationName={project?.name || 'Manufacturing Hub'}
                       destinationLat={19.076}
@@ -883,11 +878,10 @@ export default function ProjectDetailPage() {
                               </div>
                             </td>
                             <td className="py-3 px-4 text-center">
-                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                                entry.supplier_tier === 1 ? 'bg-green-100 text-green-700' :
-                                entry.supplier_tier === 2 ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-gray-100 text-gray-700'
-                              }`}>
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${entry.supplier_tier === 1 ? 'bg-green-100 text-green-700' :
+                                  entry.supplier_tier === 2 ? 'bg-yellow-100 text-yellow-700' :
+                                    'bg-gray-100 text-gray-700'
+                                }`}>
                                 Tier {entry.supplier_tier}
                               </span>
                             </td>
@@ -1062,9 +1056,9 @@ export default function ProjectDetailPage() {
               {/* Materials */}
               <div className="mb-6">
                 <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-  <Package className="w-5 h-5 text-gray-800" />
-  Materials Analysis
-</h4>
+                  <Package className="w-5 h-5 text-gray-800" />
+                  Materials Analysis
+                </h4>
 
                 {!aiGapFillResult.materials || aiGapFillResult.materials.length === 0 ? (
                   <div className="bg-gray-50 rounded-lg p-6 text-center">
@@ -1080,11 +1074,10 @@ export default function ProjectDetailPage() {
                             <h5 className="font-medium text-gray-900">{material.material_name || 'Unknown Material'}</h5>
                             <p className="text-sm text-gray-500">{material.material_type || 'Unknown Type'}</p>
                           </div>
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            (material.overall_confidence || 0) >= 0.7 ? 'bg-green-100 text-green-700' :
-                            (material.overall_confidence || 0) >= 0.5 ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-red-100 text-red-700'
-                          }`}>
+                          <span className={`px-2 py-1 text-xs rounded-full ${(material.overall_confidence || 0) >= 0.7 ? 'bg-green-100 text-green-700' :
+                              (material.overall_confidence || 0) >= 0.5 ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-red-100 text-red-700'
+                            }`}>
                             {Math.round((material.overall_confidence || 0) * 100)}% confidence
                           </span>
                         </div>
@@ -1138,9 +1131,9 @@ export default function ProjectDetailPage() {
               {/* AI Models Used */}
               <div>
                 <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-  <Bot className="w-5 h-5 text-gray-800" />
-  AI Models Used
-</h4>
+                  <Bot className="w-5 h-5 text-gray-800" />
+                  AI Models Used
+                </h4>
 
                 {aiGapFillResult.ai_models_used && aiGapFillResult.ai_models_used.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1200,7 +1193,7 @@ export default function ProjectDetailPage() {
             <div className="relative bg-green-600 rounded-2xl shadow-2xl shadow-green-200 p-5 max-w-sm border border-green-400/30 overflow-hidden group">
               {/* Background decoration */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
-              
+
               {/* Close button */}
               <button
                 onClick={() => setShowScrapYardWidget(false)}
@@ -1233,9 +1226,9 @@ export default function ProjectDetailPage() {
                 <div className="mb-4 bg-white/10 backdrop-blur rounded-lg p-3">
                   <p className="text-xs text-green-100 mb-2 font-medium">Current Material Mix</p>
                   <div className="grid grid-cols-2 gap-2 mb-3">
-                    <a 
-                      href={DIGITAL_TWIN_URL} 
-                      target="_blank" 
+                    <a
+                      href={DIGITAL_TWIN_URL}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-center group cursor-pointer hover:bg-white/10 rounded-lg p-2 -m-2 transition"
                     >
@@ -1245,9 +1238,9 @@ export default function ProjectDetailPage() {
                         <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
                       </p>
                     </a>
-                    <a 
-                      href={DIGITAL_TWIN_URL} 
-                      target="_blank" 
+                    <a
+                      href={DIGITAL_TWIN_URL}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-center group cursor-pointer hover:bg-white/10 rounded-lg p-2 -m-2 transition"
                     >
@@ -1260,7 +1253,7 @@ export default function ProjectDetailPage() {
                   </div>
                   {/* Progress bar */}
                   <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-white/80 transition-all duration-500"
                       style={{ width: `${recycledPercentage}%` }}
                     ></div>

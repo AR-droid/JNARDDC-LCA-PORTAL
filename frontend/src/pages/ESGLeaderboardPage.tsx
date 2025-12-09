@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import {
   Trophy,
   Medal,
-  TrendingUp,
   TrendingDown,
   Leaf,
   Recycle,
@@ -17,7 +16,6 @@ import {
   Zap,
   Globe,
   BarChart3,
-  ArrowRight,
   Crown,
   Sparkles,
   Filter,

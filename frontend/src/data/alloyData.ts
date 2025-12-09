@@ -21,6 +21,8 @@ export interface ElementLimits {
   Si_min?: number
   Si_max?: number
   Zn_max?: number
+  Mn_max?: number
+  Mn_min?: number
 }
 
 export interface ElementLoss {
@@ -349,7 +351,7 @@ export function getAlloyBySeries(series: string): AlloyData[] {
 }
 
 export function getAlloyByCode(code: string): AlloyData | undefined {
-  return ALLOY_DATABASE.find(alloy => 
+  return ALLOY_DATABASE.find(alloy =>
     alloy.code.toLowerCase() === code.toLowerCase() ||
     alloy.name.toLowerCase().includes(code.toLowerCase())
   )
@@ -357,14 +359,14 @@ export function getAlloyByCode(code: string): AlloyData | undefined {
 
 export function detectAlloyFromName(materialName: string): AlloyData | undefined {
   const name = materialName.toLowerCase()
-  
+
   // Check for specific alloy codes
   for (const alloy of ALLOY_DATABASE) {
     if (name.includes(alloy.code.toLowerCase())) {
       return alloy
     }
   }
-  
+
   // Check for series patterns
   const seriesPatterns = [
     { pattern: /\b1\d{3}\b/, series: '1xxx' },
@@ -375,19 +377,19 @@ export function detectAlloyFromName(materialName: string): AlloyData | undefined
     { pattern: /\b7\d{3}\b/, series: '7xxx' },
     { pattern: /a3\d{2}/i, series: '3xx' },  // Cast alloys like A356
   ]
-  
+
   for (const { pattern, series } of seriesPatterns) {
     if (pattern.test(name)) {
       const seriesAlloys = getAlloyBySeries(series)
       return seriesAlloys[0]  // Return first alloy of that series as default
     }
   }
-  
+
   // Check for generic aluminium
   if (name.includes('alumin') || name.includes('aluminum')) {
     return getAlloyByCode('6061')  // Default to 6061 for generic aluminium
   }
-  
+
   return undefined
 }
 
@@ -396,45 +398,45 @@ export function getScrapGradeById(id: string): ScrapGrade | undefined {
 }
 
 export function calculateElementBalance(
-  alloy: AlloyData, 
+  alloy: AlloyData,
   recycledPercent: number
 ): { element: string; current: number; required: number; status: 'ok' | 'low' | 'high' | 'watch' }[] {
-  const results = []
-  
+  const results: { element: string; current: number; required: number; status: 'ok' | 'low' | 'high' | 'watch' }[] = []
+
   // Calculate expected element levels after recycling
   const mgLoss = alloy.element_loss.Mg * (recycledPercent / 100)
   const currentMg = (alloy.composition.Mg || 0) * (1 - mgLoss)
   const requiredMg = alloy.limits.Mg_min || 0
-  
+
   results.push({
     element: 'Mg',
     current: currentMg,
     required: requiredMg,
     status: currentMg < requiredMg ? 'low' : 'ok'
   })
-  
+
   // Iron typically accumulates
   const currentFe = (alloy.composition.Fe || 0) * (1 + 0.05 * (recycledPercent / 100))
   const maxFe = alloy.limits.Fe_max || 0.7
-  
+
   results.push({
     element: 'Fe',
     current: currentFe,
     required: maxFe,
     status: currentFe > maxFe * 0.9 ? 'watch' : 'ok'
   })
-  
+
   // Copper check
   const currentCu = alloy.composition.Cu || 0
   const maxCu = alloy.limits.Cu_max || 0.4
-  
+
   results.push({
     element: 'Cu',
     current: currentCu,
     required: maxCu,
     status: currentCu > maxCu * 0.8 ? 'watch' : 'ok'
   })
-  
+
   return results
 }
 

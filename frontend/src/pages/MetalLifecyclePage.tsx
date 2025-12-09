@@ -212,7 +212,8 @@ const getLifecycleStages = (metalType: MetalType): LifecycleStage[] => {
         wasteStreams: LEAD_LIFECYCLE_DATA.stages.casting.wasteStreams,
         energyIntensity: 'Medium',
         gwpContribution: LEAD_LIFECYCLE_DATA.stages.casting.gwpContribution,
-        wastageContribution: 10
+        wastageContribution: 10,
+        isScrapEntry: true // +SCRAP from battery plates
       },
       {
         id: 'fabrication',
@@ -228,7 +229,8 @@ const getLifecycleStages = (metalType: MetalType): LifecycleStage[] => {
         wasteStreams: LEAD_LIFECYCLE_DATA.stages.fabrication.wasteStreams,
         energyIntensity: 'Medium',
         gwpContribution: LEAD_LIFECYCLE_DATA.stages.fabrication.gwpContribution,
-        wastageContribution: 8
+        wastageContribution: 8,
+        isScrapEntry: true // +SCRAP from production scrap
       },
       {
         id: 'recycle',
@@ -244,7 +246,9 @@ const getLifecycleStages = (metalType: MetalType): LifecycleStage[] => {
         wasteStreams: LEAD_LIFECYCLE_DATA.stages.recycle.wasteStreams,
         energyIntensity: 'Low',
         gwpContribution: LEAD_LIFECYCLE_DATA.stages.recycle.gwpContribution,
-        wastageContribution: 14
+        wastageContribution: 14,
+        isScrapEntry: true, // +SCRAP from batteries/e-waste
+        isCircularHighlight: true // 99% battery recycling rate
       }
     ]
   }
@@ -385,7 +389,7 @@ const getLifecycleStages = (metalType: MetalType): LifecycleStage[] => {
         keyProcesses: eafRoute.stages.mining.processes,
         wasteStreams: eafRoute.stages.mining.wasteStreams,
         energyIntensity: 'Low',
-        gwpContribution: eafRoute.stages.mining.gwpContribution,
+        gwpContribution: 8,
         wastageContribution: 8
       },
       {
@@ -401,7 +405,7 @@ const getLifecycleStages = (metalType: MetalType): LifecycleStage[] => {
         keyProcesses: eafRoute.stages.beneficiation.processes,
         wasteStreams: eafRoute.stages.beneficiation.wasteStreams,
         energyIntensity: 'Low',
-        gwpContribution: eafRoute.stages.beneficiation.gwpContribution,
+        gwpContribution: 5,
         wastageContribution: 5
       },
       {
@@ -417,8 +421,9 @@ const getLifecycleStages = (metalType: MetalType): LifecycleStage[] => {
         keyProcesses: eafRoute.stages.refining.processes,
         wasteStreams: eafRoute.stages.refining.wasteStreams,
         energyIntensity: 'High',
-        gwpContribution: eafRoute.stages.refining.gwpContribution,
+        gwpContribution: 20,
         wastageContribution: 20,
+        isScrapEntry: true, // Scrap enters here from recycling
         isCircularHighlight: true // Highlight as circular economy champion
       },
       {
@@ -434,7 +439,7 @@ const getLifecycleStages = (metalType: MetalType): LifecycleStage[] => {
         keyProcesses: eafRoute.stages.smelting.processes,
         wasteStreams: eafRoute.stages.smelting.wasteStreams,
         energyIntensity: 'Medium',
-        gwpContribution: eafRoute.stages.smelting.gwpContribution,
+        gwpContribution: 10,
         wastageContribution: 10
       },
       {
@@ -450,7 +455,7 @@ const getLifecycleStages = (metalType: MetalType): LifecycleStage[] => {
         keyProcesses: eafRoute.stages.casting.processes,
         wasteStreams: eafRoute.stages.casting.wasteStreams,
         energyIntensity: 'Medium',
-        gwpContribution: eafRoute.stages.casting.gwpContribution,
+        gwpContribution: 12,
         wastageContribution: 12
       },
       {
@@ -466,8 +471,9 @@ const getLifecycleStages = (metalType: MetalType): LifecycleStage[] => {
         keyProcesses: eafRoute.stages.fabrication.processes,
         wasteStreams: eafRoute.stages.fabrication.wasteStreams,
         energyIntensity: 'Medium',
-        gwpContribution: eafRoute.stages.fabrication.gwpContribution,
-        wastageContribution: 15
+        gwpContribution: 15,
+        wastageContribution: 15,
+        isScrapEntry: true // +SCRAP from fabrication process
       },
       {
         id: 'recycle',
@@ -482,8 +488,10 @@ const getLifecycleStages = (metalType: MetalType): LifecycleStage[] => {
         keyProcesses: eafRoute.stages.recycle.processes,
         wasteStreams: eafRoute.stages.recycle.wasteStreams,
         energyIntensity: 'Low',
-        gwpContribution: eafRoute.stages.recycle.gwpContribution,
-        wastageContribution: 30 // Closes the loop!
+        gwpContribution: 30,
+        wastageContribution: 30,
+        isScrapEntry: true, // +SCRAP from end-of-life
+        isCircularHighlight: true // Closes the loop!
       }
     ]
   }
@@ -500,11 +508,14 @@ const getLifecycleStages = (metalType: MetalType): LifecycleStage[] => {
         bgColor: 'bg-amber-50',
         borderColor: 'border-amber-300',
         textColor: 'text-amber-700',
-        description: ZINC_LIFECYCLE_DATA.stages.mining.description,
-        keyProcesses: ZINC_LIFECYCLE_DATA.stages.mining.processes,
-        wasteStreams: ZINC_LIFECYCLE_DATA.stages.mining.wasteStreams,
+        description: 'Extraction of zinc sulfide ore (sphalerite) from open-pit or underground mines',
+        keyProcesses: ['Drilling & blasting', 'Ore extraction', 'Crushing', 'Stockpiling'],
+        wasteStreams: [
+          { name: 'Overburden', quantity: '40,000 tonnes/year', composition: 'Soil, rock' },
+          { name: 'Waste Rock', quantity: '30,000 tonnes/year', composition: 'Low-grade ore' }
+        ],
         energyIntensity: 'Medium',
-        gwpContribution: ZINC_LIFECYCLE_DATA.stages.mining.gwpContribution,
+        gwpContribution: 8,
         wastageContribution: 12
       },
       {
@@ -516,11 +527,14 @@ const getLifecycleStages = (metalType: MetalType): LifecycleStage[] => {
         bgColor: 'bg-purple-50',
         borderColor: 'border-purple-300',
         textColor: 'text-purple-700',
-        description: ZINC_LIFECYCLE_DATA.stages.beneficiation.description,
-        keyProcesses: ZINC_LIFECYCLE_DATA.stages.beneficiation.processes,
-        wasteStreams: ZINC_LIFECYCLE_DATA.stages.beneficiation.wasteStreams,
+        description: 'Flotation process to concentrate zinc sulfide ore to 50-60% Zn',
+        keyProcesses: ['Grinding', 'Froth flotation', 'Thickening', 'Filtering'],
+        wasteStreams: [
+          { name: 'Tailings', quantity: '25,000 tonnes/year', composition: 'Silica, pyrite' },
+          { name: 'Process Water', quantity: '50,000 kL/year', composition: 'Xanthates, frothers' }
+        ],
         energyIntensity: 'Medium',
-        gwpContribution: ZINC_LIFECYCLE_DATA.stages.beneficiation.gwpContribution,
+        gwpContribution: 7,
         wastageContribution: 15
       },
       {
@@ -532,77 +546,96 @@ const getLifecycleStages = (metalType: MetalType): LifecycleStage[] => {
         bgColor: 'bg-orange-50',
         borderColor: 'border-orange-300',
         textColor: 'text-orange-700',
-        description: ZINC_LIFECYCLE_DATA.stages.refining.description + ' (SO₂ captured for H₂SO₄)',
-        keyProcesses: ZINC_LIFECYCLE_DATA.stages.refining.processes,
-        wasteStreams: ZINC_LIFECYCLE_DATA.stages.refining.wasteStreams,
+        description: 'ZnS → ZnO conversion at 900°C. SO₂ captured for H₂SO₄ production (co-product credit)',
+        keyProcesses: ['Fluid bed roasting', 'SO₂ capture', 'Calcine cooling', 'Acid plant'],
+        wasteStreams: [
+          { name: 'SO₂ Gas', quantity: '→ H₂SO₄', composition: 'Captured for acid' },
+          { name: 'Roaster Dust', quantity: '3,000 tonnes/year', composition: 'ZnO, Pb, Cd' }
+        ],
         energyIntensity: 'High',
-        gwpContribution: ZINC_LIFECYCLE_DATA.stages.refining.gwpContribution,
+        gwpContribution: 30,
         wastageContribution: 18,
         hasSO2Emission: true // Acidification indicator
       },
       {
         id: 'smelting',
-        name: 'Leaching',
-        emoji: '⚗️',
-        icon: <FlaskConical className="w-6 h-6" />,
+        name: 'Leaching + Electrowinning',
+        emoji: '⚡',
+        icon: <Factory className="w-6 h-6" />,
         color: 'teal',
         bgColor: 'bg-teal-50',
         borderColor: 'border-teal-300',
         textColor: 'text-teal-700',
-        description: ZINC_LIFECYCLE_DATA.stages.smelting.description,
-        keyProcesses: ZINC_LIFECYCLE_DATA.stages.smelting.processes,
-        wasteStreams: ZINC_LIFECYCLE_DATA.stages.smelting.wasteStreams,
-        energyIntensity: 'High',
-        gwpContribution: ZINC_LIFECYCLE_DATA.stages.smelting.gwpContribution,
-        wastageContribution: 15
+        description: 'Acid leaching of ZnO, purification, then electrowinning to produce 99.99% cathode zinc',
+        keyProcesses: ['H₂SO₄ leaching', 'Fe/Cu/Cd removal', 'Electrowinning (3,300 kWh/t)', 'Cathode stripping'],
+        wasteStreams: [
+          { name: 'Jarosite/Goethite', quantity: '15,000 tonnes/year', composition: 'Iron residue' },
+          { name: 'Cd Cake', quantity: '200 tonnes/year', composition: 'Cadmium (hazardous)' }
+        ],
+        energyIntensity: 'Very High',
+        gwpContribution: 28,
+        wastageContribution: 15,
+        isScrapEntry: true // Scrap can enter here
       },
       {
         id: 'casting',
-        name: 'Electrolysis',
-        emoji: '⚡',
+        name: 'Casting',
+        emoji: '🏗️',
         icon: <Building2 className="w-6 h-6" />,
         color: 'indigo',
         bgColor: 'bg-indigo-50',
         borderColor: 'border-indigo-300',
         textColor: 'text-indigo-700',
-        description: ZINC_LIFECYCLE_DATA.stages.casting.description,
-        keyProcesses: ZINC_LIFECYCLE_DATA.stages.casting.processes,
-        wasteStreams: ZINC_LIFECYCLE_DATA.stages.casting.wasteStreams,
-        energyIntensity: 'Very High',
-        gwpContribution: ZINC_LIFECYCLE_DATA.stages.casting.gwpContribution,
-        wastageContribution: 15
+        description: 'Melting cathode zinc and casting into ingots, slabs, or galvanizing baths',
+        keyProcesses: ['Induction melting', 'Alloying (ZAMAK)', 'Continuous casting', 'Quality testing'],
+        wasteStreams: [
+          { name: 'Dross', quantity: '2,000 tonnes/year', composition: 'ZnO, Al oxides' },
+          { name: 'Skimmings', quantity: '1,500 tonnes/year', composition: 'Metal-rich oxide' }
+        ],
+        energyIntensity: 'Medium',
+        gwpContribution: 10,
+        wastageContribution: 10,
+        isScrapEntry: true // +SCRAP
       },
       {
         id: 'fabrication',
-        name: 'Melting & Casting',
+        name: 'Fabrication',
         emoji: '🔧',
         icon: <Wrench className="w-6 h-6" />,
         color: 'blue',
         bgColor: 'bg-blue-50',
         borderColor: 'border-blue-300',
         textColor: 'text-blue-700',
-        description: ZINC_LIFECYCLE_DATA.stages.fabrication.description,
-        keyProcesses: ZINC_LIFECYCLE_DATA.stages.fabrication.processes,
-        wasteStreams: ZINC_LIFECYCLE_DATA.stages.fabrication.wasteStreams,
+        description: 'Die casting, galvanizing, or rolling into finished products',
+        keyProcesses: ['Hot-dip galvanizing', 'Die casting (ZAMAK)', 'Rolling', 'Anodes/Coatings'],
+        wasteStreams: [
+          { name: 'Zinc ash', quantity: '1,000 tonnes/year', composition: 'ZnO, chlorides' },
+          { name: 'Scrap', quantity: '800 tonnes/year', composition: 'Runners, rejects' }
+        ],
         energyIntensity: 'Medium',
-        gwpContribution: ZINC_LIFECYCLE_DATA.stages.fabrication.gwpContribution,
-        wastageContribution: 10
+        gwpContribution: 10,
+        wastageContribution: 10,
+        isScrapEntry: true // +SCRAP
       },
       {
         id: 'recycle',
-        name: 'Waelz Kiln Recovery',
+        name: 'Recycle',
         emoji: '♻️',
         icon: <Recycle className="w-6 h-6" />,
         color: 'green',
         bgColor: 'bg-green-50',
         borderColor: 'border-green-300',
         textColor: 'text-green-700',
-        description: ZINC_LIFECYCLE_DATA.stages.recycle.description,
-        keyProcesses: ZINC_LIFECYCLE_DATA.stages.recycle.processes,
-        wasteStreams: ZINC_LIFECYCLE_DATA.stages.recycle.wasteStreams,
+        description: 'Waelz kiln recovery from EAF dust + galvanized steel scrap recycling → returns to Leaching',
+        keyProcesses: ['EAF dust collection', 'Waelz kiln (1200°C)', 'Galv steel shredding', 'Scrap melting'],
+        wasteStreams: [
+          { name: 'Waelz slag', quantity: '8,000 tonnes/year', composition: 'Fe, SiO₂' },
+          { name: 'Flue dust', quantity: '500 tonnes/year', composition: 'Heavy metals' }
+        ],
         energyIntensity: 'Medium',
-        gwpContribution: ZINC_LIFECYCLE_DATA.stages.recycle.gwpContribution,
-        wastageContribution: 15
+        gwpContribution: 7,
+        wastageContribution: 15,
+        isCircularHighlight: true // Scrap returns to Leaching + EW
       }
     ]
   }
@@ -1112,8 +1145,14 @@ export default function MetalLifecyclePage() {
                 </h2>
                 <p className="text-green-100">
                   {metalType === 'lead'
-                    ? <>Lead achieves <span className="font-bold">~99% battery recycling rate</span> and can be recycled <span className="font-bold">indefinitely</span> without quality loss. Secondary smelting uses <span className="font-bold">35-40% less energy</span> than primary production.</>
-                    : <>Recycled metals bypass Mining → Smelting stages, saving <span className="font-bold">95% energy</span> and reducing CO₂ by <span className="font-bold">~17 kg/kg Al</span></>
+                    ? <><span className="font-bold">~99% battery recycling rate</span> – recycled indefinitely without quality loss. Secondary smelting uses <span className="font-bold">35-40% less energy</span> than primary.</>
+                    : metalType === 'copper'
+                      ? <>Copper is <span className="font-bold">100% recyclable</span> – recycled Cu bypasses Mining → Converting stages, saving <span className="font-bold">85% energy</span> and reducing CO₂ by <span className="font-bold">~2.8 kg/kg Cu</span></>
+                      : metalType === 'zinc'
+                        ? <>Recycled zinc from galvanized steel recovery, saving <span className="font-bold">75% energy</span> and reducing CO₂ by <span className="font-bold">~2.5 kg/kg Zn</span>. Waelz kiln process recovers Zn from EAF dust.</>
+                        : metalType === 'steel'
+                          ? <>EAF steel from <span className="font-bold">100% scrap</span> uses <span className="font-bold">75% less energy</span> than BF-BOF route – reducing CO₂ by <span className="font-bold">~1.5 kg/kg steel</span></>
+                          : <>Recycled metals bypass Mining → Smelting stages, saving <span className="font-bold">95% energy</span> and reducing CO₂ by <span className="font-bold">~17 kg/kg Al</span></>
                   }
                 </p>
               </div>
@@ -1183,8 +1222,8 @@ export default function MetalLifecyclePage() {
                       </div>
                     </div>
 
-                    {/* Smelting receives scrap indicator */}
-                    {stage.id === 'smelting' && (
+                    {/* +SCRAP indicator for scrap entry stages */}
+                    {stage.isScrapEntry && (
                       <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-20">
                         <div className="px-1 py-0.5 bg-green-500 text-white text-[8px] font-bold rounded whitespace-nowrap">
                           +SCRAP
@@ -1205,7 +1244,7 @@ export default function MetalLifecyclePage() {
               ))}
             </div>
 
-            {/* Circular Loop - U-Shape Connection: Recycle → Down → Left → Up → Smelting */}
+            {/* Circular Loop - U-Shape Connection: Recycle → Down → Left → Up → Smelting/Leaching */}
             <div className="relative mt-2 mx-auto w-full h-24 sm:h-28">
               {/* SVG Gradient Path */}
               <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible" preserveAspectRatio="none" viewBox="0 0 1000 100">
@@ -1215,21 +1254,135 @@ export default function MetalLifecyclePage() {
                     <stop offset="50%" stopColor="#34d399" /> {/* emerald-400 */}
                     <stop offset="100%" stopColor="#f97316" /> {/* orange-500 */}
                   </linearGradient>
+                  <linearGradient id="castingGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#6366f1" /> {/* indigo-500 */}
+                    <stop offset="100%" stopColor="#34d399" /> {/* emerald-400 */}
+                  </linearGradient>
+                  <linearGradient id="fabGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#3b82f6" /> {/* blue-500 */}
+                    <stop offset="100%" stopColor="#34d399" /> {/* emerald-400 */}
+                  </linearGradient>
                 </defs>
 
-                {/* 
-                  Path logic (based on 1000 width):
-                  Recycle (Index 6) Center ~ 92.8% -> 928
-                  Smelting (Index 3) Center ~ 50.0% -> 500 
-                */}
+                {/* Main loop from Recycle */}
                 <path
-                  d="M 928 0 V 60 Q 928 90 898 90 H 530 Q 500 90 500 60 V 15"
+                  d={metalType === 'zinc'
+                    ? "M 928 0 V 60 Q 928 90 898 90 H 380 Q 350 90 350 60 V 15" // Goes to Leaching+EW for zinc
+                    : "M 928 0 V 60 Q 928 90 898 90 H 530 Q 500 90 500 60 V 15" // Goes to Smelting for others
+                  }
                   fill="none"
                   stroke="url(#loopGradient)"
                   strokeWidth="4"
                   strokeLinecap="round"
                   className="drop-shadow-sm"
                 />
+
+                {/* Additional arrows for zinc: Casting and Fabrication scrap */}
+                {metalType === 'zinc' && (
+                  <>
+                    {/* Arrow from Casting (64.3%) down to loop */}
+                    <path
+                      d="M 643 0 V 40 Q 643 60 620 60 H 400 Q 380 60 380 45"
+                      fill="none"
+                      stroke="url(#castingGradient)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray="6 3"
+                      opacity="0.8"
+                    />
+                    {/* Arrow from Fabrication (78.6%) down to loop */}
+                    <path
+                      d="M 786 0 V 50 Q 786 70 760 70 H 420 Q 400 70 400 55"
+                      fill="none"
+                      stroke="url(#fabGradient)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray="6 3"
+                      opacity="0.8"
+                    />
+                  </>
+                )}
+
+                {/* Lead: Clean U-Shape Closed Loop with 99% Badge */}
+                {metalType === 'lead' && (
+                  <>
+                    {/* Main wide U-path from Recycle → Smelting covering all scrap stages */}
+                    <path
+                      d="M 928 5 V 70 Q 928 95 890 95 H 540 Q 500 95 500 65 V 15"
+                      fill="none"
+                      stroke="#22c55e"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                      className="drop-shadow-sm"
+                    />
+                    {/* Secondary path from Refining joining the loop */}
+                    <path
+                      d="M 643 5 V 40 Q 643 60 620 60 H 580 Q 560 60 560 75"
+                      fill="none"
+                      stroke="#6366f1"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeDasharray="5 3"
+                    />
+                    {/* Tertiary path from Fabrication joining the loop */}
+                    <path
+                      d="M 786 5 V 50 Q 786 70 760 70 H 700 Q 680 70 680 85"
+                      fill="none"
+                      stroke="#3b82f6"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeDasharray="5 3"
+                    />
+                    {/* 99% Badge in center of the loop */}
+                    <rect x="680" y="78" rx="10" ry="10" width="60" height="24" fill="#dcfce7" stroke="#22c55e" strokeWidth="1.5" />
+                    <text x="710" y="94" textAnchor="middle" fill="#16a34a" fontSize="12" fontWeight="bold">99%</text>
+                  </>
+                )}
+
+                {/* Steel: EAF Circular Economy Loop - Multiple scrap sources */}
+                {metalType === 'steel' && (
+                  <>
+                    {/* Arrow 1: Recycle → EAF (main green loop) */}
+                    <path
+                      d="M 928 5 V 60 Q 928 85 895 85 H 390 Q 357 85 357 55 V 15"
+                      fill="none"
+                      stroke="#22c55e"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                      className="drop-shadow-sm"
+                    />
+                    {/* Arrow 2: Fabrication → EAF (blue dashed) */}
+                    <path
+                      d="M 786 5 V 35 Q 786 50 760 50 H 400 Q 375 50 375 35 V 15"
+                      fill="none"
+                      stroke="#3b82f6"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeDasharray="5 3"
+                    />
+                    {/* Arrow 3: Casting → EAF (slate dashed) */}
+                    <path
+                      d="M 643 5 V 25 Q 643 40 615 40 H 410 Q 385 40 385 25 V 15"
+                      fill="none"
+                      stroke="#64748b"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeDasharray="4 3"
+                      opacity="0.7"
+                    />
+                    {/* Arrow 4: Scrap Collection → EAF (direct path) */}
+                    <path
+                      d="M 72 5 V 30 Q 72 45 100 45 H 320 Q 350 45 350 30 V 15"
+                      fill="none"
+                      stroke="#eab308"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                    />
+                    {/* EAF ⚡ central badge */}
+                    <rect x="320" y="60" rx="12" ry="12" width="70" height="22" fill="#fef9c3" stroke="#eab308" strokeWidth="1.5" />
+                    <text x="355" y="75" textAnchor="middle" fill="#a16207" fontSize="10" fontWeight="bold">⚡ EAF</text>
+                  </>
+                )}
               </svg>
 
               {/* Labels & Icons positioned absolutely to avoid distortion */}
@@ -1240,20 +1393,20 @@ export default function MetalLifecyclePage() {
                 <ArrowDown className="w-4 h-4 text-green-500 animate-bounce" style={{ animationDuration: '2s' }} />
               </div>
 
-              {/* To Smelting Label */}
-              <div className="absolute bottom-[25px] left-[50%] -translate-x-1/2 flex flex-col items-center gap-0.5" style={{ bottom: 'calc(100% - 25px)' }}>
-                {/* Positioned at the tip of the arrow (approx y=15 in SVG which is 15%) */}
+              {/* To Smelting/Leaching Label */}
+              <div className="absolute bottom-[25px] left-[50%] -translate-x-1/2 flex flex-col items-center gap-0.5" style={{ bottom: 'calc(100% - 25px)', left: metalType === 'zinc' ? '35%' : '50%' }}>
+                {/* Positioned at the tip of the arrow */}
                 <div className="absolute top-[8px] flex flex-col items-center">
                   <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[10px] border-b-orange-500"></div>
                 </div>
-                <span className="absolute top-[20px] text-[10px] font-bold text-orange-600 bg-white/80 px-1 rounded whitespace-nowrap">↑ to Smelting</span>
+                <span className="absolute top-[20px] text-[10px] font-bold text-orange-600 bg-white/80 px-1 rounded whitespace-nowrap">↑ to {metalType === 'zinc' ? 'Leaching' : 'Smelting'}</span>
               </div>
 
               {/* Center Banner */}
               <div className="absolute bottom-1 sm:bottom-2 left-1/2 -translate-x-1/2 z-10">
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-800 text-xs font-bold rounded-full border border-green-200 shadow-sm whitespace-nowrap">
                   <RotateCcw className="w-3 h-3" />
-                  <span>CIRCULAR LOOP: Scrap returns to Smelting</span>
+                  <span>CIRCULAR LOOP: Scrap returns to {metalType === 'zinc' ? 'Leaching + EW' : metalType === 'steel' ? 'Electric Arc Furnace' : 'Smelting'}</span>
                 </div>
               </div>
             </div>

@@ -19,7 +19,7 @@ export default function CBAMExportPage() {
   const [qrData, setQrData] = useState<string | null>(null)
   const [qrUrl, setQrUrl] = useState<string | null>(null)
   const [isQrLoading, setIsQrLoading] = useState(false)
-  
+
   const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
   const hasVerificationAccess = user?.tier === 'enterprise' || user?.features?.verification
 
@@ -31,13 +31,13 @@ export default function CBAMExportPage() {
 
   const loadReport = async () => {
     if (!id) return
-    
+
     try {
       setIsLoading(true)
       setError(null)
-      
+
       const reportData = await getCBAMReport(id)
-      
+
       setReport(reportData)
     } catch (err: any) {
       console.error('Error loading CBAM report:', err)
@@ -49,7 +49,7 @@ export default function CBAMExportPage() {
 
   const handleDownloadExcel = async () => {
     if (!id) return
-    
+
     try {
       setIsDownloading(true)
       setDownloadingType('excel')
@@ -65,7 +65,7 @@ export default function CBAMExportPage() {
 
   const handleDownloadBRSR = async () => {
     if (!id) return
-    
+
     try {
       setIsDownloading(true)
       setDownloadingType('brsr')
@@ -81,7 +81,7 @@ export default function CBAMExportPage() {
 
   const handleDownloadPdf = async () => {
     if (!id) return
-    
+
     try {
       setIsDownloading(true)
       setDownloadingType('pdf')
@@ -273,7 +273,7 @@ export default function CBAMExportPage() {
             <div>
               <h3 className="font-semibold text-green-900">SEBI BRSR Report Available</h3>
               <p className="text-sm text-green-700">
-                Download BRSR Principle 6 (Environment) report for SEBI compliance. 
+                Download BRSR Principle 6 (Environment) report for SEBI compliance.
                 Includes GHG emissions, circularity metrics, and waste management data.
               </p>
             </div>
@@ -338,6 +338,102 @@ export default function CBAMExportPage() {
           </div>
         </div>
 
+        {/* Lifecycle Process Analysis Section */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+            🔄 Lifecycle Process Analysis
+          </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Environmental impact breakdown across metal processing lifecycle stages
+          </p>
+
+          {(() => {
+            // Calculate recycled content from goods declaration
+            const avgRecycledContent = report.goods_declaration.length > 0
+              ? report.goods_declaration.reduce((sum, g) => sum + g.recycled_content_percent, 0) / report.goods_declaration.length
+              : 0;
+
+            const virginRatio = (100 - avgRecycledContent) / 100;
+            const recycledRatio = avgRecycledContent / 100;
+
+            // Lifecycle stages with base values
+            const stages = [
+              { id: 'mining', name: 'Mining', emoji: '⛏️', baseWastage: 35, baseEmissions: 8, color: 'amber' },
+              { id: 'beneficiation', name: 'Beneficiation', emoji: '🔬', baseWastage: 12, baseEmissions: 7, color: 'purple' },
+              { id: 'refining', name: 'Refining', emoji: '⚗️', baseWastage: 10, baseEmissions: 18, color: 'blue' },
+              { id: 'smelting', name: 'Smelting', emoji: '🔥', baseWastage: 12, baseEmissions: 45, color: 'orange' },
+              { id: 'casting', name: 'Casting', emoji: '🏗️', baseWastage: 9, baseEmissions: 8, color: 'slate' },
+              { id: 'fabrication', name: 'Fabrication', emoji: '🔧', baseWastage: 8, baseEmissions: 7, color: 'teal' },
+              { id: 'recycle', name: 'End-of-Life / Recycle', emoji: '♻️', baseWastage: 14, baseEmissions: 7, color: 'green' },
+            ];
+
+            // Calculate dynamic values based on recycled content
+            const processedStages = stages.map(stage => {
+              let wastage = stage.baseWastage;
+              let emissions = stage.baseEmissions;
+              let recycledUsed = 0; // Percentage of recycled content used at this stage
+
+              if (stage.id === 'mining' || stage.id === 'beneficiation' || stage.id === 'refining') {
+                wastage = Math.round(stage.baseWastage * virginRatio);
+                emissions = Math.round(stage.baseEmissions * virginRatio);
+                recycledUsed = 0; // These stages use virgin material only
+              } else if (stage.id === 'smelting') {
+                wastage = Math.round(stage.baseWastage * (0.3 + 0.7 * virginRatio) + 5 * recycledRatio);
+                emissions = Math.round(stage.baseEmissions * (0.4 + 0.6 * virginRatio));
+                recycledUsed = Math.round(avgRecycledContent); // Smelting receives recycled input
+              } else if (stage.id === 'casting' || stage.id === 'fabrication') {
+                recycledUsed = Math.round(avgRecycledContent); // Output contains recycled content
+              } else if (stage.id === 'recycle') {
+                wastage = Math.round(stage.baseWastage * (0.5 + 1.5 * recycledRatio));
+                emissions = Math.round(stage.baseEmissions * (0.5 + recycledRatio));
+                recycledUsed = 100; // This stage outputs 100% recyclable material
+              }
+
+              return { ...stage, wastage: Math.max(wastage, 1), emissions: Math.max(emissions, 1), recycledUsed };
+            });
+
+            return (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-gray-50">
+                        <th className="text-left py-3 px-4">Stage</th>
+                        <th className="text-right py-3 px-4">Carbon Emissions %</th>
+                        <th className="text-right py-3 px-4">Wastage %</th>
+                        <th className="text-right py-3 px-4">Recycled Content %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {processedStages.map((stage, index) => (
+                        <tr key={index} className="border-b hover:bg-gray-50">
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl">{stage.emoji}</span>
+                              <span className="font-medium">{stage.name}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-right font-semibold">{stage.emissions}%</td>
+                          <td className="py-3 px-4 text-right font-semibold">{stage.wastage}%</td>
+                          <td className="py-3 px-4 text-right font-semibold">{stage.recycledUsed}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mt-4 flex items-center gap-4 text-xs text-gray-500 border-t pt-4">
+                  <span className="flex items-center gap-1">
+                    ♻️ <strong>{avgRecycledContent.toFixed(0)}%</strong> avg recycled content applied
+                  </span>
+                  <span>|</span>
+                  <span>Wastage and emissions dynamically adjusted based on material sourcing</span>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+
         {/* Declarant Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div className="bg-white rounded-lg shadow p-6">
@@ -371,11 +467,10 @@ export default function CBAMExportPage() {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center">
                 <span className="text-gray-500">Accredited Verifier Required</span>
-                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                  report.verification_requirements.accredited_verifier_required 
-                    ? 'bg-red-100 text-red-700' 
-                    : 'bg-green-100 text-green-700'
-                }`}>
+                <span className={`px-2 py-1 rounded text-xs font-medium ${report.verification_requirements.accredited_verifier_required
+                  ? 'bg-red-100 text-red-700'
+                  : 'bg-green-100 text-green-700'
+                  }`}>
                   {report.verification_requirements.accredited_verifier_required ? 'Yes' : 'No'}
                 </span>
               </div>

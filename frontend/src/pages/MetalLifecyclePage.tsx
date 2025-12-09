@@ -113,6 +113,7 @@ interface LifecycleStage {
   wasteStreams: WasteStream[]
   energyIntensity: 'Very High' | 'High' | 'Medium' | 'Low'
   gwpContribution: number // percentage
+  wastageContribution: number // percentage of total wastage
 }
 
 // Lifecycle stages data
@@ -140,7 +141,8 @@ const LIFECYCLE_STAGES: LifecycleStage[] = [
       { name: 'Mine Water', quantity: '100,000 kL/year', composition: 'Dissolved minerals, suspended solids' }
     ],
     energyIntensity: 'Medium',
-    gwpContribution: 8
+    gwpContribution: 8,
+    wastageContribution: 35
   },
   {
     id: 'beneficiation',
@@ -164,7 +166,8 @@ const LIFECYCLE_STAGES: LifecycleStage[] = [
       { name: 'Spent Reagents', quantity: '2,000 kL/year', composition: 'Collectors, frothers, modifiers' }
     ],
     energyIntensity: 'Medium',
-    gwpContribution: 7
+    gwpContribution: 7,
+    wastageContribution: 12
   },
   {
     id: 'refining',
@@ -189,7 +192,8 @@ const LIFECYCLE_STAGES: LifecycleStage[] = [
       { name: 'Anode Slime', quantity: '800 tonnes/year', composition: 'Precious metals, selenium' }
     ],
     energyIntensity: 'High',
-    gwpContribution: 18
+    gwpContribution: 18,
+    wastageContribution: 10
   },
   {
     id: 'smelting',
@@ -214,7 +218,8 @@ const LIFECYCLE_STAGES: LifecycleStage[] = [
       { name: 'Skimmings', quantity: '2,800 tonnes/year', composition: 'Metal-rich oxide layer' }
     ],
     energyIntensity: 'Very High',
-    gwpContribution: 45
+    gwpContribution: 45,
+    wastageContribution: 12
   },
   {
     id: 'casting',
@@ -239,7 +244,8 @@ const LIFECYCLE_STAGES: LifecycleStage[] = [
       { name: 'Shot Blast Dust', quantity: '800 tonnes/year', composition: 'Metal fines, abrasive particles' }
     ],
     energyIntensity: 'Medium',
-    gwpContribution: 8
+    gwpContribution: 8,
+    wastageContribution: 9
   },
   {
     id: 'fabrication',
@@ -264,7 +270,8 @@ const LIFECYCLE_STAGES: LifecycleStage[] = [
       { name: 'Grinding Swarf', quantity: '650 tonnes/year', composition: 'Fine metal particles, abrasive' }
     ],
     energyIntensity: 'Low',
-    gwpContribution: 7
+    gwpContribution: 7,
+    wastageContribution: 8
   },
   {
     id: 'recycle',
@@ -289,7 +296,8 @@ const LIFECYCLE_STAGES: LifecycleStage[] = [
       { name: 'Fluff', quantity: '2,400 tonnes/year', composition: 'Textiles, foam, rubber' }
     ],
     energyIntensity: 'Low',
-    gwpContribution: 7
+    gwpContribution: 7,
+    wastageContribution: 14
   }
 ]
 
@@ -350,11 +358,38 @@ export default function MetalLifecyclePage() {
     fetchAnalytics()
   }, [id, token])
 
-  // Create dynamic stages with fetched GWP values
-  const dynamicStages = LIFECYCLE_STAGES.map(stage => ({
-    ...stage,
-    gwpContribution: gwpContributions[stage.id] || stage.gwpContribution
-  }))
+  // Create dynamic stages with fetched GWP values and dynamic wastage based on recycled content
+  const dynamicStages = LIFECYCLE_STAGES.map(stage => {
+    const virginRatio = (100 - recycledContent) / 100; // 0-1, where 0 = 100% recycled
+    const recycledRatio = recycledContent / 100; // 0-1, where 1 = 100% recycled
+
+    // Calculate dynamic wastage based on recycled content
+    let dynamicWastage = stage.wastageContribution;
+
+    if (stage.id === 'mining') {
+      // Mining wastage decreases significantly with recycled content
+      dynamicWastage = Math.round(stage.wastageContribution * virginRatio);
+    } else if (stage.id === 'beneficiation') {
+      // Beneficiation also decreases with recycled content
+      dynamicWastage = Math.round(stage.wastageContribution * virginRatio);
+    } else if (stage.id === 'refining') {
+      // Refining decreases with recycled content
+      dynamicWastage = Math.round(stage.wastageContribution * virginRatio);
+    } else if (stage.id === 'smelting') {
+      // Smelting still generates waste but increases slightly with recycled (remelting)
+      dynamicWastage = Math.round(stage.wastageContribution * (0.3 + 0.7 * virginRatio) + 5 * recycledRatio);
+    } else if (stage.id === 'recycle') {
+      // Recycle stage increases with recycled content
+      dynamicWastage = Math.round(stage.wastageContribution * (0.5 + 1.5 * recycledRatio));
+    }
+    // Casting and Fabrication stay relatively constant
+
+    return {
+      ...stage,
+      gwpContribution: gwpContributions[stage.id] || stage.gwpContribution,
+      wastageContribution: Math.max(dynamicWastage, 1) // Minimum 1%
+    };
+  });
 
   const toggleStage = (stageId: string) => {
     setExpandedStage(expandedStage === stageId ? null : stageId)
@@ -571,15 +606,15 @@ export default function MetalLifecyclePage() {
                       <h3 className={`font-bold text-[10px] md:text-xs truncate ${expandedStage === stage.id ? stage.textColor : 'text-gray-900'}`}>
                         {stage.id === 'beneficiation' ? 'Benefic.' : stage.id === 'fabrication' ? 'Fabric.' : stage.id === 'recycle' ? 'Recycle' : stage.name}
                       </h3>
-                      <div className={`text-sm md:text-base font-bold ${stage.textColor}`}>{stage.gwpContribution}%</div>
-                      {/* Mini GWP Bar */}
+                      <div className={`text-sm md:text-base font-bold ${stage.textColor}`}>{stage.wastageContribution}%</div>
+                      {/* Mini Wastage Bar */}
                       <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden mt-1">
                         <div
-                          className={`h-full rounded-full ${stage.gwpContribution >= 40 ? 'bg-red-500' :
-                            stage.gwpContribution >= 15 ? 'bg-orange-500' :
+                          className={`h-full rounded-full ${stage.wastageContribution >= 30 ? 'bg-red-500' :
+                            stage.wastageContribution >= 15 ? 'bg-orange-500' :
                               'bg-green-500'
                             }`}
-                          style={{ width: `${Math.min(stage.gwpContribution * 2, 100)}%` }}
+                          style={{ width: `${Math.min(stage.wastageContribution * 2.5, 100)}%` }}
                         />
                       </div>
                     </div>
@@ -780,7 +815,7 @@ export default function MetalLifecyclePage() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Stage</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Energy</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">GWP %</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Wastage %</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Waste Streams</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Key Insight</th>
                 </tr>
@@ -807,27 +842,27 @@ export default function MetalLifecyclePage() {
                       <div className="flex items-center gap-2">
                         <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full ${stage.gwpContribution >= 40 ? 'bg-red-500' :
-                              stage.gwpContribution >= 15 ? 'bg-orange-500' :
+                            className={`h-full rounded-full ${stage.wastageContribution >= 30 ? 'bg-red-500' :
+                              stage.wastageContribution >= 15 ? 'bg-orange-500' :
                                 'bg-green-500'
                               }`}
-                            style={{ width: `${stage.gwpContribution}%` }}
+                            style={{ width: `${stage.wastageContribution * 2.5}%` }}
                           />
                         </div>
-                        <span className="font-semibold text-gray-900">{stage.gwpContribution}%</span>
+                        <span className="font-semibold text-gray-900">{stage.wastageContribution}%</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {stage.wasteStreams.length} types
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {stage.id === 'smelting' && <span className="text-red-600 font-medium">Highest energy consumer</span>}
-                      {stage.id === 'recycle' && <span className="text-green-600 font-medium">Closes the circular loop</span>}
-                      {stage.id === 'mining' && <span className="text-amber-600 font-medium">Starting point of extraction</span>}
-                      {stage.id === 'refining' && <span className="text-blue-600 font-medium">Receives recycled input</span>}
-                      {stage.id === 'beneficiation' && <span className="text-purple-600 font-medium">Concentration step</span>}
-                      {stage.id === 'casting' && <span className="text-slate-600 font-medium">Shape formation</span>}
-                      {stage.id === 'fabrication' && <span className="text-teal-600 font-medium">Final product stage</span>}
+                      {stage.id === 'smelting' && <span className="text-red-600 font-medium">High energy, moderate waste</span>}
+                      {stage.id === 'recycle' && <span className="text-green-600 font-medium">Recovers material, reduces overall waste</span>}
+                      {stage.id === 'mining' && <span className="text-amber-600 font-medium">Highest waste generator (overburden)</span>}
+                      {stage.id === 'refining' && <span className="text-blue-600 font-medium">Generates slag and chemical waste</span>}
+                      {stage.id === 'beneficiation' && <span className="text-purple-600 font-medium">Tailings and flotation waste</span>}
+                      {stage.id === 'casting' && <span className="text-slate-600 font-medium">Sand molds and scrap</span>}
+                      {stage.id === 'fabrication' && <span className="text-teal-600 font-medium">Metal shavings, recoverable</span>}
                     </td>
                   </tr>
                 ))}

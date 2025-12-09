@@ -85,7 +85,124 @@ export default function AlloyRecyclingAdvisor({ materials, projectId }: AlloyRec
       .map(s => s!.name)
   }, [primaryAlloy])
 
-  // No aluminium materials detected
+  // Check for other metal types (copper, steel, zinc, lead)
+  const otherMetals = useMemo(() => {
+    const metals: { material: Material; metalType: string }[] = []
+
+    for (const material of materials) {
+      const name = (material.material_name || '').toLowerCase()
+      const type = (material.material_type || '').toLowerCase()
+
+      if (type.includes('copper') || name.includes('copper') || name.includes('brass') || name.includes('bronze')) {
+        metals.push({ material, metalType: 'copper' })
+      } else if (type.includes('steel') || name.includes('steel') || name.includes('stainless')) {
+        metals.push({ material, metalType: 'steel' })
+      } else if (type.includes('zinc') || name.includes('zinc') || name.includes('galvanized')) {
+        metals.push({ material, metalType: 'zinc' })
+      } else if (type.includes('lead') || name.includes('lead') || name.includes('pb ')) {
+        metals.push({ material, metalType: 'lead' })
+      }
+    }
+
+    return metals
+  }, [materials])
+
+  // Other metal recycling info (when no aluminum detected)
+  const metalRecyclingInfo: Record<string, { recyclability: number; savings: string; note: string; color: string }> = {
+    copper: {
+      recyclability: 100,
+      savings: '85% energy savings',
+      note: 'Copper is 100% recyclable without quality loss. High-grade scrap goes direct to refining, low-grade to converting stage.',
+      color: 'orange'
+    },
+    steel: {
+      recyclability: 100,
+      savings: '74% energy savings',
+      note: 'Steel (EAF route) can use 100% scrap - the circular economy champion! Steel has infinite recyclability.',
+      color: 'slate'
+    },
+    zinc: {
+      recyclability: 90,
+      savings: '60% energy savings',
+      note: 'Zinc from galvanized steel is recovered via Waelz kiln processing. Die casting scrap can be directly remelted.',
+      color: 'teal'
+    },
+    lead: {
+      recyclability: 99,
+      savings: '65% energy savings',
+      note: 'Lead-acid batteries have 99% recycling rate - highest of any product! 50%+ of global lead supply is recycled.',
+      color: 'gray'
+    }
+  }
+
+  // No aluminium alloys detected but other metals present
+  if (detectedAlloys.length === 0 && !selectedAlloy && otherMetals.length > 0) {
+    const primaryMetal = otherMetals[0]
+    const info = metalRecyclingInfo[primaryMetal.metalType]
+
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div
+          className={`flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition bg-gradient-to-r from-${info.color}-50 to-green-50`}
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          <div className="flex items-center gap-3">
+            <div className={`p-2 bg-gradient-to-br from-${info.color}-500 to-green-500 rounded-lg shadow-sm`}>
+              <Recycle className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                Metal Recycling Advisor
+                <span className={`px-1.5 py-0.5 bg-${info.color}-100 text-${info.color}-700 text-[10px] font-bold rounded uppercase`}>
+                  {primaryMetal.metalType}
+                </span>
+              </h3>
+              <p className="text-xs text-gray-500">Circular economy guidance for {primaryMetal.metalType}</p>
+            </div>
+          </div>
+          {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+        </div>
+
+        {isExpanded && (
+          <div className="p-4 space-y-4">
+            {/* Recyclability Score */}
+            <div className={`bg-${info.color}-50 rounded-lg p-4 border border-${info.color}-200`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-semibold text-gray-900 capitalize">{primaryMetal.metalType} Recycling</h4>
+                  <p className="text-sm text-gray-600 mt-1">{info.note}</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-green-600">{info.recyclability}%</div>
+                  <div className="text-xs text-gray-500">Recyclability</div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                  {info.savings}
+                </span>
+                <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                  ♻️ Closed-loop possible
+                </span>
+              </div>
+            </div>
+
+            {/* Action Button */}
+            <button
+              onClick={() => navigate(`/projects/${projectId}/lifecycle`)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition w-full justify-center"
+            >
+              <Recycle className="w-4 h-4" />
+              View {primaryMetal.metalType.charAt(0).toUpperCase() + primaryMetal.metalType.slice(1)} Lifecycle Flow
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // No materials detected at all
   if (detectedAlloys.length === 0 && !selectedAlloy) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -99,7 +216,7 @@ export default function AlloyRecyclingAdvisor({ materials, projectId }: AlloyRec
             </div>
             <div>
               <h3 className="font-semibold text-gray-900">Alloy Recycling Advisor</h3>
-              <p className="text-xs text-gray-500">Add aluminium materials to see recycling guidance</p>
+              <p className="text-xs text-gray-500">Add materials to see recycling guidance</p>
             </div>
           </div>
           {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
@@ -109,8 +226,8 @@ export default function AlloyRecyclingAdvisor({ materials, projectId }: AlloyRec
           <div className="px-4 pb-4">
             <div className="bg-gray-50 rounded-lg p-4 text-center">
               <Beaker className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-sm text-gray-600">No aluminium alloys detected in your BOM.</p>
-              <p className="text-xs text-gray-500 mt-1">Add materials like "6061 Aluminium" or "A356 Cast Al" to get recycling advice.</p>
+              <p className="text-sm text-gray-600">No metal alloys detected in your BOM.</p>
+              <p className="text-xs text-gray-500 mt-1">Add materials like "6061 Aluminium", "C110 Copper", or "304 Stainless Steel" to get recycling advice.</p>
             </div>
           </div>
         )}

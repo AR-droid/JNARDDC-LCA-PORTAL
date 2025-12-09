@@ -5475,6 +5475,26 @@ NLP_MATERIAL_PATTERNS = {
         'national_baseline_recycled': 0,
         'gwp_factor': 3.0,
         'scarcity_score': 5
+    },
+    # Zinc - including galvanized materials
+    'zinc': {
+        'keywords': ['zinc', 'galvanized', 'galvanised', 'hot-dip', 'hot dip', 'zinc coating', 'die cast zinc', 'zn', 'zamak', 'zinc alloy'],
+        'forms': ['sheet', 'coating', 'ingot', 'anode', 'die casting', 'strip', 'wire', 'alloy'],
+        'default_type': 'zinc_primary',
+        'recycled_type': 'zinc_secondary',
+        'national_baseline_recycled': 35,
+        'gwp_factor': 3.9,
+        'scarcity_score': 30
+    },
+    # Lead - including lead-acid batteries
+    'lead': {
+        'keywords': ['lead', 'lead-acid', 'lead acid', 'pb', 'battery lead', 'lead oxide', 'lead alloy', 'antimonial lead', 'lead sheet'],
+        'forms': ['sheet', 'ingot', 'oxide', 'paste', 'plate', 'anode', 'battery', 'cable sheath', 'radiation shield'],
+        'default_type': 'lead_primary',
+        'recycled_type': 'lead_secondary',
+        'national_baseline_recycled': 55,  # Lead has very high recycling rate (batteries)
+        'gwp_factor': 2.0,
+        'scarcity_score': 20
     }
 }
 

@@ -3,7 +3,6 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useLanguageStore, useTranslation, Language } from '../stores/languageStore';
 import AIChatPanel from './AIChatPanel';
-import WasteToResearchWidget from './WasteToResearchWidget';
 import { Building, Star, Globe, ChevronDown, Recycle, Trophy } from 'lucide-react';
 
 interface NavbarProps {

@@ -19,6 +19,7 @@ export default function Layout({ children }: NavbarProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isFabOpen, setIsFabOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('darkMode') === 'true';
   });
@@ -394,20 +395,93 @@ export default function Layout({ children }: NavbarProps) {
         </footer>
       )}
 
-      {/* Floating Buttons - only for authenticated users */}
+      {/* Floating Action Button Menu - only for authenticated users */}
       {isAuthenticated && (
         <>
-          {/* AI Chat Button */}
-          <button
-            onClick={() => setIsChatOpen(true)}
-            className="fixed bottom-6 right-6 w-16 h-16 bg-white text-emerald-600 rounded-full shadow-2xl hover:shadow-emerald-500/20 hover:scale-105 transition-all duration-300 flex items-center justify-center z-40 border border-gray-100"
-            title="AI Assistant"
-          >
-            <img src="/images/ai.png" alt="AI" className="w-10 h-10 object-contain drop-shadow-sm" />
-          </button>
+          {/* FAB Menu Container */}
+          <div className="fixed bottom-6 right-6 z-40">
+            {/* Expanded Menu Items - shown when FAB is open */}
+            <div className={`absolute bottom-20 right-0 flex flex-col gap-3 items-end transition-all duration-300 ${isFabOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+              {/* Scrap Yard Connect */}
+              <div className="flex items-center gap-3">
+                <span className={`px-3 py-1.5 bg-gray-900 text-white text-sm rounded-lg shadow-lg whitespace-nowrap transition-all duration-200 ${isFabOpen ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'}`} style={{ transitionDelay: '100ms' }}>
+                  Scrap Yard Connect
+                </span>
+                <button
+                  onClick={() => {
+                    navigate('/scrap-yard-connect');
+                    setIsFabOpen(false);
+                  }}
+                  className="w-12 h-12 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-full shadow-lg hover:scale-110 transition-all duration-200 flex items-center justify-center"
+                  title="Scrap Yard Connect"
+                >
+                  <Recycle className="w-6 h-6" />
+                </button>
+              </div>
 
-          {/* Waste to Resource Connect Widget */}
-          <WasteToResearchWidget />
+              {/* Waste to Resource */}
+              <div className="flex items-center gap-3">
+                <span className={`px-3 py-1.5 bg-gray-900 text-white text-sm rounded-lg shadow-lg whitespace-nowrap transition-all duration-200 ${isFabOpen ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'}`} style={{ transitionDelay: '50ms' }}>
+                  Waste to Resource
+                </span>
+                <button
+                  onClick={() => {
+                    // Navigate to waste to research - check if on project page
+                    const path = window.location.pathname;
+                    const projectMatch = path.match(/\/projects\/([^\/]+)/);
+                    if (projectMatch) {
+                      navigate(`/projects/${projectMatch[1]}/waste-to-research`);
+                    } else {
+                      navigate('/projects');
+                    }
+                    setIsFabOpen(false);
+                  }}
+                  className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-full shadow-lg hover:scale-110 transition-all duration-200 flex items-center justify-center"
+                  title="Waste to Resource Connect"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* AI Assistant */}
+              <div className="flex items-center gap-3">
+                <span className={`px-3 py-1.5 bg-gray-900 text-white text-sm rounded-lg shadow-lg whitespace-nowrap transition-all duration-200 ${isFabOpen ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'}`}>
+                  AI Assistant
+                </span>
+                <button
+                  onClick={() => {
+                    setIsChatOpen(true);
+                    setIsFabOpen(false);
+                  }}
+                  className="w-12 h-12 bg-white text-emerald-600 rounded-full shadow-lg hover:scale-110 transition-all duration-200 flex items-center justify-center border border-gray-100"
+                  title="AI Assistant"
+                >
+                  <img src="/images/ai.png" alt="AI" className="w-7 h-7 object-contain" />
+                </button>
+              </div>
+            </div>
+
+            {/* Main FAB Button */}
+            <button
+              onClick={() => setIsFabOpen(!isFabOpen)}
+              className={`w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-2xl hover:shadow-blue-500/30 transition-all duration-300 flex items-center justify-center ${isFabOpen ? 'rotate-45' : ''}`}
+              title={isFabOpen ? 'Close menu' : 'Open quick actions'}
+            >
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Backdrop when FAB is open */}
+          {isFabOpen && (
+            <div
+              className="fixed inset-0 bg-black/20 z-30"
+              onClick={() => setIsFabOpen(false)}
+            />
+          )}
 
           <AIChatPanel
             isOpen={isChatOpen}

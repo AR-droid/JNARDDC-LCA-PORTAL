@@ -596,8 +596,10 @@ export default function MetalLifecyclePage() {
 
                   {/* Arrow to next stage */}
                   {index < 6 && (
-                    <div className="hidden md:flex absolute -right-1 top-1/2 -translate-y-1/2 z-10">
-                      <ArrowRight className="w-2 h-2 text-gray-400" />
+                    <div className="hidden md:flex absolute -right-2.5 top-1/2 -translate-y-1/2 z-20">
+                      <div className="w-5 h-5 bg-white rounded-full shadow-sm border border-gray-200 flex items-center justify-center">
+                        <ArrowRight className="w-3 h-3 text-gray-500" />
+                      </div>
                     </div>
                   )}
                 </div>

@@ -34,13 +34,13 @@ export default function WasteToResearchWidget({ projectId }: WasteToResearchWidg
     >
       {/* Chatbot Icon */}
       <div className="relative">
-        <MessageCircle className="w-8 h-8" />
-        <Recycle className="w-4 h-4 absolute -bottom-1 -right-1 bg-white text-emerald-600 rounded-full p-0.5" />
+        <MessageCircle className="w-10 h-10" />
+        <Recycle className="w-5 h-5 absolute -bottom-1 -right-1 bg-white text-emerald-600 rounded-full p-0.5" />
       </div>
-      
+
       {/* Pulsing indicator */}
       <span className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full animate-pulse border-2 border-white"></span>
-      
+
       {/* Tooltip on hover */}
       <div className="absolute right-20 top-1/2 -translate-y-1/2 bg-gray-900 text-white text-sm px-4 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg">
         <div className="flex items-center gap-2">

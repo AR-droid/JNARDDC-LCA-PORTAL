@@ -5680,6 +5680,26 @@ NLP_MATERIAL_PATTERNS = {
         'scarcity_score': 0,  # Waste product
         'lca_impacts': ['toxicity', 'land_use', 'alkaline_waste'],
         'is_mining_material': True
+    },
+    # Zinc - including galvanized materials
+    'zinc': {
+        'keywords': ['zinc', 'galvanized', 'galvanised', 'hot-dip', 'hot dip', 'zinc coating', 'die cast zinc', 'zn', 'zamak', 'zinc alloy'],
+        'forms': ['sheet', 'coating', 'ingot', 'anode', 'die casting', 'strip', 'wire', 'alloy'],
+        'default_type': 'zinc_primary',
+        'recycled_type': 'zinc_secondary',
+        'national_baseline_recycled': 35,
+        'gwp_factor': 3.9,
+        'scarcity_score': 30
+    },
+    # Lead - including lead-acid batteries
+    'lead': {
+        'keywords': ['lead', 'lead-acid', 'lead acid', 'pb', 'battery lead', 'lead oxide', 'lead alloy', 'antimonial lead', 'lead sheet'],
+        'forms': ['sheet', 'ingot', 'oxide', 'paste', 'plate', 'anode', 'battery', 'cable sheath', 'radiation shield'],
+        'default_type': 'lead_primary',
+        'recycled_type': 'lead_secondary',
+        'national_baseline_recycled': 55,  # Lead has very high recycling rate (batteries)
+        'gwp_factor': 2.0,
+        'scarcity_score': 20
     }
 }
 
@@ -9746,8 +9766,88 @@ def export_cbam_excel(project_id):
         ws[f'D{row}'] = '€0.00 (No applicable carbon price)'
         ws[f'D{row}'].font = small_font
         
+        # ===== LIFECYCLE PROCESS ANALYSIS =====
+        row += 2
+        ws.merge_cells(f'B{row}:G{row}')
+        ws[f'B{row}'] = 'LIFECYCLE PROCESS ANALYSIS'
+        ws[f'B{row}'].font = subheader_font
+        ws[f'B{row}'].fill = light_blue_fill
+        ws.row_dimensions[row].height = 22
+        
+        # Calculate average recycled content
+        avg_recycled = sum((m[4] or 0) for m in materials) / len(materials) if materials else 0
+        virgin_ratio = (100 - avg_recycled) / 100
+        recycled_ratio = avg_recycled / 100
+        
+        # Lifecycle stages data (no emojis - they may not render in all Excel versions)
+        lifecycle_stages = [
+            {'name': 'Mining', 'base_wastage': 35, 'base_emissions': 8},
+            {'name': 'Beneficiation', 'base_wastage': 12, 'base_emissions': 7},
+            {'name': 'Refining', 'base_wastage': 10, 'base_emissions': 18},
+            {'name': 'Smelting', 'base_wastage': 12, 'base_emissions': 45},
+            {'name': 'Casting', 'base_wastage': 9, 'base_emissions': 8},
+            {'name': 'Fabrication', 'base_wastage': 8, 'base_emissions': 7},
+            {'name': 'End-of-Life/Recycle', 'base_wastage': 14, 'base_emissions': 7},
+        ]
+        
+        # Table headers
+        row += 2
+        lc_headers = ['#', 'Stage', 'Carbon Emissions %', 'Wastage %', 'Recycled Content %']
+        for col, header in enumerate(lc_headers, start=2):
+            cell = ws.cell(row=row, column=col, value=header)
+            cell.font = title_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = thin_border
+        ws.row_dimensions[row].height = 25
+        
+        # Process stage data
+        row += 1
+        for idx, stage in enumerate(lifecycle_stages, 1):
+            stage_name = stage['name']
+            base_wastage = stage['base_wastage']
+            base_emissions = stage['base_emissions']
+            
+            # Calculate dynamic values based on recycled content
+            if stage_name in ['Mining', 'Beneficiation', 'Refining']:
+                wastage = round(base_wastage * virgin_ratio)
+                emissions = round(base_emissions * virgin_ratio)
+                recycled_used = 0
+            elif stage_name == 'Smelting':
+                wastage = round(base_wastage * (0.3 + 0.7 * virgin_ratio) + 5 * recycled_ratio)
+                emissions = round(base_emissions * (0.4 + 0.6 * virgin_ratio))
+                recycled_used = round(avg_recycled)
+            elif stage_name in ['Casting', 'Fabrication']:
+                wastage = base_wastage
+                emissions = base_emissions
+                recycled_used = round(avg_recycled)
+            else:  # Recycle stage
+                wastage = round(base_wastage * (0.5 + 1.5 * recycled_ratio))
+                emissions = round(base_emissions * (0.5 + recycled_ratio))
+                recycled_used = 100
+            
+            wastage = max(wastage, 1)
+            emissions = max(emissions, 1)
+            
+            row_data = [idx, stage_name, f"{emissions}%", f"{wastage}%", f"{recycled_used}%"]
+            for col, value in enumerate(row_data, start=2):
+                cell = ws.cell(row=row, column=col, value=value)
+                cell.font = normal_font
+                cell.border = thin_border
+                cell.alignment = Alignment(horizontal='center' if col > 2 else 'left', vertical='center')
+                if idx % 2 == 0:
+                    cell.fill = alt_row_fill
+            row += 1
+        
+        # Note about recycled content
+        row += 1
+        ws.merge_cells(f'B{row}:G{row}')
+        ws[f'B{row}'] = f'Note: Values dynamically adjusted based on {round(avg_recycled)}% average recycled content'
+        ws[f'B{row}'].font = small_font
+        ws[f'B{row}'].alignment = Alignment(horizontal='left')
+        
         # ===== FOOTER =====
-        row += 3
+        row += 2
         ws.merge_cells(f'B{row}:G{row}')
         ws[f'B{row}'] = '━' * 60
         ws[f'B{row}'].font = Font(color='CCCCCC')
@@ -10050,6 +10150,68 @@ def export_cbam_pdf(project_id):
             story.append(goods_table)
         else:
             story.append(Paragraph('No CBAM-applicable materials found.', normal_style))
+        
+        story.append(Spacer(1, 20))
+        
+        # Lifecycle Process Analysis
+        story.append(Paragraph('LIFECYCLE PROCESS ANALYSIS', section_header_style))
+        
+        # Calculate average recycled content
+        avg_recycled = sum((m[4] or 0) for m in materials) / len(materials) if materials else 0
+        virgin_ratio = (100 - avg_recycled) / 100
+        recycled_ratio = avg_recycled / 100
+        
+        # Lifecycle stages data (no emojis for PDF - they don't render well)
+        lifecycle_stages = [
+            ('Mining', 35, 8),
+            ('Beneficiation', 12, 7),
+            ('Refining', 10, 18),
+            ('Smelting', 12, 45),
+            ('Casting', 9, 8),
+            ('Fabrication', 8, 7),
+            ('End-of-Life/Recycle', 14, 7),
+        ]
+        
+        lc_header = ['Stage', 'Carbon Emissions %', 'Wastage %', 'Recycled Content %']
+        lc_data = [lc_header]
+        
+        for stage_name, base_wastage, base_emissions in lifecycle_stages:
+            if any(x in stage_name for x in ['Mining', 'Beneficiation', 'Refining']):
+                wastage = round(base_wastage * virgin_ratio)
+                emissions = round(base_emissions * virgin_ratio)
+                recycled_used = 0
+            elif 'Smelting' in stage_name:
+                wastage = round(base_wastage * (0.3 + 0.7 * virgin_ratio) + 5 * recycled_ratio)
+                emissions = round(base_emissions * (0.4 + 0.6 * virgin_ratio))
+                recycled_used = round(avg_recycled)
+            elif any(x in stage_name for x in ['Casting', 'Fabrication']):
+                wastage = base_wastage
+                emissions = base_emissions
+                recycled_used = round(avg_recycled)
+            else:  # Recycle
+                wastage = round(base_wastage * (0.5 + 1.5 * recycled_ratio))
+                emissions = round(base_emissions * (0.5 + recycled_ratio))
+                recycled_used = 100
+            
+            wastage = max(wastage, 1)
+            emissions = max(emissions, 1)
+            lc_data.append([stage_name, f'{emissions}%', f'{wastage}%', f'{recycled_used}%'])
+        
+        lc_table = Table(lc_data, colWidths=[130, 100, 80, 100])
+        lc_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1F4E79')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F5F5F5')]),
+        ]))
+        story.append(lc_table)
+        story.append(Paragraph(f'Note: Values dynamically adjusted based on {round(avg_recycled)}% average recycled content', small_style))
         
         story.append(Spacer(1, 20))
         

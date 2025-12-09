@@ -25,7 +25,15 @@ import {
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
 import { projectsApi } from '../api/projects'
-import { detectMetalType, LEAD_LIFECYCLE_DATA, ALUMINUM_LIFECYCLE_DATA } from '../utils/metalDetection'
+import {
+  detectMetalType,
+  MetalType,
+  LEAD_LIFECYCLE_DATA,
+  ALUMINUM_LIFECYCLE_DATA,
+  COPPER_LIFECYCLE_DATA,
+  STEEL_LIFECYCLE_DATA,
+  ZINC_LIFECYCLE_DATA
+} from '../utils/metalDetection'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
 
@@ -116,10 +124,13 @@ interface LifecycleStage {
   energyIntensity: 'Very High' | 'High' | 'Medium' | 'Low'
   gwpContribution: number // percentage
   wastageContribution: number // percentage of total wastage
+  isScrapEntry?: boolean // Indicates scrap can enter at this stage
+  isCircularHighlight?: boolean // Highlights as circular economy benefit
+  hasSO2Emission?: boolean // Indicates SO2 emissions (acidification)
 }
 
 // Function to generate lifecycle stages based on metal type
-const getLifecycleStages = (metalType: 'aluminum' | 'lead'): LifecycleStage[] => {
+const getLifecycleStages = (metalType: MetalType): LifecycleStage[] => {
   if (metalType === 'lead') {
     return [
       {
@@ -135,7 +146,8 @@ const getLifecycleStages = (metalType: 'aluminum' | 'lead'): LifecycleStage[] =>
         keyProcesses: LEAD_LIFECYCLE_DATA.stages.mining.processes,
         wasteStreams: LEAD_LIFECYCLE_DATA.stages.mining.wasteStreams,
         energyIntensity: 'Medium',
-        gwpContribution: LEAD_LIFECYCLE_DATA.stages.mining.gwpContribution
+        gwpContribution: LEAD_LIFECYCLE_DATA.stages.mining.gwpContribution,
+        wastageContribution: 20
       },
       {
         id: 'beneficiation',
@@ -150,7 +162,8 @@ const getLifecycleStages = (metalType: 'aluminum' | 'lead'): LifecycleStage[] =>
         keyProcesses: LEAD_LIFECYCLE_DATA.stages.beneficiation.processes,
         wasteStreams: LEAD_LIFECYCLE_DATA.stages.beneficiation.wasteStreams,
         energyIntensity: 'Medium',
-        gwpContribution: LEAD_LIFECYCLE_DATA.stages.beneficiation.gwpContribution
+        gwpContribution: LEAD_LIFECYCLE_DATA.stages.beneficiation.gwpContribution,
+        wastageContribution: 15
       },
       {
         id: 'refining',
@@ -165,7 +178,8 @@ const getLifecycleStages = (metalType: 'aluminum' | 'lead'): LifecycleStage[] =>
         keyProcesses: LEAD_LIFECYCLE_DATA.stages.refining.processes,
         wasteStreams: LEAD_LIFECYCLE_DATA.stages.refining.wasteStreams,
         energyIntensity: 'High',
-        gwpContribution: LEAD_LIFECYCLE_DATA.stages.refining.gwpContribution
+        gwpContribution: LEAD_LIFECYCLE_DATA.stages.refining.gwpContribution,
+        wastageContribution: 12
       },
       {
         id: 'smelting',
@@ -180,7 +194,9 @@ const getLifecycleStages = (metalType: 'aluminum' | 'lead'): LifecycleStage[] =>
         keyProcesses: LEAD_LIFECYCLE_DATA.stages.smelting.processes,
         wasteStreams: LEAD_LIFECYCLE_DATA.stages.smelting.wasteStreams,
         energyIntensity: 'Very High',
-        gwpContribution: LEAD_LIFECYCLE_DATA.stages.smelting.gwpContribution
+        gwpContribution: LEAD_LIFECYCLE_DATA.stages.smelting.gwpContribution,
+        wastageContribution: 25,
+        isScrapEntry: true // Secondary smelting for battery scrap
       },
       {
         id: 'casting',
@@ -195,7 +211,8 @@ const getLifecycleStages = (metalType: 'aluminum' | 'lead'): LifecycleStage[] =>
         keyProcesses: LEAD_LIFECYCLE_DATA.stages.casting.processes,
         wasteStreams: LEAD_LIFECYCLE_DATA.stages.casting.wasteStreams,
         energyIntensity: 'Medium',
-        gwpContribution: LEAD_LIFECYCLE_DATA.stages.casting.gwpContribution
+        gwpContribution: LEAD_LIFECYCLE_DATA.stages.casting.gwpContribution,
+        wastageContribution: 10
       },
       {
         id: 'fabrication',
@@ -210,7 +227,8 @@ const getLifecycleStages = (metalType: 'aluminum' | 'lead'): LifecycleStage[] =>
         keyProcesses: LEAD_LIFECYCLE_DATA.stages.fabrication.processes,
         wasteStreams: LEAD_LIFECYCLE_DATA.stages.fabrication.wasteStreams,
         energyIntensity: 'Medium',
-        gwpContribution: LEAD_LIFECYCLE_DATA.stages.fabrication.gwpContribution
+        gwpContribution: LEAD_LIFECYCLE_DATA.stages.fabrication.gwpContribution,
+        wastageContribution: 8
       },
       {
         id: 'recycle',
@@ -225,11 +243,370 @@ const getLifecycleStages = (metalType: 'aluminum' | 'lead'): LifecycleStage[] =>
         keyProcesses: LEAD_LIFECYCLE_DATA.stages.recycle.processes,
         wasteStreams: LEAD_LIFECYCLE_DATA.stages.recycle.wasteStreams,
         energyIntensity: 'Low',
-        gwpContribution: LEAD_LIFECYCLE_DATA.stages.recycle.gwpContribution
+        gwpContribution: LEAD_LIFECYCLE_DATA.stages.recycle.gwpContribution,
+        wastageContribution: 14
       }
     ]
   }
-  
+
+  // Copper stages
+  if (metalType === 'copper') {
+    return [
+      {
+        id: 'mining',
+        name: 'Mining',
+        emoji: '⛏️',
+        icon: <Mountain className="w-6 h-6" />,
+        color: 'amber',
+        bgColor: 'bg-amber-50',
+        borderColor: 'border-amber-300',
+        textColor: 'text-amber-700',
+        description: COPPER_LIFECYCLE_DATA.stages.mining.description,
+        keyProcesses: COPPER_LIFECYCLE_DATA.stages.mining.processes,
+        wasteStreams: COPPER_LIFECYCLE_DATA.stages.mining.wasteStreams,
+        energyIntensity: 'High',
+        gwpContribution: COPPER_LIFECYCLE_DATA.stages.mining.gwpContribution,
+        wastageContribution: 15
+      },
+      {
+        id: 'beneficiation',
+        name: 'Flotation',
+        emoji: '🔬',
+        icon: <FlaskConical className="w-6 h-6" />,
+        color: 'purple',
+        bgColor: 'bg-purple-50',
+        borderColor: 'border-purple-300',
+        textColor: 'text-purple-700',
+        description: COPPER_LIFECYCLE_DATA.stages.beneficiation.description,
+        keyProcesses: COPPER_LIFECYCLE_DATA.stages.beneficiation.processes,
+        wasteStreams: COPPER_LIFECYCLE_DATA.stages.beneficiation.wasteStreams,
+        energyIntensity: 'High',
+        gwpContribution: COPPER_LIFECYCLE_DATA.stages.beneficiation.gwpContribution,
+        wastageContribution: 18
+      },
+      {
+        id: 'refining',
+        name: 'Smelting (Matte)',
+        emoji: '🔥',
+        icon: <Flame className="w-6 h-6" />,
+        color: 'orange',
+        bgColor: 'bg-orange-50',
+        borderColor: 'border-orange-300',
+        textColor: 'text-orange-700',
+        description: COPPER_LIFECYCLE_DATA.stages.refining.description,
+        keyProcesses: COPPER_LIFECYCLE_DATA.stages.refining.processes,
+        wasteStreams: COPPER_LIFECYCLE_DATA.stages.refining.wasteStreams,
+        energyIntensity: 'Very High',
+        gwpContribution: COPPER_LIFECYCLE_DATA.stages.refining.gwpContribution,
+        wastageContribution: 20
+      },
+      {
+        id: 'smelting',
+        name: 'Converting',
+        emoji: '🏭',
+        icon: <Factory className="w-6 h-6" />,
+        color: 'red',
+        bgColor: 'bg-red-50',
+        borderColor: 'border-red-300',
+        textColor: 'text-red-700',
+        description: COPPER_LIFECYCLE_DATA.stages.smelting.description,
+        keyProcesses: COPPER_LIFECYCLE_DATA.stages.smelting.processes,
+        wasteStreams: COPPER_LIFECYCLE_DATA.stages.smelting.wasteStreams,
+        energyIntensity: 'Very High',
+        gwpContribution: COPPER_LIFECYCLE_DATA.stages.smelting.gwpContribution,
+        wastageContribution: 15,
+        isScrapEntry: true // Scrap can enter here
+      },
+      {
+        id: 'casting',
+        name: 'Electro-Refining',
+        emoji: '⚡',
+        icon: <Building2 className="w-6 h-6" />,
+        color: 'indigo',
+        bgColor: 'bg-indigo-50',
+        borderColor: 'border-indigo-300',
+        textColor: 'text-indigo-700',
+        description: COPPER_LIFECYCLE_DATA.stages.casting.description,
+        keyProcesses: COPPER_LIFECYCLE_DATA.stages.casting.processes,
+        wasteStreams: COPPER_LIFECYCLE_DATA.stages.casting.wasteStreams,
+        energyIntensity: 'High',
+        gwpContribution: COPPER_LIFECYCLE_DATA.stages.casting.gwpContribution,
+        wastageContribution: 8
+      },
+      {
+        id: 'fabrication',
+        name: 'Fabrication',
+        emoji: '🔧',
+        icon: <Wrench className="w-6 h-6" />,
+        color: 'blue',
+        bgColor: 'bg-blue-50',
+        borderColor: 'border-blue-300',
+        textColor: 'text-blue-700',
+        description: COPPER_LIFECYCLE_DATA.stages.fabrication.description,
+        keyProcesses: COPPER_LIFECYCLE_DATA.stages.fabrication.processes,
+        wasteStreams: COPPER_LIFECYCLE_DATA.stages.fabrication.wasteStreams,
+        energyIntensity: 'Medium',
+        gwpContribution: COPPER_LIFECYCLE_DATA.stages.fabrication.gwpContribution,
+        wastageContribution: 12
+      },
+      {
+        id: 'recycle',
+        name: '100% Recycling',
+        emoji: '♻️',
+        icon: <Recycle className="w-6 h-6" />,
+        color: 'green',
+        bgColor: 'bg-green-50',
+        borderColor: 'border-green-300',
+        textColor: 'text-green-700',
+        description: COPPER_LIFECYCLE_DATA.stages.recycle.description,
+        keyProcesses: COPPER_LIFECYCLE_DATA.stages.recycle.processes,
+        wasteStreams: COPPER_LIFECYCLE_DATA.stages.recycle.wasteStreams,
+        energyIntensity: 'Low',
+        gwpContribution: COPPER_LIFECYCLE_DATA.stages.recycle.gwpContribution,
+        wastageContribution: 12
+      }
+    ]
+  }
+
+  // Steel stages (EAF route - circular economy champion)
+  if (metalType === 'steel') {
+    const eafRoute = STEEL_LIFECYCLE_DATA.routes['eaf']
+    return [
+      {
+        id: 'mining',
+        name: 'Scrap Collection',
+        emoji: '♻️',
+        icon: <Recycle className="w-6 h-6" />,
+        color: 'green',
+        bgColor: 'bg-green-50',
+        borderColor: 'border-green-300',
+        textColor: 'text-green-700',
+        description: eafRoute.stages.mining.description,
+        keyProcesses: eafRoute.stages.mining.processes,
+        wasteStreams: eafRoute.stages.mining.wasteStreams,
+        energyIntensity: 'Low',
+        gwpContribution: eafRoute.stages.mining.gwpContribution,
+        wastageContribution: 8
+      },
+      {
+        id: 'beneficiation',
+        name: 'Scrap Preparation',
+        emoji: '🔬',
+        icon: <FlaskConical className="w-6 h-6" />,
+        color: 'purple',
+        bgColor: 'bg-purple-50',
+        borderColor: 'border-purple-300',
+        textColor: 'text-purple-700',
+        description: eafRoute.stages.beneficiation.description,
+        keyProcesses: eafRoute.stages.beneficiation.processes,
+        wasteStreams: eafRoute.stages.beneficiation.wasteStreams,
+        energyIntensity: 'Low',
+        gwpContribution: eafRoute.stages.beneficiation.gwpContribution,
+        wastageContribution: 5
+      },
+      {
+        id: 'refining',
+        name: 'Electric Arc Furnace',
+        emoji: '⚡',
+        icon: <Factory className="w-6 h-6" />,
+        color: 'yellow',
+        bgColor: 'bg-yellow-50',
+        borderColor: 'border-yellow-300',
+        textColor: 'text-yellow-700',
+        description: eafRoute.stages.refining.description + ' (75% less CO₂ than BF-BOF!)',
+        keyProcesses: eafRoute.stages.refining.processes,
+        wasteStreams: eafRoute.stages.refining.wasteStreams,
+        energyIntensity: 'High',
+        gwpContribution: eafRoute.stages.refining.gwpContribution,
+        wastageContribution: 20,
+        isCircularHighlight: true // Highlight as circular economy champion
+      },
+      {
+        id: 'smelting',
+        name: 'Ladle Refining',
+        emoji: '🔥',
+        icon: <Flame className="w-6 h-6" />,
+        color: 'orange',
+        bgColor: 'bg-orange-50',
+        borderColor: 'border-orange-300',
+        textColor: 'text-orange-700',
+        description: eafRoute.stages.smelting.description,
+        keyProcesses: eafRoute.stages.smelting.processes,
+        wasteStreams: eafRoute.stages.smelting.wasteStreams,
+        energyIntensity: 'Medium',
+        gwpContribution: eafRoute.stages.smelting.gwpContribution,
+        wastageContribution: 10
+      },
+      {
+        id: 'casting',
+        name: 'Continuous Casting',
+        emoji: '🏗️',
+        icon: <Building2 className="w-6 h-6" />,
+        color: 'slate',
+        bgColor: 'bg-slate-50',
+        borderColor: 'border-slate-300',
+        textColor: 'text-slate-700',
+        description: eafRoute.stages.casting.description,
+        keyProcesses: eafRoute.stages.casting.processes,
+        wasteStreams: eafRoute.stages.casting.wasteStreams,
+        energyIntensity: 'Medium',
+        gwpContribution: eafRoute.stages.casting.gwpContribution,
+        wastageContribution: 12
+      },
+      {
+        id: 'fabrication',
+        name: 'Rolling & Fabrication',
+        emoji: '🔧',
+        icon: <Wrench className="w-6 h-6" />,
+        color: 'blue',
+        bgColor: 'bg-blue-50',
+        borderColor: 'border-blue-300',
+        textColor: 'text-blue-700',
+        description: eafRoute.stages.fabrication.description,
+        keyProcesses: eafRoute.stages.fabrication.processes,
+        wasteStreams: eafRoute.stages.fabrication.wasteStreams,
+        energyIntensity: 'Medium',
+        gwpContribution: eafRoute.stages.fabrication.gwpContribution,
+        wastageContribution: 15
+      },
+      {
+        id: 'recycle',
+        name: 'Infinite Recyclability',
+        emoji: '♻️',
+        icon: <Recycle className="w-6 h-6" />,
+        color: 'emerald',
+        bgColor: 'bg-emerald-50',
+        borderColor: 'border-emerald-300',
+        textColor: 'text-emerald-700',
+        description: eafRoute.stages.recycle.description,
+        keyProcesses: eafRoute.stages.recycle.processes,
+        wasteStreams: eafRoute.stages.recycle.wasteStreams,
+        energyIntensity: 'Low',
+        gwpContribution: eafRoute.stages.recycle.gwpContribution,
+        wastageContribution: 30 // Closes the loop!
+      }
+    ]
+  }
+
+  // Zinc stages (Roast-Leach-Electrowin)
+  if (metalType === 'zinc') {
+    return [
+      {
+        id: 'mining',
+        name: 'Mining',
+        emoji: '⛏️',
+        icon: <Mountain className="w-6 h-6" />,
+        color: 'amber',
+        bgColor: 'bg-amber-50',
+        borderColor: 'border-amber-300',
+        textColor: 'text-amber-700',
+        description: ZINC_LIFECYCLE_DATA.stages.mining.description,
+        keyProcesses: ZINC_LIFECYCLE_DATA.stages.mining.processes,
+        wasteStreams: ZINC_LIFECYCLE_DATA.stages.mining.wasteStreams,
+        energyIntensity: 'Medium',
+        gwpContribution: ZINC_LIFECYCLE_DATA.stages.mining.gwpContribution,
+        wastageContribution: 12
+      },
+      {
+        id: 'beneficiation',
+        name: 'Beneficiation',
+        emoji: '🔬',
+        icon: <FlaskConical className="w-6 h-6" />,
+        color: 'purple',
+        bgColor: 'bg-purple-50',
+        borderColor: 'border-purple-300',
+        textColor: 'text-purple-700',
+        description: ZINC_LIFECYCLE_DATA.stages.beneficiation.description,
+        keyProcesses: ZINC_LIFECYCLE_DATA.stages.beneficiation.processes,
+        wasteStreams: ZINC_LIFECYCLE_DATA.stages.beneficiation.wasteStreams,
+        energyIntensity: 'Medium',
+        gwpContribution: ZINC_LIFECYCLE_DATA.stages.beneficiation.gwpContribution,
+        wastageContribution: 15
+      },
+      {
+        id: 'refining',
+        name: 'Roasting',
+        emoji: '🔥',
+        icon: <Flame className="w-6 h-6" />,
+        color: 'orange',
+        bgColor: 'bg-orange-50',
+        borderColor: 'border-orange-300',
+        textColor: 'text-orange-700',
+        description: ZINC_LIFECYCLE_DATA.stages.refining.description + ' (SO₂ captured for H₂SO₄)',
+        keyProcesses: ZINC_LIFECYCLE_DATA.stages.refining.processes,
+        wasteStreams: ZINC_LIFECYCLE_DATA.stages.refining.wasteStreams,
+        energyIntensity: 'High',
+        gwpContribution: ZINC_LIFECYCLE_DATA.stages.refining.gwpContribution,
+        wastageContribution: 18,
+        hasSO2Emission: true // Acidification indicator
+      },
+      {
+        id: 'smelting',
+        name: 'Leaching',
+        emoji: '⚗️',
+        icon: <FlaskConical className="w-6 h-6" />,
+        color: 'teal',
+        bgColor: 'bg-teal-50',
+        borderColor: 'border-teal-300',
+        textColor: 'text-teal-700',
+        description: ZINC_LIFECYCLE_DATA.stages.smelting.description,
+        keyProcesses: ZINC_LIFECYCLE_DATA.stages.smelting.processes,
+        wasteStreams: ZINC_LIFECYCLE_DATA.stages.smelting.wasteStreams,
+        energyIntensity: 'High',
+        gwpContribution: ZINC_LIFECYCLE_DATA.stages.smelting.gwpContribution,
+        wastageContribution: 15
+      },
+      {
+        id: 'casting',
+        name: 'Electrolysis',
+        emoji: '⚡',
+        icon: <Building2 className="w-6 h-6" />,
+        color: 'indigo',
+        bgColor: 'bg-indigo-50',
+        borderColor: 'border-indigo-300',
+        textColor: 'text-indigo-700',
+        description: ZINC_LIFECYCLE_DATA.stages.casting.description,
+        keyProcesses: ZINC_LIFECYCLE_DATA.stages.casting.processes,
+        wasteStreams: ZINC_LIFECYCLE_DATA.stages.casting.wasteStreams,
+        energyIntensity: 'Very High',
+        gwpContribution: ZINC_LIFECYCLE_DATA.stages.casting.gwpContribution,
+        wastageContribution: 15
+      },
+      {
+        id: 'fabrication',
+        name: 'Melting & Casting',
+        emoji: '🔧',
+        icon: <Wrench className="w-6 h-6" />,
+        color: 'blue',
+        bgColor: 'bg-blue-50',
+        borderColor: 'border-blue-300',
+        textColor: 'text-blue-700',
+        description: ZINC_LIFECYCLE_DATA.stages.fabrication.description,
+        keyProcesses: ZINC_LIFECYCLE_DATA.stages.fabrication.processes,
+        wasteStreams: ZINC_LIFECYCLE_DATA.stages.fabrication.wasteStreams,
+        energyIntensity: 'Medium',
+        gwpContribution: ZINC_LIFECYCLE_DATA.stages.fabrication.gwpContribution,
+        wastageContribution: 10
+      },
+      {
+        id: 'recycle',
+        name: 'Waelz Kiln Recovery',
+        emoji: '♻️',
+        icon: <Recycle className="w-6 h-6" />,
+        color: 'green',
+        bgColor: 'bg-green-50',
+        borderColor: 'border-green-300',
+        textColor: 'text-green-700',
+        description: ZINC_LIFECYCLE_DATA.stages.recycle.description,
+        keyProcesses: ZINC_LIFECYCLE_DATA.stages.recycle.processes,
+        wasteStreams: ZINC_LIFECYCLE_DATA.stages.recycle.wasteStreams,
+        energyIntensity: 'Medium',
+        gwpContribution: ZINC_LIFECYCLE_DATA.stages.recycle.gwpContribution,
+        wastageContribution: 15
+      }
+    ]
+  }
+
   // Return aluminum stages (default)
   return ALUMINUM_LIFECYCLE_STAGES
 }
@@ -439,7 +816,7 @@ export default function MetalLifecyclePage() {
   const [gwpContributions, setGwpContributions] = useState<Record<string, number>>(DEFAULT_GWP_CONTRIBUTIONS)
   const [isLoading, setIsLoading] = useState(true)
   const [recycledContent, setRecycledContent] = useState(0)
-  const [metalType, setMetalType] = useState<'aluminum' | 'lead'>('aluminum')
+  const [metalType, setMetalType] = useState<MetalType>('aluminum')
 
   const hasVerificationAccess = user?.tier === 'enterprise' || user?.features?.verification
   const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise' || user?.features?.cbam_export
@@ -468,8 +845,8 @@ export default function MetalLifecyclePage() {
 
         if (response.ok) {
           const data = await response.json()
-          
-          // If lead is detected, use lead-specific GWP contributions
+
+          // Set GWP contributions based on detected metal type
           if (detectedType === 'lead') {
             const leadGWP = {
               mining: LEAD_LIFECYCLE_DATA.stages.mining.gwpContribution,
@@ -481,11 +858,46 @@ export default function MetalLifecyclePage() {
               recycle: LEAD_LIFECYCLE_DATA.stages.recycle.gwpContribution
             }
             setGwpContributions(leadGWP)
+          } else if (detectedType === 'copper') {
+            const copperGWP = {
+              mining: COPPER_LIFECYCLE_DATA.stages.mining.gwpContribution,
+              beneficiation: COPPER_LIFECYCLE_DATA.stages.beneficiation.gwpContribution,
+              refining: COPPER_LIFECYCLE_DATA.stages.refining.gwpContribution,
+              smelting: COPPER_LIFECYCLE_DATA.stages.smelting.gwpContribution,
+              casting: COPPER_LIFECYCLE_DATA.stages.casting.gwpContribution,
+              fabrication: COPPER_LIFECYCLE_DATA.stages.fabrication.gwpContribution,
+              recycle: COPPER_LIFECYCLE_DATA.stages.recycle.gwpContribution
+            }
+            setGwpContributions(copperGWP)
+          } else if (detectedType === 'steel') {
+            // Use EAF route for steel (circular economy route)
+            const eafRoute = STEEL_LIFECYCLE_DATA.routes['eaf']
+            const steelGWP = {
+              mining: eafRoute.stages.mining.gwpContribution,
+              beneficiation: eafRoute.stages.beneficiation.gwpContribution,
+              refining: eafRoute.stages.refining.gwpContribution,
+              smelting: eafRoute.stages.smelting.gwpContribution,
+              casting: eafRoute.stages.casting.gwpContribution,
+              fabrication: eafRoute.stages.fabrication.gwpContribution,
+              recycle: eafRoute.stages.recycle.gwpContribution
+            }
+            setGwpContributions(steelGWP)
+          } else if (detectedType === 'zinc') {
+            const zincGWP = {
+              mining: ZINC_LIFECYCLE_DATA.stages.mining.gwpContribution,
+              beneficiation: ZINC_LIFECYCLE_DATA.stages.beneficiation.gwpContribution,
+              refining: ZINC_LIFECYCLE_DATA.stages.refining.gwpContribution,
+              smelting: ZINC_LIFECYCLE_DATA.stages.smelting.gwpContribution,
+              casting: ZINC_LIFECYCLE_DATA.stages.casting.gwpContribution,
+              fabrication: ZINC_LIFECYCLE_DATA.stages.fabrication.gwpContribution,
+              recycle: ZINC_LIFECYCLE_DATA.stages.recycle.gwpContribution
+            }
+            setGwpContributions(zincGWP)
           } else {
             const mappedStages = mapBackendToFrontendStages(data)
             setGwpContributions(mappedStages)
           }
-          
+
           setRecycledContent(data.summary?.avg_recycled_content || 0)
         }
       } catch (error) {
@@ -639,7 +1051,7 @@ export default function MetalLifecyclePage() {
                   )}
                 </div>
                 <p className="text-indigo-100 mt-1">
-                  {metalType === 'lead' 
+                  {metalType === 'lead'
                     ? 'Near-perfect circular loop: 50%+ of global supply from recycled sources'
                     : 'From extraction to end-of-life: Understanding the complete metal journey'}
                 </p>
@@ -699,7 +1111,7 @@ export default function MetalLifecyclePage() {
                   {metalType === 'lead' ? 'Cradle-to-Cradle Loop' : 'Circular Economy Loop'}
                 </h2>
                 <p className="text-green-100">
-                  {metalType === 'lead' 
+                  {metalType === 'lead'
                     ? <>Lead achieves <span className="font-bold">~99% battery recycling rate</span> and can be recycled <span className="font-bold">indefinitely</span> without quality loss. Secondary smelting uses <span className="font-bold">35-40% less energy</span> than primary production.</>
                     : <>Recycled metals bypass Mining → Smelting stages, saving <span className="font-bold">95% energy</span> and reducing CO₂ by <span className="font-bold">~17 kg/kg Al</span></>
                   }

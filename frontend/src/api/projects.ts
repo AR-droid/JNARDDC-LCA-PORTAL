@@ -1,4 +1,5 @@
 import api from './client'
+import { IndustryMode, ParameterVisibility } from '../utils/industryModeUtils'
 
 export interface Project {
   id: string
@@ -15,6 +16,8 @@ export interface Project {
   product_category?: string
   target_lifespan?: number
   is_designed_for_disassembly: boolean
+  industry_mode?: IndustryMode
+  parameter_visibility?: ParameterVisibility
   created_at: string
   updated_at: string
 }
@@ -32,6 +35,7 @@ export interface UpdateProjectData {
   description?: string
   status?: string
   target_lifespan?: number
+  industry_mode?: IndustryMode
 }
 
 export const projectsApi = {
@@ -137,6 +141,32 @@ export const projectsApi = {
     const response = await api.get(`/projects/${projectId}/verification/certificate`)
     return response.data
   },
+
+  /**
+   * Update industry mode for a project
+   */
+  updateIndustryMode: async (projectId: string, mode: IndustryMode): Promise<IndustryModeResult> => {
+    const response = await api.put(`/projects/${projectId}/industry-mode`, { mode })
+    return response.data
+  },
+
+  /**
+   * Auto-detect industry mode based on project materials
+   */
+  detectIndustryMode: async (projectId: string): Promise<IndustryModeResult> => {
+    const response = await api.post(`/projects/${projectId}/detect-industry-mode`)
+    return response.data
+  },
+}
+
+// Industry Mode Types
+export interface IndustryModeResult {
+  project_id: string
+  industry_mode: IndustryMode
+  parameter_visibility: ParameterVisibility
+  detected?: boolean
+  materials_analyzed?: number
+  message: string
 }
 
 export interface VerificationStatus {

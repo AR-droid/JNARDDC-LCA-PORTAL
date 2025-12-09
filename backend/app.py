@@ -1976,14 +1976,18 @@ def create_project():
         product_category = data.get('product_category', '')
         target_lifespan = data.get('target_lifespan')
         is_disassembly = data.get('is_designed_for_disassembly', False)
+        industry_mode = data.get('industry_mode', 'manufacturing')  # Default to manufacturing
         created_at = datetime.utcnow().isoformat()
         
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
-        c.execute("""INSERT INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        c.execute("""INSERT INTO projects (id, name, description, status, product_category, 
+                     target_lifespan, is_designed_for_disassembly, user_id, gwp_total, mci_score, 
+                     circular_design_score, created_at, industry_mode) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                   (project_id, name, description, status, product_category, 
                    target_lifespan, 1 if is_disassembly else 0, payload['user_id'], 
-                   0, 0, 0, created_at))  # gwp_total=0, mci_score=0, circular_design_score=0
+                   0, 0, 0, created_at, industry_mode))
         conn.commit()
         conn.close()
         
@@ -1995,6 +1999,8 @@ def create_project():
             "product_category": product_category,
             "target_lifespan": target_lifespan,
             "is_designed_for_disassembly": is_disassembly,
+            "industry_mode": industry_mode,
+            "parameter_visibility": get_parameter_visibility(industry_mode),
             "created_at": created_at
         }), 201
     except Exception as e:
@@ -2018,13 +2024,16 @@ def get_project(project_id):
         c = conn.cursor()
         c.execute("""SELECT id, name, description, status, product_category, 
                      target_lifespan, is_designed_for_disassembly, user_id, 
-                     COALESCE(gwp_total, 0) as gwp_total, created_at 
+                     COALESCE(gwp_total, 0) as gwp_total, created_at,
+                     COALESCE(industry_mode, 'manufacturing') as industry_mode
                      FROM projects WHERE id = ? AND user_id = ?""", (project_id, payload['user_id']))
         project = c.fetchone()
         conn.close()
         
         if not project:
             return jsonify({"detail": "Project not found"}), 404
+        
+        industry_mode = project[10] if project[10] else 'manufacturing'
         
         return jsonify({
             "id": project[0],
@@ -2036,7 +2045,9 @@ def get_project(project_id):
             "is_designed_for_disassembly": bool(project[6]) if project[6] is not None else False,
             "user_id": project[7],
             "gwp_total": float(project[8]) if project[8] is not None else 0.0,
-            "created_at": project[9]
+            "created_at": project[9],
+            "industry_mode": industry_mode,
+            "parameter_visibility": get_parameter_visibility(industry_mode)
         }), 200
     except Exception as e:
         print(f"Error: {e}")
@@ -2079,6 +2090,9 @@ def update_project(project_id):
         if 'target_lifespan' in data:
             updates.append("target_lifespan = ?")
             values.append(data['target_lifespan'])
+        if 'industry_mode' in data:
+            updates.append("industry_mode = ?")
+            values.append(data['industry_mode'])
         
         if not updates:
             return jsonify({"detail": "No fields to update"}), 400
@@ -2146,6 +2160,108 @@ def delete_project(project_id):
         return jsonify({"message": "Project deleted successfully"}), 200
     except Exception as e:
         print(f"Error: {e}")
+        return jsonify({"detail": str(e)}), 500
+
+
+# =====================================================
+# INDUSTRY MODE (MINING VS MANUFACTURING)
+# =====================================================
+
+@app.route('/api/v1/projects/<project_id>/industry-mode', methods=['PUT', 'OPTIONS'])
+def update_industry_mode(project_id):
+    """Update industry mode for a project (mining or manufacturing)"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        
+        data = request.get_json()
+        new_mode = data.get('mode', 'manufacturing')
+        
+        # Validate mode
+        if new_mode not in ['mining', 'manufacturing']:
+            return jsonify({"detail": "Invalid mode. Must be 'mining' or 'manufacturing'"}), 400
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Update industry mode
+        c.execute("UPDATE projects SET industry_mode = ? WHERE id = ? AND user_id = ?",
+                  (new_mode, project_id, payload['user_id']))
+        conn.commit()
+        
+        if c.rowcount == 0:
+            conn.close()
+            return jsonify({"detail": "Project not found"}), 404
+        
+        conn.close()
+        
+        return jsonify({
+            "project_id": project_id,
+            "industry_mode": new_mode,
+            "parameter_visibility": get_parameter_visibility(new_mode),
+            "message": f"Industry mode updated to {new_mode}"
+        }), 200
+    except Exception as e:
+        print(f"Error updating industry mode: {e}")
+        return jsonify({"detail": str(e)}), 500
+
+
+@app.route('/api/v1/projects/<project_id>/detect-industry-mode', methods=['POST', 'OPTIONS'])
+def detect_project_industry_mode(project_id):
+    """Auto-detect industry mode based on project materials"""
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Not authenticated"}), 401
+        
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # Get project materials
+        c.execute("""SELECT material_name FROM project_materials WHERE project_id = ?""", (project_id,))
+        materials = [{'material_name': row[0]} for row in c.fetchall()]
+        
+        if not materials:
+            conn.close()
+            return jsonify({
+                "project_id": project_id,
+                "industry_mode": "manufacturing",
+                "detected": False,
+                "message": "No materials found, defaulting to manufacturing"
+            }), 200
+        
+        # Detect industry mode
+        detected_mode = detect_industry_mode(materials)
+        
+        # Update project
+        c.execute("UPDATE projects SET industry_mode = ? WHERE id = ? AND user_id = ?",
+                  (detected_mode, project_id, payload['user_id']))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            "project_id": project_id,
+            "industry_mode": detected_mode,
+            "parameter_visibility": get_parameter_visibility(detected_mode),
+            "detected": True,
+            "materials_analyzed": len(materials),
+            "message": f"Auto-detected industry mode: {detected_mode}"
+        }), 200
+    except Exception as e:
+        print(f"Error detecting industry mode: {e}")
         return jsonify({"detail": str(e)}), 500
 
 
@@ -5475,6 +5591,95 @@ NLP_MATERIAL_PATTERNS = {
         'national_baseline_recycled': 0,
         'gwp_factor': 3.0,
         'scarcity_score': 5
+    },
+    # === MINING INPUT MATERIALS ===
+    'bauxite': {
+        'keywords': ['bauxite', 'bauxite ore', 'gibbsite', 'boehmite'],
+        'forms': ['ore', 'primary', 'crushed', 'washed'],
+        'default_type': 'bauxite_ore',
+        'recycled_type': 'bauxite_ore',  # No recycled form for raw ore
+        'national_baseline_recycled': 0,  # Raw materials have no recycled content
+        'gwp_factor': 0.5,
+        'scarcity_score': 30,
+        'lca_impacts': ['gwp', 'land_use', 'scarcity'],
+        'is_mining_material': True
+    },
+    'laterite': {
+        'keywords': ['laterite', 'overburden', 'waste rock', 'topsoil', 'soil removal'],
+        'forms': ['bulk', 'removed', 'stockpiled'],
+        'default_type': 'overburden',
+        'recycled_type': 'overburden',
+        'national_baseline_recycled': 0,
+        'gwp_factor': 0.1,
+        'scarcity_score': 5,
+        'lca_impacts': ['land_disturbance', 'waste', 'habitat_loss'],
+        'is_mining_material': True
+    },
+    'explosives': {
+        'keywords': ['explosives', 'anfo', 'ammonium nitrate', 'blasting', 'blast', 'detonator'],
+        'forms': ['anfo', 'emulsion', 'slurry', 'caps'],
+        'default_type': 'explosives_anfo',
+        'recycled_type': 'explosives_anfo',
+        'national_baseline_recycled': 0,
+        'gwp_factor': 3.2,
+        'scarcity_score': 10,
+        'lca_impacts': ['gwp', 'energy', 'toxicity'],
+        'is_mining_material': True
+    },
+    'diesel': {
+        'keywords': ['diesel', 'diesel fuel', 'hsd', 'high speed diesel', 'fuel oil', 'furnace oil'],
+        'forms': ['fuel', 'liters', 'litres', 'kiloliters'],
+        'default_type': 'diesel_fuel',
+        'recycled_type': 'diesel_fuel',
+        'national_baseline_recycled': 0,
+        'gwp_factor': 3.15,  # kg CO2-eq per liter
+        'scarcity_score': 15,
+        'lca_impacts': ['gwp', 'fossil_energy_use', 'air_pollution'],
+        'is_mining_material': True
+    },
+    'water': {
+        'keywords': ['water', 'process water', 'dust suppression', 'dust control', 'slurry water'],
+        'forms': ['liters', 'litres', 'kiloliters', 'cubic meters', 'm3'],
+        'default_type': 'process_water',
+        'recycled_type': 'recycled_water',
+        'national_baseline_recycled': 20,  # Some recycled water in mining
+        'gwp_factor': 0.001,  # Low direct GWP
+        'scarcity_score': 70,  # High in water-stressed regions
+        'lca_impacts': ['water_use', 'human_health', 'ecosystem_impacts'],
+        'is_mining_material': True
+    },
+    'lubricants': {
+        'keywords': ['lubricant', 'lubricants', 'hydraulic oil', 'hydraulic fluid', 'grease', 'gear oil', 'engine oil'],
+        'forms': ['oil', 'grease', 'fluid'],
+        'default_type': 'lubricants',
+        'recycled_type': 'lubricants',
+        'national_baseline_recycled': 5,
+        'gwp_factor': 0.9,
+        'scarcity_score': 20,
+        'lca_impacts': ['toxicity', 'resource_use', 'soil_contamination'],
+        'is_mining_material': True
+    },
+    'alumina': {
+        'keywords': ['alumina', 'aluminum oxide', 'al2o3', 'calcined alumina'],
+        'forms': ['powder', 'calcined', 'metallurgical', 'chemical'],
+        'default_type': 'alumina_smelter_grade',
+        'recycled_type': 'alumina_smelter_grade',
+        'national_baseline_recycled': 0,  # Alumina from Bayer process
+        'gwp_factor': 2.5,
+        'scarcity_score': 25,
+        'lca_impacts': ['gwp', 'energy', 'caustic_use'],
+        'is_mining_material': True
+    },
+    'red_mud': {
+        'keywords': ['red mud', 'bauxite residue', 'bayer residue'],
+        'forms': ['slurry', 'dried', 'filtered'],
+        'default_type': 'red_mud_waste',
+        'recycled_type': 'red_mud_waste',
+        'national_baseline_recycled': 0,
+        'gwp_factor': 0.05,
+        'scarcity_score': 0,  # Waste product
+        'lca_impacts': ['toxicity', 'land_use', 'alkaline_waste'],
+        'is_mining_material': True
     }
 }
 
@@ -5494,6 +5699,74 @@ PRODUCT_CATEGORIES = {
     'industrial_tools': ['tool', 'drill bit', 'cutting', 'milling', 'lathe', 'cnc'],
     'refractory': ['refractory', 'kiln', 'incinerator', 'boiler', 'heat exchanger']
 }
+
+# Industry mode detection keywords for Mining vs Manufacturing
+MINING_KEYWORDS = [
+    # General mining terms
+    'ore', 'concentrate', 'raw', 'extraction', 'mineral', 'mining', 'mine',
+    'quarry', 'pit', 'underground', 'open cast', 'open pit',
+    # Ore types
+    'iron ore', 'copper ore', 'manganese ore', 'chromite', 'laterite',
+    # Aluminium extraction specific
+    'bauxite', 'alumina', 'red mud', 'bayer process',
+    # Mining byproducts
+    'tailings', 'overburden', 'slag', 'gangue', 'waste rock',
+    # Mining operations
+    'beneficiation', 'crushing', 'grinding', 'flotation', 'leaching',
+    'drill', 'excavat', 'dredg', 'blast'
+]
+
+MANUFACTURING_KEYWORDS = [
+    'rod', 'wire', 'sheet', 'coil', 'tube', 'bar', 'plate', 'ingot', 'alloy',
+    'component', 'product', 'assembly', 'manufactured', 'processed', 'finished',
+    'extrusion', 'casting', 'forging', 'machined', 'fabricated'
+]
+
+# Parameter visibility configuration for each industry mode
+INDUSTRY_MODE_PARAMETERS = {
+    'mining': {
+        'show': ['gwp', 'water_usage', 'land_use', 'scarcity_score', 'energy_mining', 'waste_factors', 'transport_distance'],
+        'hide': ['mci_score', 'recyclability', 'recycled_content', 'end_of_life', 'design_for_disassembly', 'circular_design_score']
+    },
+    'manufacturing': {
+        'show': ['gwp', 'mci_score', 'recyclability', 'recycled_content', 'end_of_life', 'design_for_disassembly', 'circular_design_score', 'transport_distance'],
+        'hide': ['energy_mining', 'land_use']
+    }
+}
+
+def detect_industry_mode(materials):
+    """
+    Detect if project is mining or manufacturing based on material names.
+    
+    Args:
+        materials: List of material dicts with 'material_name' keys, or list of material name strings
+        
+    Returns:
+        'mining' if more mining keywords found, 'manufacturing' otherwise
+    """
+    # Handle both dict and string formats
+    if materials and isinstance(materials[0], dict):
+        material_names = ' '.join([m.get('material_name', '').lower() for m in materials])
+    else:
+        material_names = ' '.join([str(m).lower() for m in materials])
+    
+    mining_score = sum(1 for k in MINING_KEYWORDS if k in material_names)
+    manufacturing_score = sum(1 for k in MANUFACTURING_KEYWORDS if k in material_names)
+    
+    return 'mining' if mining_score > manufacturing_score else 'manufacturing'
+
+
+def get_parameter_visibility(industry_mode):
+    """
+    Get parameter visibility configuration for given industry mode.
+    
+    Args:
+        industry_mode: 'mining' or 'manufacturing'
+        
+    Returns:
+        Dict with 'show' and 'hide' lists of parameter names
+    """
+    return INDUSTRY_MODE_PARAMETERS.get(industry_mode, INDUSTRY_MODE_PARAMETERS['manufacturing'])
 
 
 def parse_nlp_input(description):
@@ -5779,17 +6052,38 @@ def parse_nlp_input(description):
         })
     
     # Create material entries
+    # First, detect if this is a mining project based on description
+    is_mining_project = any(keyword in description_lower for keyword in 
+        ['ore', 'mining', 'mine', 'bauxite', 'extraction', 'mineral', 'quarry', 
+         'pit', 'laterite', 'tailings', 'overburden', 'alumina', 'beneficiation'])
+    
     for i, mat in enumerate(detected_materials):
         quantity = quantities[i] if i < len(quantities) else quantities[0]
-        result['materials'].append({
+        material_entry = {
             'material_name': mat['name'],
             'material_type': mat['type'],
             'quantity': quantity,
             'unit': 'kg',
-            'recycled_content': mat['recycled_content'],
             'gwp_factor': mat['gwp_factor'],
             'transport_distance': 100  # Default transport distance
-        })
+        }
+        
+        # For mining projects, don't include recycled_content (not applicable for raw extraction)
+        # Instead, add mining-specific metrics
+        if is_mining_project:
+            material_entry['recycled_content'] = 0  # Raw materials have no recycled content
+            material_entry['scarcity_score'] = EMISSION_FACTORS.get(mat['material_key'], {}).get('scarcity_score', 5)
+            material_entry['energy_mining_kwh'] = EMISSION_FACTORS.get(mat['material_key'], {}).get('virgin', 10) * 0.5  # Estimate mining energy
+        else:
+            material_entry['recycled_content'] = mat['recycled_content']
+        
+        result['materials'].append(material_entry)
+    
+    # Add mining mode indicator to result
+    if is_mining_project:
+        result['industry_mode'] = 'mining'
+    else:
+        result['industry_mode'] = 'manufacturing'
     
     # === PRODUCT CATEGORY DETECTION ===
     
@@ -11858,6 +12152,14 @@ def init_db():
     except sqlite3.OperationalError:
         print("⚠️  Migrating projects table: adding circular_design_score column")
         c.execute("ALTER TABLE projects ADD COLUMN circular_design_score REAL DEFAULT 0")
+        conn.commit()
+    
+    # Migration: Add industry_mode column to projects table (mining/manufacturing toggle)
+    try:
+        c.execute("SELECT industry_mode FROM projects LIMIT 1")
+    except sqlite3.OperationalError:
+        print("⚠️  Migrating projects table: adding industry_mode column")
+        c.execute("ALTER TABLE projects ADD COLUMN industry_mode TEXT DEFAULT 'manufacturing'")
         conn.commit()
     
     # Migration: Add tier and tier_expires_at columns to users table

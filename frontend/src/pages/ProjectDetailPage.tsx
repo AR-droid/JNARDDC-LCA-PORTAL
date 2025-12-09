@@ -12,6 +12,7 @@ import ActionHotspots from '../components/ActionHotspots'
 import AlloyRecyclingAdvisor from '../components/AlloyRecyclingAdvisor'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon, UploadIcon, PlusIcon, PackageIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
+import { IndustryMode, shouldHideParameter } from '../utils/industryModeUtils'
 import {
   FileSpreadsheet,
   Sparkles,
@@ -115,6 +116,7 @@ export default function ProjectDetailPage() {
   const [scrapYardStats, setScrapYardStats] = useState<ScrapYardStats | null>(null)
   const [showScrapYardWidget, setShowScrapYardWidget] = useState(true)
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null)
+  const [industryMode, setIndustryMode] = useState<IndustryMode>('manufacturing')
 
   // Auto-hide notification after 5 seconds
   useEffect(() => {
@@ -167,12 +169,40 @@ export default function ProjectDetailPage() {
       ])
       setProject(projectData)
       setMaterials(materialsData)
+
+      // Auto-detect industry mode
+      if (materialsData.length > 0) {
+        // When materials exist, use backend detection API
+        try {
+          const result = await projectsApi.detectIndustryMode(id)
+          setIndustryMode(result.industry_mode)
+        } catch (error) {
+          console.error('Error auto-detecting industry mode:', error)
+          if (projectData.industry_mode) {
+            setIndustryMode(projectData.industry_mode)
+          }
+        }
+      } else {
+        // When no materials, detect from project name/description
+        const projectText = `${projectData.name || ''} ${projectData.description || ''}`.toLowerCase()
+        const miningKeywords = ['ore', 'mining', 'mine', 'bauxite', 'extraction', 'mineral', 'quarry', 'pit', 'laterite', 'tailings', 'overburden', 'alumina']
+        const hasMiningKeyword = miningKeywords.some(keyword => projectText.includes(keyword))
+
+        if (hasMiningKeyword) {
+          setIndustryMode('mining')
+        } else if (projectData.industry_mode) {
+          setIndustryMode(projectData.industry_mode)
+        }
+      }
     } catch (error) {
       console.error('Error loading project:', error)
     } finally {
       setIsLoading(false)
     }
   }
+
+  // Toggle industry mode (mining/manufacturing) - kept for potential future use
+  // but not exposed in UI - mode is now auto-detected
 
   const handleAIGapFill = async () => {
     if (!id) return
@@ -395,12 +425,15 @@ export default function ProjectDetailPage() {
               <span className="text-base">←</span> Back
             </button>
             <div className="w-px h-6 bg-gray-200 mx-1"></div>
-            <button
-              onClick={() => navigate(`/projects/${id}/analytics`)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
-            >
-              <ChartIcon size={16} /> Analytics
-            </button>
+            {/* Analytics - hide for mining mode */}
+            {!shouldHideParameter('mci_score', industryMode) && (
+              <button
+                onClick={() => navigate(`/projects/${id}/analytics`)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
+              >
+                <ChartIcon size={16} /> Analytics
+              </button>
+            )}
             <button
               onClick={() => navigate(`/projects/${id}/lcia`)}
               className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-teal-50 hover:text-teal-700 rounded-md transition-colors flex items-center gap-2"
@@ -478,6 +511,16 @@ export default function ProjectDetailPage() {
               )}
             </div>
             <div className="flex items-center gap-2">
+              {/* Industry Mode Indicator (Read-only, auto-detected) */}
+              <span
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 ${industryMode === 'mining'
+                  ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                  : 'bg-blue-100 text-blue-800 border border-blue-200'
+                  }`}
+                title={industryMode === 'mining' ? 'Mining mode - auto-detected from materials' : 'Manufacturing mode - auto-detected from materials'}
+              >
+                {industryMode === 'mining' ? '⛏️ Mining Mode' : '🏭 Manufacturing Mode'}
+              </span>
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${project.status === 'draft' ? 'bg-gray-100 text-gray-700' :
                 project.status === 'calculated' ? 'bg-green-100 text-green-700' :
                   'bg-blue-100 text-blue-700'
@@ -516,18 +559,35 @@ export default function ProjectDetailPage() {
               </div>
             </div>
 
-            <div className="relative rounded-md overflow-hidden bg-teal-50">
-              <img
-                src={mciImg}
-                className="absolute inset-0 w-full h-full object-cover opacity-30"
-              />
-              <div className="relative p-3">
-                <p className="text-xs font-medium text-teal-700">MCI Score</p>
-                <p className="text-xl font-semibold text-teal-900">{mciScore}</p>
-                <p className="text-2xs text-teal-600">Material Circularity</p>
-                <p className="text-2xs text-teal-500 italic mt-1">Ellen MacArthur Foundation</p>
+            {/* MCI Card - Only shown for Manufacturing mode */}
+            {!shouldHideParameter('mci_score', industryMode) && (
+              <div className="relative rounded-md overflow-hidden bg-teal-50">
+                <img
+                  src={mciImg}
+                  className="absolute inset-0 w-full h-full object-cover opacity-30"
+                />
+                <div className="relative p-3">
+                  <p className="text-xs font-medium text-teal-700">MCI Score</p>
+                  <p className="text-xl font-semibold text-teal-900">{mciScore}</p>
+                  <p className="text-2xs text-teal-600">Material Circularity</p>
+                  <p className="text-2xs text-teal-500 italic mt-1">Ellen MacArthur Foundation</p>
+                </div>
               </div>
-            </div>
+            )}
+            {/* Scarcity Score - Only shown for Mining mode */}
+            {shouldHideParameter('mci_score', industryMode) && (
+              <div className="relative rounded-md overflow-hidden bg-amber-50">
+                <div className="relative p-3">
+                  <p className="text-xs font-medium text-amber-700">Scarcity Score</p>
+                  <p className="text-xl font-semibold text-amber-900">
+                    {materials.length > 0
+                      ? Math.round(materials.reduce((sum, m) => sum + ((m as any).scarcity_score || 30), 0) / materials.length)
+                      : 'N/A'}
+                  </p>
+                  <p className="text-2xs text-amber-600">Resource Depletion</p>
+                </div>
+              </div>
+            )}
             <div className="relative rounded-md overflow-hidden bg-green-50">
               <img
                 src={materialsImg}
@@ -929,359 +989,375 @@ export default function ProjectDetailPage() {
         )}
       </div>
 
-      {showAddModal && (
-        <MaterialAddModal
-          projectId={id!}
-          onClose={() => setShowAddModal(false)}
-          onSuccess={handleMaterialAdded}
-        />
-      )}
+      {
+        showAddModal && (
+          <MaterialAddModal
+            projectId={id!}
+            onClose={() => setShowAddModal(false)}
+            onSuccess={handleMaterialAdded}
+          />
+        )
+      }
 
-      {editingMaterial && (
-        <MaterialEditModal
-          projectId={id!}
-          material={editingMaterial}
-          onClose={() => setEditingMaterial(null)}
-          onSuccess={() => {
-            setEditingMaterial(null)
-            loadData()
-          }}
-        />
-      )}
+      {
+        editingMaterial && (
+          <MaterialEditModal
+            projectId={id!}
+            material={editingMaterial}
+            onClose={() => setEditingMaterial(null)}
+            onSuccess={() => {
+              setEditingMaterial(null)
+              loadData()
+            }}
+          />
+        )
+      }
 
-      {showBOMUpload && (
-        <BOMUploadModal
-          projectId={id!}
-          onClose={() => setShowBOMUpload(false)}
-          onSuccess={handleMaterialAdded}
-        />
-      )}
+      {
+        showBOMUpload && (
+          <BOMUploadModal
+            projectId={id!}
+            onClose={() => setShowBOMUpload(false)}
+            onSuccess={handleMaterialAdded}
+          />
+        )
+      }
 
-      {showSupplyChainUpload && (
-        <SupplyChainUploadModal
-          projectId={id!}
-          onClose={() => setShowSupplyChainUpload(false)}
-          onSuccess={() => {
-            loadSupplyChain()
-            setShowSupplyChainUpload(false)
-          }}
-        />
-      )}
+      {
+        showSupplyChainUpload && (
+          <SupplyChainUploadModal
+            projectId={id!}
+            onClose={() => setShowSupplyChainUpload(false)}
+            onSuccess={() => {
+              loadSupplyChain()
+              setShowSupplyChainUpload(false)
+            }}
+          />
+        )
+      }
 
-      {showEditModal && project && (
-        <ProjectEditModal
-          isOpen={showEditModal}
-          onClose={() => setShowEditModal(false)}
-          onSubmit={handleUpdateProject}
-          project={project}
-        />
-      )}
+      {
+        showEditModal && project && (
+          <ProjectEditModal
+            isOpen={showEditModal}
+            onClose={() => setShowEditModal(false)}
+            onSubmit={handleUpdateProject}
+            project={project}
+          />
+        )
+      }
 
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Delete Project</h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete this project? This will also delete all {materials.length} associated material{materials.length !== 1 ? 's' : ''}. This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setShowDeleteConfirm(false)
-                  handleDeleteProject()
-                }}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                Delete Project
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* AI Gap Fill Results Modal */}
-      {showAIResultModal && aiGapFillResult && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col">
-            {/* Header */}
-            <div className="p-5 border-b bg-gradient-to-r from-pink-500 to-violet-500 text-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Sparkles className="w-6 h-6" />
-                  <div>
-                    <h3 className="text-xl font-bold">AI Gap Fill Results</h3>
-                    <p className="text-sm opacity-90">Powered by ML regression, classification & ensemble models</p>
-                  </div>
-                </div>
+      {
+        showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Delete Project</h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete this project? This will also delete all {materials.length} associated material{materials.length !== 1 ? 's' : ''}. This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
                 <button
-                  onClick={() => setShowAIResultModal(false)}
-                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                 >
-                  ✕
+                  Cancel
                 </button>
-              </div>
-            </div>
-
-            {/* Summary Stats */}
-            <div className="p-4 bg-gray-50 border-b">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-white p-3 rounded-lg border">
-                  <p className="text-2xl font-bold text-violet-600">{aiGapFillResult.total_gaps_filled || 0}</p>
-                  <p className="text-sm text-gray-600">Gaps Filled</p>
-                </div>
-                <div className="bg-white p-3 rounded-lg border">
-                  <p className="text-2xl font-bold text-pink-600">{aiGapFillResult.materials_processed || 0}</p>
-                  <p className="text-sm text-gray-600">Materials Processed</p>
-                </div>
-                <div className="bg-white p-3 rounded-lg border">
-                  <p className="text-2xl font-bold text-indigo-600">{aiGapFillResult.ai_models_used?.length || 0}</p>
-                  <p className="text-sm text-gray-600">AI Models Used</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4">
-              {/* Materials */}
-              <div className="mb-6">
-                <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                  <Package className="w-5 h-5 text-gray-800" />
-                  Materials Analysis
-                </h4>
-
-                {!aiGapFillResult.materials || aiGapFillResult.materials.length === 0 ? (
-                  <div className="bg-gray-50 rounded-lg p-6 text-center">
-                    <p className="text-gray-600">No materials in this project to analyze.</p>
-                    <p className="text-sm text-gray-400 mt-2">Add materials to your project first.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {aiGapFillResult.materials.map((material) => (
-                      <div key={material.material_id} className="bg-gray-50 rounded-lg p-4 border">
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <h5 className="font-medium text-gray-900">{material.material_name || 'Unknown Material'}</h5>
-                            <p className="text-sm text-gray-500">{material.material_type || 'Unknown Type'}</p>
-                          </div>
-                          <span className={`px-2 py-1 text-xs rounded-full ${(material.overall_confidence || 0) >= 0.7 ? 'bg-green-100 text-green-700' :
-                            (material.overall_confidence || 0) >= 0.5 ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-red-100 text-red-700'
-                            }`}>
-                            {Math.round((material.overall_confidence || 0) * 100)}% confidence
-                          </span>
-                        </div>
-
-                        {/* Gaps Filled */}
-                        {material.gaps_filled && material.gaps_filled.length > 0 && (
-                          <div className="mb-3">
-                            <p className="text-xs font-medium text-gray-600 mb-2">Values Estimated:</p>
-                            <div className="flex flex-wrap gap-2">
-                              {material.gaps_filled.map((gap, idx) => (
-                                <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-violet-100 text-violet-700 text-xs rounded">
-                                  <Sparkles size={10} />
-                                  {gap.field}: {typeof gap.value === 'number' ? gap.value.toFixed(2) : gap.value}
-                                  <span className="text-violet-500">({Math.round((gap.confidence || 0) * 100)}%)</span>
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* No Gaps Message */}
-                        {(!material.gaps_filled || material.gaps_filled.length === 0) && (
-                          <div className="mb-3">
-                            <p className="text-xs text-green-600">✓ All data complete - no gaps to fill</p>
-                          </div>
-                        )}
-
-                        {/* EOL Pathway */}
-                        <div className="flex items-center gap-4 text-sm flex-wrap">
-                          <div>
-                            <span className="text-gray-500">EOL Pathway:</span>
-                            <span className="ml-1 font-medium text-gray-700">
-                              {material.eol_pathway?.pathway || 'standard_recycling'}
-                            </span>
-                          </div>
-                          {material.impact_prediction?.gwp_estimate !== undefined && (
-                            <div>
-                              <span className="text-gray-500">GWP Est.:</span>
-                              <span className="ml-1 font-medium text-gray-700">
-                                {(material.impact_prediction.gwp_estimate || 0).toFixed(2)} kg CO₂e
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* AI Models Used */}
-              <div>
-                <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                  <Bot className="w-5 h-5 text-gray-800" />
-                  AI Models Used
-                </h4>
-
-                {aiGapFillResult.ai_models_used && aiGapFillResult.ai_models_used.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {aiGapFillResult.ai_models_used.map((model, idx) => (
-                      <div key={idx} className="bg-gradient-to-br from-violet-50 to-pink-50 rounded-lg p-3 border border-violet-100">
-                        <h5 className="font-medium text-violet-800">{model.name || (model as any).model}</h5>
-                        <p className="text-sm text-gray-600 mt-1">{model.purpose}</p>
-                        <p className="text-xs text-gray-500 mt-2 italic">{model.method || (model as any).technique}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-sm">No AI models information available.</p>
-                )}
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="p-4 border-t bg-gray-50 flex justify-end">
-              <button
-                onClick={() => setShowAIResultModal(false)}
-                className="px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-
-
-      {/* Floating Scrap Yard Connect Widget */}
-      {showScrapYardWidget && materials.length > 0 && scrapYardStats && (() => {
-        // Calculate virgin vs recycled content
-        const totalMass = materials.reduce((sum, m) => sum + m.quantity, 0)
-        const recycledMass = materials.reduce((sum, m) => sum + (m.quantity * (m.recycled_content || 0) / 100), 0)
-        const virginMass = totalMass - recycledMass
-        const virginPercentage = totalMass > 0 ? Math.round((virginMass / totalMass) * 100) : 0
-        const recycledPercentage = totalMass > 0 ? Math.round((recycledMass / totalMass) * 100) : 0
-        const recyclingPotential = Math.min(100 - recycledPercentage, 80) // Max 80% increase potential
-
-        return (
-          <div className="fixed bottom-6 right-24 z-30 animate-slide-in-right">
-            <div className="relative bg-green-600 rounded-2xl shadow-2xl shadow-green-200 p-5 max-w-sm border border-green-400/30 overflow-hidden group">
-              {/* Background decoration */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
-
-              {/* Close button */}
-              <button
-                onClick={() => setShowScrapYardWidget(false)}
-                className="absolute top-2 right-2 p-1 text-white/60 hover:text-white hover:bg-white/20 rounded-full transition"
-                aria-label="Close widget"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-
-              <div className="relative">
-                {/* Header */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-                    <Recycle className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-white">Scrap Yard Connect</h3>
-                      <span className="px-1.5 py-0.5 bg-yellow-400 text-yellow-900 text-xs font-bold rounded-full animate-pulse">
-                        NEW
-                      </span>
-                    </div>
-                    <p className="text-green-100 text-sm">Source recycled materials</p>
-                  </div>
-                </div>
-
-                {/* Virgin vs Recycled Content */}
-                <div className="mb-4 bg-white/10 backdrop-blur rounded-lg p-3">
-                  <p className="text-xs text-green-100 mb-2 font-medium">Current Material Mix</p>
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <a
-                      href={DIGITAL_TWIN_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-center group cursor-pointer hover:bg-white/10 rounded-lg p-2 -m-2 transition"
-                    >
-                      <p className="text-2xl font-bold text-white group-hover:text-yellow-300 transition">{virginPercentage}%</p>
-                      <p className="text-xs text-green-100 group-hover:text-yellow-200 flex items-center justify-center gap-1 transition">
-                        Virgin Content
-                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
-                      </p>
-                    </a>
-                    <a
-                      href={DIGITAL_TWIN_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-center group cursor-pointer hover:bg-white/10 rounded-lg p-2 -m-2 transition"
-                    >
-                      <p className="text-2xl font-bold text-white group-hover:text-yellow-300 transition">{recycledPercentage}%</p>
-                      <p className="text-xs text-green-100 group-hover:text-yellow-200 flex items-center justify-center gap-1 transition">
-                        Recycled Content
-                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
-                      </p>
-                    </a>
-                  </div>
-                  {/* Progress bar */}
-                  <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-white/80 transition-all duration-500"
-                      style={{ width: `${recycledPercentage}%` }}
-                    ></div>
-                  </div>
-                  {recyclingPotential > 0 && (
-                    <p className="text-xs text-green-100 mt-2 flex items-center gap-1">
-                      <TrendingDown className="w-3 h-3" />
-                      Add up to {recyclingPotential}% recycled content
-                    </p>
-                  )}
-                </div>
-
-                {/* Stats */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-white/10 backdrop-blur rounded-lg p-3 text-center">
-                    <p className="text-2xl font-bold text-white">{scrapYardStats.total_scrap_yards}</p>
-                    <p className="text-xs text-green-100">Scrap Yards</p>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur rounded-lg p-3 text-center">
-                    <p className="text-2xl font-bold text-white">₹{scrapYardStats.potential_savings_crores}Cr</p>
-                    <p className="text-xs text-green-100">Potential Savings</p>
-                  </div>
-                </div>
-
-                {/* Benefit highlight */}
-                <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-white/10 backdrop-blur rounded-lg">
-                  <TrendingDown className="w-4 h-4 text-green-200" />
-                  <p className="text-sm text-white">
-                    Get <span className="font-semibold">Plan A/B/C</span> sourcing options for your {materials.length} materials
-                  </p>
-                </div>
-
-                {/* CTA */}
-                <Link
-                  to={`/scrap-yard-connect?project=${id}`}
-                  className="w-full flex items-center justify-center gap-2 py-3 bg-white text-green-600 rounded-xl font-semibold hover:bg-green-50 transition group-hover:shadow-lg"
+                <button
+                  onClick={() => {
+                    setShowDeleteConfirm(false)
+                    handleDeleteProject()
+                  }}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                 >
-                  View Sourcing Options
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
+                  Delete Project
+                </button>
               </div>
             </div>
           </div>
         )
-      })()}
-    </div>
+      }
+
+      {/* AI Gap Fill Results Modal */}
+      {
+        showAIResultModal && aiGapFillResult && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="p-5 border-b bg-gradient-to-r from-pink-500 to-violet-500 text-white">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="w-6 h-6" />
+                    <div>
+                      <h3 className="text-xl font-bold">AI Gap Fill Results</h3>
+                      <p className="text-sm opacity-90">Powered by ML regression, classification & ensemble models</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowAIResultModal(false)}
+                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* Summary Stats */}
+              <div className="p-4 bg-gray-50 border-b">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-white p-3 rounded-lg border">
+                    <p className="text-2xl font-bold text-violet-600">{aiGapFillResult.total_gaps_filled || 0}</p>
+                    <p className="text-sm text-gray-600">Gaps Filled</p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border">
+                    <p className="text-2xl font-bold text-pink-600">{aiGapFillResult.materials_processed || 0}</p>
+                    <p className="text-sm text-gray-600">Materials Processed</p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border">
+                    <p className="text-2xl font-bold text-indigo-600">{aiGapFillResult.ai_models_used?.length || 0}</p>
+                    <p className="text-sm text-gray-600">AI Models Used</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {/* Materials */}
+                <div className="mb-6">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <Package className="w-5 h-5 text-gray-800" />
+                    Materials Analysis
+                  </h4>
+
+                  {!aiGapFillResult.materials || aiGapFillResult.materials.length === 0 ? (
+                    <div className="bg-gray-50 rounded-lg p-6 text-center">
+                      <p className="text-gray-600">No materials in this project to analyze.</p>
+                      <p className="text-sm text-gray-400 mt-2">Add materials to your project first.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {aiGapFillResult.materials.map((material) => (
+                        <div key={material.material_id} className="bg-gray-50 rounded-lg p-4 border">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h5 className="font-medium text-gray-900">{material.material_name || 'Unknown Material'}</h5>
+                              <p className="text-sm text-gray-500">{material.material_type || 'Unknown Type'}</p>
+                            </div>
+                            <span className={`px-2 py-1 text-xs rounded-full ${(material.overall_confidence || 0) >= 0.7 ? 'bg-green-100 text-green-700' :
+                              (material.overall_confidence || 0) >= 0.5 ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                              {Math.round((material.overall_confidence || 0) * 100)}% confidence
+                            </span>
+                          </div>
+
+                          {/* Gaps Filled */}
+                          {material.gaps_filled && material.gaps_filled.length > 0 && (
+                            <div className="mb-3">
+                              <p className="text-xs font-medium text-gray-600 mb-2">Values Estimated:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {material.gaps_filled.map((gap, idx) => (
+                                  <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-violet-100 text-violet-700 text-xs rounded">
+                                    <Sparkles size={10} />
+                                    {gap.field}: {typeof gap.value === 'number' ? gap.value.toFixed(2) : gap.value}
+                                    <span className="text-violet-500">({Math.round((gap.confidence || 0) * 100)}%)</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* No Gaps Message */}
+                          {(!material.gaps_filled || material.gaps_filled.length === 0) && (
+                            <div className="mb-3">
+                              <p className="text-xs text-green-600">✓ All data complete - no gaps to fill</p>
+                            </div>
+                          )}
+
+                          {/* EOL Pathway */}
+                          <div className="flex items-center gap-4 text-sm flex-wrap">
+                            <div>
+                              <span className="text-gray-500">EOL Pathway:</span>
+                              <span className="ml-1 font-medium text-gray-700">
+                                {material.eol_pathway?.pathway || 'standard_recycling'}
+                              </span>
+                            </div>
+                            {material.impact_prediction?.gwp_estimate !== undefined && (
+                              <div>
+                                <span className="text-gray-500">GWP Est.:</span>
+                                <span className="ml-1 font-medium text-gray-700">
+                                  {(material.impact_prediction.gwp_estimate || 0).toFixed(2)} kg CO₂e
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* AI Models Used */}
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <Bot className="w-5 h-5 text-gray-800" />
+                    AI Models Used
+                  </h4>
+
+                  {aiGapFillResult.ai_models_used && aiGapFillResult.ai_models_used.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {aiGapFillResult.ai_models_used.map((model, idx) => (
+                        <div key={idx} className="bg-gradient-to-br from-violet-50 to-pink-50 rounded-lg p-3 border border-violet-100">
+                          <h5 className="font-medium text-violet-800">{model.name || (model as any).model}</h5>
+                          <p className="text-sm text-gray-600 mt-1">{model.purpose}</p>
+                          <p className="text-xs text-gray-500 mt-2 italic">{model.method || (model as any).technique}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">No AI models information available.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t bg-gray-50 flex justify-end">
+                <button
+                  onClick={() => setShowAIResultModal(false)}
+                  className="px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+
+
+      {/* Floating Scrap Yard Connect Widget */}
+      {
+        showScrapYardWidget && materials.length > 0 && scrapYardStats && (() => {
+          // Calculate virgin vs recycled content
+          const totalMass = materials.reduce((sum, m) => sum + m.quantity, 0)
+          const recycledMass = materials.reduce((sum, m) => sum + (m.quantity * (m.recycled_content || 0) / 100), 0)
+          const virginMass = totalMass - recycledMass
+          const virginPercentage = totalMass > 0 ? Math.round((virginMass / totalMass) * 100) : 0
+          const recycledPercentage = totalMass > 0 ? Math.round((recycledMass / totalMass) * 100) : 0
+          const recyclingPotential = Math.min(100 - recycledPercentage, 80) // Max 80% increase potential
+
+          return (
+            <div className="fixed bottom-6 right-24 z-30 animate-slide-in-right">
+              <div className="relative bg-green-600 rounded-2xl shadow-2xl shadow-green-200 p-5 max-w-sm border border-green-400/30 overflow-hidden group">
+                {/* Background decoration */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
+
+                {/* Close button */}
+                <button
+                  onClick={() => setShowScrapYardWidget(false)}
+                  className="absolute top-2 right-2 p-1 text-white/60 hover:text-white hover:bg-white/20 rounded-full transition"
+                  aria-label="Close widget"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+
+                <div className="relative">
+                  {/* Header */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+                      <Recycle className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-white">Scrap Yard Connect</h3>
+                        <span className="px-1.5 py-0.5 bg-yellow-400 text-yellow-900 text-xs font-bold rounded-full animate-pulse">
+                          NEW
+                        </span>
+                      </div>
+                      <p className="text-green-100 text-sm">Source recycled materials</p>
+                    </div>
+                  </div>
+
+                  {/* Virgin vs Recycled Content */}
+                  <div className="mb-4 bg-white/10 backdrop-blur rounded-lg p-3">
+                    <p className="text-xs text-green-100 mb-2 font-medium">Current Material Mix</p>
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <a
+                        href={DIGITAL_TWIN_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-center group cursor-pointer hover:bg-white/10 rounded-lg p-2 -m-2 transition"
+                      >
+                        <p className="text-2xl font-bold text-white group-hover:text-yellow-300 transition">{virginPercentage}%</p>
+                        <p className="text-xs text-green-100 group-hover:text-yellow-200 flex items-center justify-center gap-1 transition">
+                          Virgin Content
+                          <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
+                        </p>
+                      </a>
+                      <a
+                        href={DIGITAL_TWIN_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-center group cursor-pointer hover:bg-white/10 rounded-lg p-2 -m-2 transition"
+                      >
+                        <p className="text-2xl font-bold text-white group-hover:text-yellow-300 transition">{recycledPercentage}%</p>
+                        <p className="text-xs text-green-100 group-hover:text-yellow-200 flex items-center justify-center gap-1 transition">
+                          Recycled Content
+                          <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
+                        </p>
+                      </a>
+                    </div>
+                    {/* Progress bar */}
+                    <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-white/80 transition-all duration-500"
+                        style={{ width: `${recycledPercentage}%` }}
+                      ></div>
+                    </div>
+                    {recyclingPotential > 0 && (
+                      <p className="text-xs text-green-100 mt-2 flex items-center gap-1">
+                        <TrendingDown className="w-3 h-3" />
+                        Add up to {recyclingPotential}% recycled content
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Stats */}
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="bg-white/10 backdrop-blur rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-white">{scrapYardStats.total_scrap_yards}</p>
+                      <p className="text-xs text-green-100">Scrap Yards</p>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-white">₹{scrapYardStats.potential_savings_crores}Cr</p>
+                      <p className="text-xs text-green-100">Potential Savings</p>
+                    </div>
+                  </div>
+
+                  {/* Benefit highlight */}
+                  <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-white/10 backdrop-blur rounded-lg">
+                    <TrendingDown className="w-4 h-4 text-green-200" />
+                    <p className="text-sm text-white">
+                      Get <span className="font-semibold">Plan A/B/C</span> sourcing options for your {materials.length} materials
+                    </p>
+                  </div>
+
+                  {/* CTA */}
+                  <Link
+                    to={`/scrap-yard-connect?project=${id}`}
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-white text-green-600 rounded-xl font-semibold hover:bg-green-50 transition group-hover:shadow-lg"
+                  >
+                    View Sourcing Options
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )
+        })()
+      }
+    </div >
   )
 }

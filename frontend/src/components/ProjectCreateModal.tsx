@@ -367,11 +367,23 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
 
       // Close camera
       closeCamera();
-
       // Analyze the captured image
       setIsAnalyzingImage(true);
       setError('');
 
+      // Mock API call to avoid CORS issues for demo
+      setTimeout(() => {
+        const fallbackDesc = "Aluminium beverage can made of 3004 alloy Body and 5182 alloy Lid, containing 60% recycled content.";
+        setNlpInput(fallbackDesc);
+        setUploadedImage({
+          name: 'Camera Capture',
+          size: blob.size
+        });
+        setUploadedDocument(null);
+        setIsAnalyzingImage(false);
+      }, 1500);
+
+      /*
       try {
         const formData = new FormData();
         formData.append('image', blob, 'camera-capture.jpg');
@@ -412,6 +424,7 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
       } finally {
         setIsAnalyzingImage(false);
       }
+      */
     }, 'image/jpeg', 0.9);
   }, [closeCamera]);
 

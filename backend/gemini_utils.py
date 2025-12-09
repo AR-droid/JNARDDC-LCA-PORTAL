@@ -235,20 +235,11 @@ def analyze_product_image(image_data: bytes, mime_type: str = "image/jpeg") -> O
         print(f"🔍 Analyzing product image ({len(image_data)} bytes, {mime_type})...")
         
         # Create the prompt for product analysis
-        analysis_prompt = """Analyze this product image and provide a detailed description suitable for Life Cycle Assessment (LCA).
-
-Please describe:
-1. **Product Type**: What is this product? (e.g., heat sink, motor, battery pack, circuit board)
-2. **Materials**: What materials appear to be used? Include estimates of quantities if possible (e.g., "approximately 5kg of aluminum")
-3. **Components**: List visible components and sub-assemblies
-4. **Manufacturing Processes**: What manufacturing processes were likely used? (e.g., CNC machining, die casting, welding, stamping)
-5. **Surface Treatments**: Any coatings, plating, or surface finishes visible?
-6. **Intended Use**: What is the likely application or use case?
-
-Format your response as a natural language description that could be used to create a Bill of Materials (BOM) for environmental impact assessment. Be specific about materials and quantities where possible.
+        analysis_prompt = """Analyze this product image and provide a SINGLE SENTENCE description suitable for Life Cycle Assessment (LCA).
+Identify the main product type, primary material, and any visible coatings or finish.
 
 Example format:
-"This is a [product type] made primarily of [material, estimated weight]. It includes [components] manufactured using [processes]. The surface appears to have [treatment]. It is likely used in [application] with an expected lifespan of [X] years."
+"Aluminium beverage can made of 3004 alloy body and 5182 alloy lid with internal food-grade epoxy coating."
 """
         
         # Create image part for the request
@@ -266,8 +257,9 @@ Example format:
         # Extract text response
         if response and hasattr(response, 'text') and response.text:
             description = response.text.strip()
-            print(f"✅ Product image analyzed successfully ({len(description)} chars)")
-            return description
+            if description:
+                print(f"✅ Product image analyzed successfully ({len(description)} chars)")
+                return description
         
         # Try alternative response structure
         if response and hasattr(response, 'candidates') and response.candidates:
@@ -276,10 +268,12 @@ Example format:
                     for part in candidate.content.parts:
                         if hasattr(part, 'text') and part.text:
                             description = part.text.strip()
-                            print(f"✅ Product image analyzed successfully ({len(description)} chars)")
-                            return description
+                            if description:
+                                print(f"✅ Product image analyzed successfully ({len(description)} chars)")
+                                return description
         
         print("⚠️ No text response from Gemini - using fallback description")
+        print("📦 Using fallback aluminum can description from gemini_utils")
         return FALLBACK_DESCRIPTION
         
     except Exception as e:

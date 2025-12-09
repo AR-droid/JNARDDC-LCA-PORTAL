@@ -3,7 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { 
   calculateProjectLCIA, 
   ProjectLCIAResult, 
-  LCIACategoryMetadata 
+  LCIACategoryMetadata,
+  projectsApi
 } from '../api/projects'
 import { 
   Droplets, 
@@ -24,6 +25,7 @@ import {
 } from 'lucide-react'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
+import { detectMetalType, LEAD_LIFECYCLE_DATA, ALUMINUM_LIFECYCLE_DATA } from '../utils/metalDetection'
 
 // Icon mapping for LCIA categories
 const categoryIcons: Record<string, JSX.Element> = {
@@ -152,6 +154,8 @@ export default function LCIAPage() {
   const [expandedMaterials, setExpandedMaterials] = useState<Set<number>>(new Set())
   const [showTooltip, setShowTooltip] = useState<string | null>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
+  const [metalType, setMetalType] = useState<'aluminum' | 'lead'>('aluminum')
+  const [projectDescription, setProjectDescription] = useState<string>('')
   
   const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
   const hasVerificationAccess = user?.tier === 'enterprise' || user?.features?.verification
@@ -175,9 +179,21 @@ export default function LCIAPage() {
 
   useEffect(() => {
     if (projectId) {
+      loadProjectData()
       loadLCIA()
     }
   }, [projectId, gridRegion])
+
+  const loadProjectData = async () => {
+    try {
+      const project = await projectsApi.getById(projectId!)
+      setProjectDescription(project.description || '')
+      const detectedType = detectMetalType(project.description)
+      setMetalType(detectedType)
+    } catch (err) {
+      console.error('Failed to load project data:', err)
+    }
+  }
 
   const loadLCIA = async () => {
     setIsLoading(true)
@@ -412,79 +428,143 @@ const toggleFlip = (key: string) => {
           <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
             <Zap className="w-6 h-6 mr-2 text-yellow-500" />
             Energy Consumption Breakdown
+            {metalType === 'lead' && (
+              <span className="ml-3 px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
+                Lead Lifecycle
+              </span>
+            )}
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-           <div
-  className="relative rounded-lg p-4 text-center bg-cover bg-center"
-  style={{ backgroundImage: "url('/images/mining.jpeg')" }}
->
-  <div className="absolute inset-0 bg-white/80"></div> {/* slight overlay */}
+          
+          {metalType === 'lead' ? (
+            /* Lead-specific energy breakdown */
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="relative rounded-lg p-4 text-center bg-cover bg-center" style={{ backgroundImage: "url('/images/mining.jpeg')" }}>
+                  <div className="absolute inset-0 bg-white/80"></div>
+                  <div className="relative z-10">
+                    <p className="text-sm font-medium text-amber-700">Mining & Extraction</p>
+                    <p className="text-3xl font-bold text-amber-800">{LEAD_LIFECYCLE_DATA.energyBreakdown.mining} kWh</p>
+                  </div>
+                </div>
+                
+                <div className="relative rounded-lg p-4 text-center bg-gradient-to-br from-blue-50 to-blue-100">
+                  <div className="relative z-10">
+                    <p className="text-sm font-medium text-blue-700">Beneficiation</p>
+                    <p className="text-3xl font-bold text-blue-800">{LEAD_LIFECYCLE_DATA.energyBreakdown.beneficiation} kWh</p>
+                  </div>
+                </div>
 
-  <div className="relative z-10">
-    <p className="text-sm font-medium text-amber-700">Mining</p>
-    <p className="text-3xl font-bold text-amber-800">
-      {formatValue(impacts.energy_breakdown.mining_kwh, 'kWh')} kWh
-    </p>
-  </div>
-</div>
+                <div className="relative rounded-lg p-4 text-center bg-gradient-to-br from-orange-50 to-orange-100">
+                  <div className="relative z-10">
+                    <p className="text-sm font-medium text-orange-700">Sintering</p>
+                    <p className="text-3xl font-bold text-orange-800">{LEAD_LIFECYCLE_DATA.energyBreakdown.sintering} kWh</p>
+                  </div>
+                </div>
 
+                <div className="relative rounded-lg p-6 text-center bg-cover bg-center" style={{ backgroundImage: "url('/images/smelting.jpg')" }}>
+                  <div className="absolute inset-0 bg-red-50/80 rounded-lg"></div>
+                  <div className="relative z-10">
+                    <p className="text-sm font-medium text-red-600">Blast Furnace</p>
+                    <p className="text-3xl font-bold text-red-700">{LEAD_LIFECYCLE_DATA.energyBreakdown.smelting} kWh</p>
+                  </div>
+                </div>
 
-          <div
-  className="relative rounded-lg p-6 text-center bg-cover bg-center"
-  style={{ backgroundImage: "url('/images/refi.jpg')" }}
->
-  {/* Soft white overlay for readability */}
-  <div className="absolute inset-0 bg-white/70 rounded-lg"></div>
+                <div className="relative rounded-lg p-4 text-center bg-gradient-to-br from-purple-50 to-purple-100">
+                  <div className="relative z-10">
+                    <p className="text-sm font-medium text-purple-700">Refining</p>
+                    <p className="text-3xl font-bold text-purple-800">{LEAD_LIFECYCLE_DATA.energyBreakdown.refining} kWh</p>
+                  </div>
+                </div>
 
-  {/* Content */}
-  <div className="relative z-10">
-    <p className="text-sm font-medium text-orange-600">Refining</p>
-    <p className="text-3xl font-bold text-orange-700">
-      {formatValue(impacts.energy_breakdown.refining_kwh, 'kWh')} kWh
-    </p>
-  </div>
-</div>
+                <div className="relative rounded-lg p-4 text-center bg-gradient-to-br from-green-50 to-green-100">
+                  <div className="relative z-10">
+                    <p className="text-sm font-medium text-green-700">Manufacturing</p>
+                    <p className="text-3xl font-bold text-green-800">{LEAD_LIFECYCLE_DATA.energyBreakdown.manufacturing} kWh</p>
+                  </div>
+                </div>
 
-            <div
-  className="relative rounded-lg p-6 text-center bg-cover bg-center"
-  style={{ backgroundImage: "url('/images/smelting.jpg')" }}
->
-  {/* Soft overlay (slight red tint like your screenshot) */}
-  <div className="absolute inset-0 bg-red-50/80 rounded-lg"></div>
+                <div className="relative rounded-lg p-4 text-center bg-gradient-to-br from-emerald-50 to-emerald-100">
+                  <div className="relative z-10">
+                    <p className="text-sm font-medium text-emerald-700">Recycling</p>
+                    <p className="text-3xl font-bold text-emerald-800">{LEAD_LIFECYCLE_DATA.energyBreakdown.recycling} kWh</p>
+                  </div>
+                </div>
 
-  {/* Content */}
-  <div className="relative z-10">
-    <p className="text-sm font-medium text-red-600">Smelting</p>
-    <p className="text-3xl font-bold text-red-700">
-      {formatValue(impacts.energy_breakdown.smelting_kwh, 'kWh')} kWh
-    </p>
-  </div>
-</div>
+                <div className="relative rounded-lg p-4 text-center bg-cover bg-center overflow-hidden" style={{ backgroundImage: "url('/images/totalpower.jpg')" }}>
+                  <div className="absolute inset-0 bg-white/70"></div>
+                  <div className="relative z-10">
+                    <p className="text-sm text-purple-700 font-medium">Total Energy</p>
+                    <p className="text-2xl font-bold text-purple-800">{LEAD_LIFECYCLE_DATA.totalEnergy} kWh</p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                <p className="text-sm text-gray-700 mb-2">
+                  <span className="font-semibold">Grid-related GWP:</span>{' '}
+                  <span className="text-red-600 font-bold">{LEAD_LIFECYCLE_DATA.gridGWP.toFixed(2)} kg CO₂-eq</span>
+                  {' '}(based on national average @ 0.82 kg CO₂/kWh)
+                </p>
+                <p className="text-sm text-blue-800 font-medium mt-2">
+                  ♻️ {LEAD_LIFECYCLE_DATA.recyclingBenefit}
+                </p>
+                <p className="text-sm text-indigo-700 mt-1">
+                  🔄 {LEAD_LIFECYCLE_DATA.circularityNote}
+                </p>
+              </div>
+            </>
+          ) : (
+            /* Aluminum energy breakdown (original) */
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="relative rounded-lg p-4 text-center bg-cover bg-center" style={{ backgroundImage: "url('/images/mining.jpeg')" }}>
+                  <div className="absolute inset-0 bg-white/80"></div>
+                  <div className="relative z-10">
+                    <p className="text-sm font-medium text-amber-700">Mining</p>
+                    <p className="text-3xl font-bold text-amber-800">
+                      {formatValue(impacts.energy_breakdown.mining_kwh, 'kWh')} kWh
+                    </p>
+                  </div>
+                </div>
 
-            <div
-  className="relative rounded-lg p-4 text-center bg-cover bg-center overflow-hidden"
-  style={{ backgroundImage: "url('/images/totalpower.jpg')" }}   // <-- your image path
->
-  {/* Soft overlay so text remains readable */}
-  <div className="absolute inset-0 bg-white/70"></div>
+                <div className="relative rounded-lg p-6 text-center bg-cover bg-center" style={{ backgroundImage: "url('/images/refi.jpg')" }}>
+                  <div className="absolute inset-0 bg-white/70 rounded-lg"></div>
+                  <div className="relative z-10">
+                    <p className="text-sm font-medium text-orange-600">Refining</p>
+                    <p className="text-3xl font-bold text-orange-700">
+                      {formatValue(impacts.energy_breakdown.refining_kwh, 'kWh')} kWh
+                    </p>
+                  </div>
+                </div>
 
-  {/* Foreground content */}
-  <div className="relative z-10">
-    <p className="text-sm text-purple-700 font-medium">Total Energy</p>
-    <p className="text-2xl font-bold text-purple-800">
-      {formatValue(impacts.energy_breakdown.total_kwh, 'kWh')} kWh
-    </p>
-  </div>
-</div>
+                <div className="relative rounded-lg p-6 text-center bg-cover bg-center" style={{ backgroundImage: "url('/images/smelting.jpg')" }}>
+                  <div className="absolute inset-0 bg-red-50/80 rounded-lg"></div>
+                  <div className="relative z-10">
+                    <p className="text-sm font-medium text-red-600">Smelting</p>
+                    <p className="text-3xl font-bold text-red-700">
+                      {formatValue(impacts.energy_breakdown.smelting_kwh, 'kWh')} kWh
+                    </p>
+                  </div>
+                </div>
 
-          </div>
-          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600">
-              <span className="font-semibold">Grid-related GWP:</span>{' '}
-              <span className="text-red-600 font-bold">{formatValue(impacts.grid_gwp, 'kg')} kg CO₂-eq</span>
-              {' '}(based on {gridRegion.replace(/_/g, ' ')} @ {lciaResult.grid_emission_factor} kg CO₂/kWh)
-            </p>
-          </div>
+                <div className="relative rounded-lg p-4 text-center bg-cover bg-center overflow-hidden" style={{ backgroundImage: "url('/images/totalpower.jpg')" }}>
+                  <div className="absolute inset-0 bg-white/70"></div>
+                  <div className="relative z-10">
+                    <p className="text-sm text-purple-700 font-medium">Total Energy</p>
+                    <p className="text-2xl font-bold text-purple-800">
+                      {formatValue(impacts.energy_breakdown.total_kwh, 'kWh')} kWh
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600">
+                  <span className="font-semibold">Grid-related GWP:</span>{' '}
+                  <span className="text-red-600 font-bold">{formatValue(impacts.grid_gwp, 'kg')} kg CO₂-eq</span>
+                  {' '}(based on {gridRegion.replace(/_/g, ' ')} @ {lciaResult.grid_emission_factor} kg CO₂/kWh)
+                </p>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Impact Categories Grid */}

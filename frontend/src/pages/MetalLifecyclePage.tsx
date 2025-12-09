@@ -24,6 +24,8 @@ import {
 } from 'lucide-react'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
+import { projectsApi } from '../api/projects'
+import { detectMetalType, LEAD_LIFECYCLE_DATA, ALUMINUM_LIFECYCLE_DATA } from '../utils/metalDetection'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
 
@@ -116,8 +118,124 @@ interface LifecycleStage {
   wastageContribution: number // percentage of total wastage
 }
 
-// Lifecycle stages data
-const LIFECYCLE_STAGES: LifecycleStage[] = [
+// Function to generate lifecycle stages based on metal type
+const getLifecycleStages = (metalType: 'aluminum' | 'lead'): LifecycleStage[] => {
+  if (metalType === 'lead') {
+    return [
+      {
+        id: 'mining',
+        name: 'Mining & Extraction',
+        emoji: '⛏️',
+        icon: <Mountain className="w-6 h-6" />,
+        color: 'amber',
+        bgColor: 'bg-amber-50',
+        borderColor: 'border-amber-300',
+        textColor: 'text-amber-700',
+        description: LEAD_LIFECYCLE_DATA.stages.mining.description,
+        keyProcesses: LEAD_LIFECYCLE_DATA.stages.mining.processes,
+        wasteStreams: LEAD_LIFECYCLE_DATA.stages.mining.wasteStreams,
+        energyIntensity: 'Medium',
+        gwpContribution: LEAD_LIFECYCLE_DATA.stages.mining.gwpContribution
+      },
+      {
+        id: 'beneficiation',
+        name: 'Beneficiation',
+        emoji: '🔬',
+        icon: <FlaskConical className="w-6 h-6" />,
+        color: 'purple',
+        bgColor: 'bg-purple-50',
+        borderColor: 'border-purple-300',
+        textColor: 'text-purple-700',
+        description: LEAD_LIFECYCLE_DATA.stages.beneficiation.description,
+        keyProcesses: LEAD_LIFECYCLE_DATA.stages.beneficiation.processes,
+        wasteStreams: LEAD_LIFECYCLE_DATA.stages.beneficiation.wasteStreams,
+        energyIntensity: 'Medium',
+        gwpContribution: LEAD_LIFECYCLE_DATA.stages.beneficiation.gwpContribution
+      },
+      {
+        id: 'refining',
+        name: 'Sintering',
+        emoji: '🔥',
+        icon: <Flame className="w-6 h-6" />,
+        color: 'orange',
+        bgColor: 'bg-orange-50',
+        borderColor: 'border-orange-300',
+        textColor: 'text-orange-700',
+        description: LEAD_LIFECYCLE_DATA.stages.refining.description,
+        keyProcesses: LEAD_LIFECYCLE_DATA.stages.refining.processes,
+        wasteStreams: LEAD_LIFECYCLE_DATA.stages.refining.wasteStreams,
+        energyIntensity: 'High',
+        gwpContribution: LEAD_LIFECYCLE_DATA.stages.refining.gwpContribution
+      },
+      {
+        id: 'smelting',
+        name: 'Blast Furnace Smelting',
+        emoji: '🏭',
+        icon: <Factory className="w-6 h-6" />,
+        color: 'red',
+        bgColor: 'bg-red-50',
+        borderColor: 'border-red-300',
+        textColor: 'text-red-700',
+        description: LEAD_LIFECYCLE_DATA.stages.smelting.description,
+        keyProcesses: LEAD_LIFECYCLE_DATA.stages.smelting.processes,
+        wasteStreams: LEAD_LIFECYCLE_DATA.stages.smelting.wasteStreams,
+        energyIntensity: 'Very High',
+        gwpContribution: LEAD_LIFECYCLE_DATA.stages.smelting.gwpContribution
+      },
+      {
+        id: 'casting',
+        name: 'Refining',
+        emoji: '⚗️',
+        icon: <Building2 className="w-6 h-6" />,
+        color: 'indigo',
+        bgColor: 'bg-indigo-50',
+        borderColor: 'border-indigo-300',
+        textColor: 'text-indigo-700',
+        description: LEAD_LIFECYCLE_DATA.stages.casting.description,
+        keyProcesses: LEAD_LIFECYCLE_DATA.stages.casting.processes,
+        wasteStreams: LEAD_LIFECYCLE_DATA.stages.casting.wasteStreams,
+        energyIntensity: 'Medium',
+        gwpContribution: LEAD_LIFECYCLE_DATA.stages.casting.gwpContribution
+      },
+      {
+        id: 'fabrication',
+        name: 'Manufacturing',
+        emoji: '🔧',
+        icon: <Wrench className="w-6 h-6" />,
+        color: 'blue',
+        bgColor: 'bg-blue-50',
+        borderColor: 'border-blue-300',
+        textColor: 'text-blue-700',
+        description: LEAD_LIFECYCLE_DATA.stages.fabrication.description,
+        keyProcesses: LEAD_LIFECYCLE_DATA.stages.fabrication.processes,
+        wasteStreams: LEAD_LIFECYCLE_DATA.stages.fabrication.wasteStreams,
+        energyIntensity: 'Medium',
+        gwpContribution: LEAD_LIFECYCLE_DATA.stages.fabrication.gwpContribution
+      },
+      {
+        id: 'recycle',
+        name: 'Battery Recycling',
+        emoji: '♻️',
+        icon: <Recycle className="w-6 h-6" />,
+        color: 'green',
+        bgColor: 'bg-green-50',
+        borderColor: 'border-green-300',
+        textColor: 'text-green-700',
+        description: LEAD_LIFECYCLE_DATA.stages.recycle.description,
+        keyProcesses: LEAD_LIFECYCLE_DATA.stages.recycle.processes,
+        wasteStreams: LEAD_LIFECYCLE_DATA.stages.recycle.wasteStreams,
+        energyIntensity: 'Low',
+        gwpContribution: LEAD_LIFECYCLE_DATA.stages.recycle.gwpContribution
+      }
+    ]
+  }
+  
+  // Return aluminum stages (default)
+  return ALUMINUM_LIFECYCLE_STAGES
+}
+
+// Lifecycle stages data (Aluminum)
+const ALUMINUM_LIFECYCLE_STAGES: LifecycleStage[] = [
   {
     id: 'mining',
     name: 'Mining',
@@ -321,19 +439,26 @@ export default function MetalLifecyclePage() {
   const [gwpContributions, setGwpContributions] = useState<Record<string, number>>(DEFAULT_GWP_CONTRIBUTIONS)
   const [isLoading, setIsLoading] = useState(true)
   const [recycledContent, setRecycledContent] = useState(0)
+  const [metalType, setMetalType] = useState<'aluminum' | 'lead'>('aluminum')
 
   const hasVerificationAccess = user?.tier === 'enterprise' || user?.features?.verification
   const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise' || user?.features?.cbam_export
 
   // Fetch analytics data and map to 7-stage model
   useEffect(() => {
-    const fetchAnalytics = async () => {
+    const fetchData = async () => {
       if (!id || !token) {
         setIsLoading(false)
         return
       }
 
       try {
+        // Fetch project data to detect metal type
+        const project = await projectsApi.getById(id)
+        const detectedType = detectMetalType(project.description)
+        setMetalType(detectedType)
+
+        // Fetch analytics data
         const response = await fetch(`${API_BASE}/projects/${id}/analytics`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -343,51 +468,64 @@ export default function MetalLifecyclePage() {
 
         if (response.ok) {
           const data = await response.json()
-          const mappedStages = mapBackendToFrontendStages(data)
-          setGwpContributions(mappedStages)
+          
+          // If lead is detected, use lead-specific GWP contributions
+          if (detectedType === 'lead') {
+            const leadGWP = {
+              mining: LEAD_LIFECYCLE_DATA.stages.mining.gwpContribution,
+              beneficiation: LEAD_LIFECYCLE_DATA.stages.beneficiation.gwpContribution,
+              refining: LEAD_LIFECYCLE_DATA.stages.refining.gwpContribution,
+              smelting: LEAD_LIFECYCLE_DATA.stages.smelting.gwpContribution,
+              casting: LEAD_LIFECYCLE_DATA.stages.casting.gwpContribution,
+              fabrication: LEAD_LIFECYCLE_DATA.stages.fabrication.gwpContribution,
+              recycle: LEAD_LIFECYCLE_DATA.stages.recycle.gwpContribution
+            }
+            setGwpContributions(leadGWP)
+          } else {
+            const mappedStages = mapBackendToFrontendStages(data)
+            setGwpContributions(mappedStages)
+          }
+          
           setRecycledContent(data.summary?.avg_recycled_content || 0)
         }
       } catch (error) {
-        console.error('Failed to fetch lifecycle analytics:', error)
+        console.error('Failed to fetch lifecycle data:', error)
         // Keep default values on error
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchAnalytics()
+    fetchData()
   }, [id, token])
 
-  // Create dynamic stages with fetched GWP values and dynamic wastage based on recycled content
-  const dynamicStages = LIFECYCLE_STAGES.map(stage => {
+  // Create dynamic stages with fetched GWP values based on metal type AND dynamic wastage
+  const baseStages = getLifecycleStages(metalType)
+  const dynamicStages = baseStages.map(stage => {
     const virginRatio = (100 - recycledContent) / 100; // 0-1, where 0 = 100% recycled
     const recycledRatio = recycledContent / 100; // 0-1, where 1 = 100% recycled
 
-    // Calculate dynamic wastage based on recycled content
+    // Calculate dynamic wastage based on recycled content (for aluminum)
     let dynamicWastage = stage.wastageContribution;
 
-    if (stage.id === 'mining') {
-      // Mining wastage decreases significantly with recycled content
-      dynamicWastage = Math.round(stage.wastageContribution * virginRatio);
-    } else if (stage.id === 'beneficiation') {
-      // Beneficiation also decreases with recycled content
-      dynamicWastage = Math.round(stage.wastageContribution * virginRatio);
-    } else if (stage.id === 'refining') {
-      // Refining decreases with recycled content
-      dynamicWastage = Math.round(stage.wastageContribution * virginRatio);
-    } else if (stage.id === 'smelting') {
-      // Smelting still generates waste but increases slightly with recycled (remelting)
-      dynamicWastage = Math.round(stage.wastageContribution * (0.3 + 0.7 * virginRatio) + 5 * recycledRatio);
-    } else if (stage.id === 'recycle') {
-      // Recycle stage increases with recycled content
-      dynamicWastage = Math.round(stage.wastageContribution * (0.5 + 1.5 * recycledRatio));
+    if (metalType === 'aluminum') {
+      if (stage.id === 'mining') {
+        dynamicWastage = Math.round(stage.wastageContribution * virginRatio);
+      } else if (stage.id === 'beneficiation') {
+        dynamicWastage = Math.round(stage.wastageContribution * virginRatio);
+      } else if (stage.id === 'refining') {
+        dynamicWastage = Math.round(stage.wastageContribution * virginRatio);
+      } else if (stage.id === 'smelting') {
+        dynamicWastage = Math.round(stage.wastageContribution * (0.3 + 0.7 * virginRatio) + 5 * recycledRatio);
+      } else if (stage.id === 'recycle') {
+        dynamicWastage = Math.round(stage.wastageContribution * (0.5 + 1.5 * recycledRatio));
+      }
     }
-    // Casting and Fabrication stay relatively constant
 
     return {
       ...stage,
       gwpContribution: gwpContributions[stage.id] || stage.gwpContribution,
-      wastageContribution: Math.max(dynamicWastage, 1) // Minimum 1%
+      wastageContribution: Math.max(dynamicWastage, 1)
     };
   });
 
@@ -490,11 +628,20 @@ export default function MetalLifecyclePage() {
                 <RotateCcw className="w-10 h-10 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
-                  Metal Lifecycle Flow
-                </h1>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
+                    {metalType === 'lead' ? 'Lead' : 'Metal'} Lifecycle Flow
+                  </h1>
+                  {metalType === 'lead' && (
+                    <span className="px-3 py-1 bg-blue-500 text-white text-sm font-bold rounded-full">
+                      Cradle-to-Cradle
+                    </span>
+                  )}
+                </div>
                 <p className="text-indigo-100 mt-1">
-                  From extraction to end-of-life: Understanding the complete metal journey
+                  {metalType === 'lead' 
+                    ? 'Near-perfect circular loop: 50%+ of global supply from recycled sources'
+                    : 'From extraction to end-of-life: Understanding the complete metal journey'}
                 </p>
               </div>
             </div>
@@ -514,7 +661,7 @@ export default function MetalLifecyclePage() {
                   <Leaf className="w-5 h-5 text-green-300" />
                   <span className="text-indigo-100 text-sm">Recycling Saves</span>
                 </div>
-                <p className="text-2xl font-bold text-white">95%</p>
+                <p className="text-2xl font-bold text-white">{metalType === 'lead' ? '35-40%' : '95%'}</p>
                 <p className="text-xs text-indigo-200">Energy vs Primary</p>
               </div>
               <div className="bg-white/15 backdrop-blur-sm rounded-xl p-4 border border-white/20">
@@ -548,9 +695,14 @@ export default function MetalLifecyclePage() {
                 <TrendingDown className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">Circular Economy Loop</h2>
+                <h2 className="text-xl font-bold text-white">
+                  {metalType === 'lead' ? 'Cradle-to-Cradle Loop' : 'Circular Economy Loop'}
+                </h2>
                 <p className="text-green-100">
-                  Recycled metals bypass Mining → Smelting stages, saving <span className="font-bold">95% energy</span> and reducing CO₂ by <span className="font-bold">~17 kg/kg Al</span>
+                  {metalType === 'lead' 
+                    ? <>Lead achieves <span className="font-bold">~99% battery recycling rate</span> and can be recycled <span className="font-bold">indefinitely</span> without quality loss. Secondary smelting uses <span className="font-bold">35-40% less energy</span> than primary production.</>
+                    : <>Recycled metals bypass Mining → Smelting stages, saving <span className="font-bold">95% energy</span> and reducing CO₂ by <span className="font-bold">~17 kg/kg Al</span></>
+                  }
                 </p>
               </div>
             </div>

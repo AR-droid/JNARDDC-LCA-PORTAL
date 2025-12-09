@@ -4,8 +4,7 @@ import { projectsApi, Project, MCIResult } from '../api/projects'
 import { materialsApi, Material } from '../api/materials'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
 import { FileSpreadsheet, Lock, BarChart3, Recycle, Target, Wrench, Truck, Microscope, Building2, RotateCcw } from 'lucide-react'
-
-// ... existing code ...
+import { IndustryMode, shouldHideParameter } from '../utils/industryModeUtils'
 
 import { useAuthStore } from '../stores/authStore'
 
@@ -19,6 +18,7 @@ export default function AnalysisPage() {
   const [mciResult, setMciResult] = useState<MCIResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isCalculatingMCI, setIsCalculatingMCI] = useState(false)
+  const [industryMode, setIndustryMode] = useState<IndustryMode>('manufacturing')
 
   const hasVerificationAccess = user?.tier === 'enterprise'
   const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
@@ -38,6 +38,29 @@ export default function AnalysisPage() {
       ])
       setProject(projectData)
       setMaterials(materialsData)
+      // Auto-detect industry mode
+      if (materialsData.length > 0) {
+        try {
+          const result = await projectsApi.detectIndustryMode(id)
+          setIndustryMode(result.industry_mode)
+        } catch (error) {
+          console.error('Error auto-detecting industry mode:', error)
+          if (projectData.industry_mode) {
+            setIndustryMode(projectData.industry_mode)
+          }
+        }
+      } else {
+        // When no materials, detect from project name/description
+        const projectText = `${projectData.name || ''} ${projectData.description || ''}`.toLowerCase()
+        const miningKeywords = ['ore', 'mining', 'mine', 'bauxite', 'extraction', 'mineral', 'quarry', 'pit', 'laterite', 'tailings', 'overburden', 'alumina']
+        const hasMiningKeyword = miningKeywords.some(keyword => projectText.includes(keyword))
+
+        if (hasMiningKeyword) {
+          setIndustryMode('mining')
+        } else if (projectData.industry_mode) {
+          setIndustryMode(projectData.industry_mode)
+        }
+      }
 
       // Calculate MCI if materials exist
       if (materialsData.length > 0) {
@@ -57,6 +80,8 @@ export default function AnalysisPage() {
       setIsLoading(false)
     }
   }
+
+  // Industry mode is now auto-detected, no manual toggle needed
 
   if (isLoading) {
     return (
@@ -255,13 +280,29 @@ export default function AnalysisPage() {
               </Link>
             )}
           </div>
-        </div>        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Project Analysis</h1>
-          <p className="text-gray-600">{project.name}</p>
         </div>
 
-        {/* MCI and Circular Design Score */}
-        {mciResult && (
+        {/* Industry Mode Indicator (Read-only, auto-detected) */}
+        <div className="bg-white rounded-lg shadow mb-6 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">{project.name}</h2>
+              <p className="text-sm text-gray-600">Project Analysis</p>
+            </div>
+            <span
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 ${industryMode === 'mining'
+                ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                : 'bg-blue-100 text-blue-800 border border-blue-200'
+                }`}
+              title={industryMode === 'mining' ? 'Mining mode - auto-detected from materials' : 'Manufacturing mode - auto-detected from materials'}
+            >
+              {industryMode === 'mining' ? '⛏️ Mining Mode' : '🏭 Manufacturing Mode'}
+            </span>
+          </div>
+        </div>
+
+        {/* MCI and Circular Design Score - Only for Manufacturing mode */}
+        {!shouldHideParameter('mci_score', industryMode) && mciResult && (
           <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-lg shadow p-6 mb-6 text-white">
             <h2 className="text-xl font-bold mb-4">Circularity Metrics</h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -293,6 +334,39 @@ export default function AnalysisPage() {
               >
                 <Microscope className="w-4 h-4" /> Run What-if Scenarios
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Mining Metrics - Only for Mining mode */}
+        {shouldHideParameter('mci_score', industryMode) && (
+          <div className="bg-gradient-to-r from-amber-500 to-orange-600 rounded-lg shadow p-6 mb-6 text-white">
+            <h2 className="text-xl font-bold mb-4">⛏️ Mining Impact Metrics</h2>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-white/20 rounded-lg p-4">
+                <p className="text-sm text-amber-100 mb-1">Scarcity Score (Avg)</p>
+                <p className="text-4xl font-bold">
+                  {materials.length > 0
+                    ? Math.round(materials.reduce((sum, m) => sum + ((m as any).scarcity_score || 30), 0) / materials.length)
+                    : 'N/A'}
+                </p>
+                <p className="text-xs text-amber-100">Resource Depletion Risk</p>
+              </div>
+              <div className="bg-white/20 rounded-lg p-4">
+                <p className="text-sm text-amber-100 mb-1">Total GWP</p>
+                <p className="text-4xl font-bold">{totalGWP.toFixed(1)}</p>
+                <p className="text-xs text-amber-100">kg CO₂-eq</p>
+              </div>
+              <div className="bg-white/20 rounded-lg p-4">
+                <p className="text-sm text-amber-100 mb-1">Materials Count</p>
+                <p className="text-4xl font-bold">{materials.length}</p>
+                <p className="text-xs text-amber-100">inputs tracked</p>
+              </div>
+              <div className="bg-white/20 rounded-lg p-4">
+                <p className="text-sm text-amber-100 mb-1">Total Mass</p>
+                <p className="text-4xl font-bold">{totalMass.toFixed(0)}</p>
+                <p className="text-xs text-amber-100">kg processed</p>
+              </div>
             </div>
           </div>
         )}
@@ -374,40 +448,42 @@ export default function AnalysisPage() {
           </div>
         </div>
 
-        {/* Recycled vs Virgin Content */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Recycled vs Virgin Content</h2>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="font-medium text-gray-700">Recycled Content</span>
-                <span className="text-gray-600">{totalRecycledMass.toFixed(2)} kg ({recycledPercentage.toFixed(1)}%)</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-8">
-                <div
-                  className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-8 rounded-full flex items-center justify-center"
-                  style={{ width: `${recycledPercentage}%` }}
-                >
-                  <span className="text-white text-sm font-bold">{recycledPercentage.toFixed(1)}%</span>
+        {/* Recycled vs Virgin Content - Only for Manufacturing mode */}
+        {!shouldHideParameter('recycled_content', industryMode) && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Recycled vs Virgin Content</h2>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="font-medium text-gray-700">Recycled Content</span>
+                  <span className="text-gray-600">{totalRecycledMass.toFixed(2)} kg ({recycledPercentage.toFixed(1)}%)</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-8">
+                  <div
+                    className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-8 rounded-full flex items-center justify-center"
+                    style={{ width: `${recycledPercentage}%` }}
+                  >
+                    <span className="text-white text-sm font-bold">{recycledPercentage.toFixed(1)}%</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="font-medium text-gray-700">Virgin Content</span>
-                <span className="text-gray-600">{totalVirginMass.toFixed(2)} kg ({virginPercentage.toFixed(1)}%)</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-8">
-                <div
-                  className="bg-gradient-to-r from-red-500 to-red-600 h-8 rounded-full flex items-center justify-center"
-                  style={{ width: `${virginPercentage}%` }}
-                >
-                  <span className="text-white text-sm font-bold">{virginPercentage.toFixed(1)}%</span>
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="font-medium text-gray-700">Virgin Content</span>
+                  <span className="text-gray-600">{totalVirginMass.toFixed(2)} kg ({virginPercentage.toFixed(1)}%)</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-8">
+                  <div
+                    className="bg-gradient-to-r from-red-500 to-red-600 h-8 rounded-full flex items-center justify-center"
+                    style={{ width: `${virginPercentage}%` }}
+                  >
+                    <span className="text-white text-sm font-bold">{virginPercentage.toFixed(1)}%</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Material Types Summary */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">

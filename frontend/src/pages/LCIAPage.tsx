@@ -1,17 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { 
-  calculateProjectLCIA, 
-  ProjectLCIAResult, 
+import {
+  calculateProjectLCIA,
+  ProjectLCIAResult,
   LCIACategoryMetadata,
   projectsApi
 } from '../api/projects'
-import { 
-  Droplets, 
-  Wind, 
-  Flame, 
-  Leaf, 
-  AlertTriangle, 
+import {
+  Droplets,
+  Wind,
+  Flame,
+  Leaf,
+  AlertTriangle,
   Zap,
   Mountain,
   Factory,
@@ -25,7 +25,7 @@ import {
 } from 'lucide-react'
 import { ChartIcon, AnalyticsIcon, AIIcon, FlaskIcon } from '../components/Icons'
 import { useAuthStore } from '../stores/authStore'
-import { detectMetalType, LEAD_LIFECYCLE_DATA, ALUMINUM_LIFECYCLE_DATA } from '../utils/metalDetection'
+import { detectMetalType, LEAD_LIFECYCLE_DATA } from '../utils/metalDetection'
 
 // Icon mapping for LCIA categories
 const categoryIcons: Record<string, JSX.Element> = {
@@ -154,9 +154,9 @@ export default function LCIAPage() {
   const [expandedMaterials, setExpandedMaterials] = useState<Set<number>>(new Set())
   const [showTooltip, setShowTooltip] = useState<string | null>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
-  const [metalType, setMetalType] = useState<'aluminum' | 'lead'>('aluminum')
-  const [projectDescription, setProjectDescription] = useState<string>('')
-  
+  const [metalType, setMetalType] = useState<'aluminum' | 'lead' | 'copper' | 'zinc' | 'steel'>('aluminum')
+  const [_projectDescription, setProjectDescription] = useState<string>('')
+
   const hasCBAMAccess = user?.tier === 'pro' || user?.tier === 'enterprise'
   const hasVerificationAccess = user?.tier === 'enterprise' || user?.features?.verification
 
@@ -209,9 +209,9 @@ export default function LCIAPage() {
   }
   const [flippedCard, setFlippedCard] = useState<string | null>(null);
 
-const toggleFlip = (key: string) => {
-  setFlippedCard(flippedCard === key ? null : key);
-};
+  const toggleFlip = (key: string) => {
+    setFlippedCard(flippedCard === key ? null : key);
+  };
 
 
   const toggleMaterial = (index: number) => {
@@ -333,35 +333,35 @@ const toggleFlip = (key: string) => {
                 onClick={() => navigate(`/projects/${projectId}/cbam-export`)}
                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-md transition-colors flex items-center gap-2"
               >
-              <FileSpreadsheet size={16} /> CBAM
-            </button>
-          ) : (
-            <Link
-              to="/pricing"
-              className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
-              title="CBAM Export requires Pro plan"
-            >
-              <Lock size={16} /> CBAM
-            </Link>
-          )}
-          {hasVerificationAccess ? (
-            <button
-              onClick={() => navigate(`/projects/${projectId}/verification`)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
-            >
-              <Building2 size={16} /> Verification
-            </button>
-          ) : (
-            <Link
-              to="/pricing"
-              className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
-              title="JNARDDC Verification requires Enterprise plan"
-            >
-              <Lock size={16} /> Verification
-            </Link>
-          )}
-        </div>
-      </div>        {/* Header */}
+                <FileSpreadsheet size={16} /> CBAM
+              </button>
+            ) : (
+              <Link
+                to="/pricing"
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+                title="CBAM Export requires Pro plan"
+              >
+                <Lock size={16} /> CBAM
+              </Link>
+            )}
+            {hasVerificationAccess ? (
+              <button
+                onClick={() => navigate(`/projects/${projectId}/verification`)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors flex items-center gap-2"
+              >
+                <Building2 size={16} /> Verification
+              </button>
+            ) : (
+              <Link
+                to="/pricing"
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:bg-gray-50 rounded-md transition-colors flex items-center gap-2"
+                title="JNARDDC Verification requires Enterprise plan"
+              >
+                <Lock size={16} /> Verification
+              </Link>
+            )}
+          </div>
+        </div>        {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
@@ -434,7 +434,7 @@ const toggleFlip = (key: string) => {
               </span>
             )}
           </h2>
-          
+
           {metalType === 'lead' ? (
             /* Lead-specific energy breakdown */
             <>
@@ -446,7 +446,7 @@ const toggleFlip = (key: string) => {
                     <p className="text-3xl font-bold text-amber-800">{LEAD_LIFECYCLE_DATA.energyBreakdown.mining} kWh</p>
                   </div>
                 </div>
-                
+
                 <div className="relative rounded-lg p-4 text-center bg-gradient-to-br from-blue-50 to-blue-100">
                   <div className="relative z-10">
                     <p className="text-sm font-medium text-blue-700">Beneficiation</p>
@@ -576,86 +576,86 @@ const toggleFlip = (key: string) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Object.entries(categories).map(([key, meta]: [string, LCIACategoryMetadata]) => {
               const value = impacts[key as keyof typeof impacts] as number
-             return (
-  <div
-    key={key}
-    className="relative h-44 cursor-pointer"
-    onClick={() => toggleFlip(key)}
-  >
-    <div
-      className={`
+              return (
+                <div
+                  key={key}
+                  className="relative h-44 cursor-pointer"
+                  onClick={() => toggleFlip(key)}
+                >
+                  <div
+                    className={`
         relative w-full h-full transition-transform duration-500
         ${flippedCard === key ? "rotate-y-180" : ""}
       `}
-      style={{ transformStyle: "preserve-3d" }}
-    >
-      {/* FRONT SIDE */}
-      <div
-        className="absolute inset-0 rounded-lg border-2 p-4 bg-cover bg-center"
-        style={{
-          backgroundImage: `url(${categoryImages[key]})`,
-          backfaceVisibility: "hidden",
-        }}
-      >
-        <div className="absolute inset-0 bg-white/70"></div>
+                    style={{ transformStyle: "preserve-3d" }}
+                  >
+                    {/* FRONT SIDE */}
+                    <div
+                      className="absolute inset-0 rounded-lg border-2 p-4 bg-cover bg-center"
+                      style={{
+                        backgroundImage: `url(${categoryImages[key]})`,
+                        backfaceVisibility: "hidden",
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-white/70"></div>
 
-        <div className="relative z-10">
-          <div className="flex items-center mb-2">
-            {categoryIcons[key]}
-            <span className="ml-2 font-bold text-sm text-gray-900 drop-shadow">
-              {meta.short_name}
-            </span>
-          </div>
+                      <div className="relative z-10">
+                        <div className="flex items-center mb-2">
+                          {categoryIcons[key]}
+                          <span className="ml-2 font-bold text-sm text-gray-900 drop-shadow">
+                            {meta.short_name}
+                          </span>
+                        </div>
 
-          <p className="text-2xl font-extrabold text-gray-900 drop-shadow-md">
-            {formatValue(value, meta.unit)}
-          </p>
+                        <p className="text-2xl font-extrabold text-gray-900 drop-shadow-md">
+                          {formatValue(value, meta.unit)}
+                        </p>
 
-          <p className="text-sm font-semibold text-gray-800 drop-shadow">
-            {meta.unit}
-          </p>
+                        <p className="text-sm font-semibold text-gray-800 drop-shadow">
+                          {meta.unit}
+                        </p>
 
-          <p className="text-sm mt-2 font-semibold text-gray-900 drop-shadow">
-            {meta.name}
-          </p>
-        </div>
-      </div>
+                        <p className="text-sm mt-2 font-semibold text-gray-900 drop-shadow">
+                          {meta.name}
+                        </p>
+                      </div>
+                    </div>
 
-      {/* BACK SIDE */}
-      <div
-        className="absolute inset-0 rounded-lg bg-gray-900 text-white p-4 overflow-auto"
-        style={{
-          transform: "rotateY(180deg)",
-          backfaceVisibility: "hidden",
-        }}
-      >
-        <h3 className="font-bold text-sm mb-2">
-          {meta.name} ({meta.short_name})
-        </h3>
+                    {/* BACK SIDE */}
+                    <div
+                      className="absolute inset-0 rounded-lg bg-gray-900 text-white p-4 overflow-auto"
+                      style={{
+                        transform: "rotateY(180deg)",
+                        backfaceVisibility: "hidden",
+                      }}
+                    >
+                      <h3 className="font-bold text-sm mb-2">
+                        {meta.name} ({meta.short_name})
+                      </h3>
 
-        <p className="text-xs text-gray-200 mb-2">
-          <span className="font-semibold">Definition: </span>
-          {categoryDefinitions[key].definition}
-        </p>
+                      <p className="text-xs text-gray-200 mb-2">
+                        <span className="font-semibold">Definition: </span>
+                        {categoryDefinitions[key].definition}
+                      </p>
 
-        <p className="text-xs text-gray-300 mb-2">
-          <span className="font-semibold text-white">Relevance: </span>
-          {categoryDefinitions[key].relevance}
-        </p>
+                      <p className="text-xs text-gray-300 mb-2">
+                        <span className="font-semibold text-white">Relevance: </span>
+                        {categoryDefinitions[key].relevance}
+                      </p>
 
-        <p className="text-xs text-gray-300">
-          <span className="font-semibold text-white">Example: </span>
-          {categoryDefinitions[key].example}
-        </p>
-      </div>
-    </div>
-  </div>
-);
+                      <p className="text-xs text-gray-300">
+                        <span className="font-semibold text-white">Example: </span>
+                        {categoryDefinitions[key].example}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
             })}
           </div>
         </div>
 
-            
+
 
         {/* Materials Breakdown */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -689,7 +689,7 @@ const toggleFlip = (key: string) => {
                     )}
                   </div>
                 </button>
-                
+
                 {expandedMaterials.has(index) && (
                   <div className="border-t border-gray-200 p-4 bg-gray-50">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
@@ -697,38 +697,38 @@ const toggleFlip = (key: string) => {
                         const value = mat.impacts[key as keyof typeof mat.impacts] as number
                         return (
                           <div
-  key={key}
-  className="relative rounded-lg p-3 bg-cover bg-center shadow-sm"
-  style={{
-    backgroundImage: `url(${categoryImages[key]})`
-  }}
->
-  {/* Overlay */}
-  <div className="absolute inset-0 bg-white/70 rounded-lg"></div>
+                            key={key}
+                            className="relative rounded-lg p-3 bg-cover bg-center shadow-sm"
+                            style={{
+                              backgroundImage: `url(${categoryImages[key]})`
+                            }}
+                          >
+                            {/* Overlay */}
+                            <div className="absolute inset-0 bg-white/70 rounded-lg"></div>
 
-  {/* Foreground content */}
-  <div className="relative z-10">
-    <p className="text-xs font-semibold text-gray-900 drop-shadow">
-      {meta.short_name}
-    </p>
+                            {/* Foreground content */}
+                            <div className="relative z-10">
+                              <p className="text-xs font-semibold text-gray-900 drop-shadow">
+                                {meta.short_name}
+                              </p>
 
-    <p className="text-lg font-extrabold text-gray-900 drop-shadow-md">
-      {formatValue(value, meta.unit)}
-    </p>
+                              <p className="text-lg font-extrabold text-gray-900 drop-shadow-md">
+                                {formatValue(value, meta.unit)}
+                              </p>
 
-    <p className="text-xs text-gray-700 font-medium drop-shadow">
-      {meta.unit}
-    </p>
-  </div>
-</div>
+                              <p className="text-xs text-gray-700 font-medium drop-shadow">
+                                {meta.unit}
+                              </p>
+                            </div>
+                          </div>
 
                         )
                       })}
                     </div>
                     <div className="mt-3 pt-3 border-t border-gray-200">
                       <p className="text-xs text-gray-500">
-                        Energy: Mining {mat.impacts.energy_breakdown.mining_kwh.toFixed(1)} kWh | 
-                        Refining {mat.impacts.energy_breakdown.refining_kwh.toFixed(1)} kWh | 
+                        Energy: Mining {mat.impacts.energy_breakdown.mining_kwh.toFixed(1)} kWh |
+                        Refining {mat.impacts.energy_breakdown.refining_kwh.toFixed(1)} kWh |
                         Smelting {mat.impacts.energy_breakdown.smelting_kwh.toFixed(1)} kWh
                       </p>
                     </div>
@@ -740,7 +740,7 @@ const toggleFlip = (key: string) => {
         </div>
 
         {/* Category Definitions */}
-       
+
       </div>
     </div>
   )

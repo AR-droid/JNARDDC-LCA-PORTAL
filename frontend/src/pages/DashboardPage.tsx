@@ -43,11 +43,11 @@ export default function DashboardPage() {
     try {
       const data = await projectsApi.list();
       setProjects(data.slice(0, 5)); // Recent 5 projects
-      
+
       const calculated = data.filter((p: any) => p.status === 'calculated' || p.status === 'verified').length;
       const totalGwp = data.reduce((sum: number, p: any) => sum + (p.gwp_total || 0), 0);
       const avgGwp = data.length > 0 ? totalGwp / data.length : 0;
-      
+
       setStats({
         total: data.length,
         calculated,
@@ -90,7 +90,7 @@ export default function DashboardPage() {
 
       <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Banner with Background */}
-        <div 
+        <div
           className="relative mb-8 rounded-xl overflow-hidden bg-cover bg-center"
           style={{ backgroundImage: "url('/images/banner.jpg')" }}
         >
@@ -140,12 +140,11 @@ export default function DashboardPage() {
                     <span>{user?.project_limit || 3} projects</span>
                   </div>
                   <div className="w-20 bg-white/20 rounded-full h-1.5">
-                    <div 
-                      className={`h-1.5 rounded-full transition-all ${
-                        (user?.project_count || 0) >= (user?.project_limit || 3) ? 'bg-red-300' :
+                    <div
+                      className={`h-1.5 rounded-full transition-all ${(user?.project_count || 0) >= (user?.project_limit || 3) ? 'bg-red-300' :
                         (user?.project_count || 0) >= (user?.project_limit || 3) - 1 ? 'bg-yellow-300' :
-                        'bg-white'
-                      }`}
+                          'bg-white'
+                        }`}
                       style={{ width: `${Math.min(((user?.project_count || 0) / (user?.project_limit || 3)) * 100, 100)}%` }}
                     ></div>
                   </div>
@@ -184,7 +183,7 @@ export default function DashboardPage() {
         ) : null}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div 
+          <div
             className="relative p-6 rounded-lg shadow overflow-hidden bg-cover bg-center"
             style={{ backgroundImage: "url('/images/project.jpg')" }}
           >
@@ -198,7 +197,7 @@ export default function DashboardPage() {
               </p>
             </div>
           </div>
-          <div 
+          <div
             className="relative p-6 rounded-lg shadow overflow-hidden bg-cover bg-center"
             style={{ backgroundImage: "url('/images/co2.jpg')" }}
           >
@@ -207,18 +206,18 @@ export default function DashboardPage() {
             <div className="relative z-10">
               <h3 className="text-lg font-semibold mb-2 text-white">Total Carbon Footprint</h3>
               <p className="text-4xl font-bold text-green-400">
-  {
-    analytics?.summary?.total_gwp
-      ? Intl.NumberFormat("en", { notation: "compact" }).format(analytics.summary.total_gwp)
-      : Intl.NumberFormat("en", { notation: "compact" }).format(stats.avgGwp)
-  }
-</p>
+                {
+                  analytics?.summary?.total_gwp
+                    ? Intl.NumberFormat("en", { notation: "compact" }).format(analytics.summary.total_gwp)
+                    : Intl.NumberFormat("en", { notation: "compact" }).format(stats.avgGwp)
+                }
+              </p>
 
               <p className="text-sm text-gray-200 mt-1">kg CO₂-eq across all projects</p>
               <p className="text-2xs text-gray-300 italic mt-1">Source: IPCC AR6, Ecoinvent 3.9</p>
             </div>
           </div>
-          <div 
+          <div
             className="relative p-6 rounded-lg shadow overflow-hidden bg-cover bg-center"
             style={{ backgroundImage: "url('/images/recycle.jpg')" }}
           >
@@ -322,11 +321,10 @@ export default function DashboardPage() {
                       <p className="text-sm text-gray-500">{project.product_category || 'No category'}</p>
                     </div>
                     <div className="text-right ml-4">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        project.status === 'draft' ? 'bg-gray-100 text-gray-700' :
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${project.status === 'draft' ? 'bg-gray-100 text-gray-700' :
                         project.status === 'calculated' ? 'bg-green-100 text-green-700' :
-                        'bg-blue-100 text-blue-700'
-                      }`}>
+                          'bg-blue-100 text-blue-700'
+                        }`}>
                         {project.status}
                       </span>
                       {project.gwp_total && typeof project.gwp_total === 'number' && project.gwp_total > 0 && (
@@ -343,23 +341,23 @@ export default function DashboardPage() {
         {/* Analytics Section - Circularity Overview */}
         {analytics && analytics.material_distribution && analytics.material_distribution.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-           <GWPBreakdownChart3D
-  data={analytics.material_distribution}
-  title="GWP Distribution by Material Type"
-/>
+            <GWPBreakdownChart3D
+              data={analytics.material_distribution}
+              title="GWP Distribution by Material Type"
+            />
 
             <div className="bg-white rounded-lg shadow p-2">
               <h3 className="text-xl font-bold text-gray-800 mb-4 text-center tracking-tight">
-  Circularity Overview
-</h3>
+                Circularity Overview
+              </h3>
 
               <div className="flex items-center justify-around">
-              <div className="w-[300px] h-[200px]">
-  <MCIGauge3D 
-    score={analytics.summary?.avg_mci || 0} 
-    label="Average MCI"
-  />
-</div>
+                <div className="w-[300px] h-[200px]">
+                  <MCIGauge3D
+                    score={analytics.summary?.avg_mci || 0}
+                    label="Average MCI"
+                  />
+                </div>
 
 
                 <div className="text-center">

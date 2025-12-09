@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useLanguageStore, useTranslation, Language } from '../stores/languageStore';
 import AIChatPanel from './AIChatPanel';
+import LCAEventsWidget from './LCAEventsWidget';
 import { Building, Star, Globe, ChevronDown, Recycle, Trophy } from 'lucide-react';
 
 interface NavbarProps {
@@ -486,6 +487,7 @@ export default function Layout({ children }: NavbarProps) {
             isOpen={isChatOpen}
             onClose={() => setIsChatOpen(false)}
           />
+          <LCAEventsWidget />
         </>
       )}
     </div>
